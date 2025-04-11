@@ -1,20 +1,33 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { getArticleBySlug, getArticle, getComments, type Article, type Comment } from '../../lib/firestore';
+import { getArticleBySlug, getArticle, getComments, getAuthors, type Article, type Comment, type Author } from '../../lib/firestore';
 import { useAuthorVariations } from '../../lib/useAuthorVariations';
 
 export default function ArticlePage() {
   const router = useRouter();
-  console.log('Router query:', router.query);
   const { slug, explain_box } = router.query;
   const [article, setArticle] = useState<Article | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { authorName, authorBio, authorPhoto, pubdate, siteName } = useAuthorVariations();
+  const { loading: authorLoading, authorName, authorBio, authorPhoto, pubdate, siteName } = useAuthorVariations();
 
   useEffect(() => {
-    console.log('Component mounted, slug:', slug);
+    const fetchAuthors = async () => {
+      try {
+        const authorsData = await getAuthors();
+        setAuthors(authorsData);
+      } catch (err) {
+        console.error('Error fetching authors:', err);
+      }
+    };
+
+    fetchAuthors();
+  }, []);
+
+  useEffect(() => {
+    // console.log('Component mounted, slug:', slug);
     const fetchData = async () => {
       if (!slug || typeof slug !== 'string') {
         console.log('Slug is not available or not a string:', slug);
@@ -25,13 +38,13 @@ export default function ArticlePage() {
         console.log('Fetching article with slug:', slug);
         // First try to get article by ID (for backward compatibility)
         let articleData = await getArticle(slug);
-        console.log('Article by ID result:', articleData);
+        // console.log('Article by ID result:', articleData);
         
         // If not found by ID, try to get by slug
         if (!articleData) {
-          console.log('Trying to fetch by slug');
+          // console.log('Trying to fetch by slug');
           articleData = await getArticleBySlug(slug);
-          console.log('Article by slug result:', articleData);
+          // console.log('Article by slug result:', articleData);
         }
 
         if (articleData && articleData.id) {
@@ -52,7 +65,7 @@ export default function ArticlePage() {
     fetchData();
   }, [slug]);
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading || authorLoading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
   if (!article) return <div className="p-4">Article not found</div>;
 
@@ -85,7 +98,7 @@ export default function ArticlePage() {
           )}
           <div>
             <p className="font-semibold">{authorName}</p>
-            <p className="text-sm text-gray-600">{pubdate}</p>
+            <p className="text-sm text-gray-600">{authorBio}</p>
           </div>
         </div>
 

@@ -9,8 +9,10 @@ import {
   orderBy,
   Timestamp,
   DocumentData,
-  QueryDocumentSnapshot
+  QueryDocumentSnapshot,
+  addDoc
 } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 // Types
 export interface Article {
@@ -40,12 +42,27 @@ export interface Comment {
   };
 }
 
+export interface Author {
+  id?: string;
+  name: string;
+  bio: {
+    personal: string;
+    basic: string;
+  };
+  image: {
+    src: string;
+    alt: string;
+  };
+  createdAt: typeof Timestamp;
+  updatedAt: typeof Timestamp;
+}
+
 // Articles
 export const getArticleBySlug = async (slug: string): Promise<Article | null> => {
-  console.log('Searching for article with slug:', slug);
+  // console.log('Searching for article with slug:', slug);
   const q = query(collection(db, 'articles'), where('slug', '==', slug));
   const querySnapshot = await getDocs(q);
-  console.log('Query results:', querySnapshot.empty ? 'No articles found' : 'Articles found');
+  // console.log('Query results:', querySnapshot.empty ? 'No articles found' : 'Articles found');
   if (querySnapshot.empty) {
     // Log all available slugs for debugging
     const allArticles = await getArticles();
@@ -77,4 +94,69 @@ export const getComments = async (articleId: string): Promise<Comment[]> => {
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as Comment));
+};
+
+export const getAuthors = async (): Promise<Author[]> => {
+  console.log('Starting to fetch authors...');
+  try {
+    const authorsRef = collection(db, 'authors');
+    const q = query(authorsRef);
+    const querySnapshot = await getDocs(q);
+    
+    console.log('Firestore query completed');
+    console.log('Snapshot empty?', querySnapshot.empty);
+    console.log('Snapshot size:', querySnapshot.size);
+    
+    const authors = querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
+      const data = doc.data();
+      console.log('Processing doc:', doc.id, 'with data:', data);
+      
+      return {
+        id: doc.id,
+        name: data.name || '',
+        bio: {
+          personal: data.bio.personal || '',
+          basic: data.bio.basic || ''
+        },
+        image: {
+          src: data.image || '/images/author-image.jpg',
+          alt: `${data.name || 'Author'} profile picture`
+        },
+        createdAt: data.pubDate || Timestamp.now(),
+        updatedAt: data.pubDate || Timestamp.now()
+      } as Author;
+    });
+    
+    console.log('Mapped authors:', authors);
+    return authors;
+  } catch (error) {
+    console.error('Error in getAuthors:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+    }
+    throw error;
+  }
+};
+
+export const createTestAuthor = async () => {
+  try {
+    const authorData = {
+      name: 'Test Author',
+      bio: 'This is a test author bio',
+      image: '/images/authors/test-author.jpg',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+
+    const docRef = await addDoc(collection(db, 'authors'), authorData);
+    console.log('Test author created with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating test author:', error);
+    throw error;
+  }
 }; 
