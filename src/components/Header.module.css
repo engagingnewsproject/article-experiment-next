@@ -7,4 +7,11 @@
 .siteTitle {
   font-size: 1.15rem;
   border-bottom: 1px solid var(--font-color);
+  display: flex;
+  justify-content: space-between;
 } 
+
+.homeLink {
+  font-size: 0.8rem;
+  color: var(--font-color);
+}
