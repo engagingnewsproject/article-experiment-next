@@ -21,6 +21,15 @@ export type Author = {
   id?: string;
   name: string;
   email: string;
+  bio?: {
+    personal: string;
+    basic: string;
+  };
+  image?: {
+    src: string;
+    alt: string;
+  };
+  createdAt?: string;
 };
 
 export async function getArticles(): Promise<Article[]> {
