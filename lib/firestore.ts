@@ -4,14 +4,10 @@ import {
   doc,
   getDoc,
   getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   Timestamp,
-  serverTimestamp,
   DocumentData,
   QueryDocumentSnapshot
 } from 'firebase/firestore';
@@ -44,25 +40,6 @@ export interface Comment {
   };
 }
 
-export interface UserInteraction {
-  articleId: string;
-  type: 'view' | 'comment' | 'share';
-  timestamp: typeof Timestamp;
-  metadata: {
-    userAgent: string;
-    ipAddress: string;
-    referrer: string;
-  };
-}
-
-// Helper function to generate slug from title
-const generateSlug = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric characters with hyphens
-    .replace(/(^-|-$)/g, ''); // Remove leading/trailing hyphens
-};
-
 // Articles
 export const getArticleBySlug = async (slug: string): Promise<Article | null> => {
   console.log('Searching for article with slug:', slug);
@@ -92,16 +69,6 @@ export const getArticles = async (): Promise<Article[]> => {
   return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as Article));
 };
 
-export const createArticle = async (article: Omit<Article, 'createdAt' | 'updatedAt'>) => {
-  const now = serverTimestamp();
-  const articleRef = await addDoc(collection(db, 'articles'), {
-    ...article,
-    createdAt: now,
-    updatedAt: now
-  });
-  return articleRef.id;
-};
-
 // Comments
 export const getComments = async (articleId: string): Promise<Comment[]> => {
   const q = query(
@@ -110,35 +77,4 @@ export const getComments = async (articleId: string): Promise<Comment[]> => {
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as Comment));
-};
-
-export const createComment = async (comment: Omit<Comment, 'createdAt'>) => {
-  const commentRef = await addDoc(collection(db, 'comments'), {
-    ...comment,
-    createdAt: serverTimestamp()
-  });
-  return commentRef.id;
-};
-
-// User Interactions
-export const logInteraction = async (interaction: Omit<UserInteraction, 'timestamp'>) => {
-  const interactionRef = await addDoc(collection(db, 'userInteractions'), {
-    ...interaction,
-    timestamp: serverTimestamp()
-  });
-  return interactionRef.id;
-};
-
-// Function to update existing articles with slugs
-export const updateArticlesWithSlugs = async (): Promise<void> => {
-  const articles = await getArticles();
-  
-  for (const article of articles) {
-    if (!article.slug) {
-      const slug = generateSlug(article.title);
-      const articleRef = doc(db, 'articles', article.id!);
-      await updateDoc(articleRef, { slug });
-      console.log(`Updated article "${article.title}" with slug: ${slug}`);
-    }
-  }
 }; 

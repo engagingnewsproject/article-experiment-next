@@ -7,8 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "update-slugs": "NODE_OPTIONS='--loader ts-node/esm' ts-node --esm lib/update-slugs.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@analytics/google-analytics": "^1.1.0",
