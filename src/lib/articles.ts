@@ -1,5 +1,5 @@
-import { db } from './firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Article } from '@/types/article';
 
 export async function getArticle(slug: string): Promise<Article> {
@@ -10,9 +10,24 @@ export async function getArticle(slug: string): Promise<Article> {
     throw new Error('Article not found');
   }
 
+  const data = articleSnap.data();
+  
+  // Transform the data to match our Article type
   return {
     id: articleSnap.id,
-    ...articleSnap.data(),
+    title: data.title,
+    author: {
+      name: data.metadata?.author || 'Anonymous',
+    },
+    pubdate: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+    content: data.content || '',
+    comments_display: true, // Default to true
+    anonymous: false, // Default to false
+    who_spoke_to: data.metadata?.tags || [],
+    explainBox: {
+      enabled: true, // Default to true
+      content: data.explanation || '',
+    },
   } as Article;
 }
 
