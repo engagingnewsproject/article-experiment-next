@@ -1,0 +1,54 @@
+.author__content {
+  display: flex;
+  gap: 2rem;
+  margin: 2rem 0;
+  padding: 2rem;
+  background-color: #f8f8f8;
+}
+
+.author__bio {
+  flex: 2;
+}
+
+.author__bio p {
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.author__bio h4 {
+  margin: 1.5rem 0 1rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.author__bio ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.author__bio li {
+  margin-bottom: 0.5rem;
+}
+
+.author__facts {
+  flex: 1;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.author__facts li {
+  margin-bottom: 1.5rem;
+}
+
+.author__facts h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.author__facts p {
+  margin: 0;
+  line-height: 1.4;
+} 

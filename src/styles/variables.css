@@ -1,0 +1,23 @@
+:root {
+  /* Colors */
+  --font-color: #333;
+  --font-color-light: #666;
+  --title-color: #333;
+  --primary-color: #333;
+  --secondary-color: #0A3348;
+  --link-color: #007ab8;
+  --link-hover-color: #0066a3;
+
+  /* Spacing */
+  --spacing-base: 1.6rem;
+
+  /* Typography */
+  --font-body: "adobe-text-pro", georgia, times, serif;
+  --font-title: "adobe-text-pro", georgia, times, serif;
+  --font-sans: Arial, Helvetica, sans-serif;
+
+  /* Breakpoints */
+  --breakpoint-mobile: 24rem;
+  --breakpoint-tablet: 34rem;
+  --breakpoint-desktop: 48rem;
+} 

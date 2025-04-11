@@ -23,7 +23,7 @@ export async function getArticle(slug: string): Promise<Article> {
     content: data.content || '',
     comments_display: true, // Default to true
     anonymous: false, // Default to false
-    who_spoke_to: data.metadata?.tags || [],
+    explain_box: data.metadata?.tags || [],
     explainBox: {
       enabled: true, // Default to true
       content: data.explanation || '',

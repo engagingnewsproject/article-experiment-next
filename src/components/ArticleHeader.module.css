@@ -1,0 +1,36 @@
+.header {
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 2.4rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0.6rem;
+  }
+}
+
+.extraHeaderInfo {
+  position: relative;
+}
+
+.author {
+  margin-bottom: 1rem;
+}
+
+.author__name {
+  font-size: 0.75rem;
+  margin: 0;
+  color: #666;
+}
+
+.author__job {
+  font-size: 0.75rem;
+  margin: 0;
+  color: #666;
+} 

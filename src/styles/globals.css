@@ -1,0 +1,235 @@
+/* Reset and Base Styles */
+html {
+  box-sizing: border-box;
+  font-size: 19px;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  color: #333;
+  font-family: "adobe-text-pro", georgia, times, serif;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  font-weight: 400;
+  background: #fff;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 1.3rem;
+  }
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "adobe-text-pro", georgia, times, serif;
+  color: #333;
+  clear: both;
+  margin: 0 0 0.2rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+h1 { font-size: 2.8rem; }
+h2 { font-size: 1.9rem; }
+h3 { font-size: 1.475rem; }
+h4 { font-size: 1.3rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+@media (min-width: 768px) {
+  h1 { font-size: 3.2rem; }
+  h2 { font-size: 2.2rem; }
+}
+
+p + h1, ul + h1,
+p + h2, ul + h2,
+p + h3, ul + h3,
+p + h4, ul + h4,
+p + h5, ul + h5,
+p + h6, ul + h6 {
+  margin-top: 1.8rem;
+}
+
+p {
+  font-size: 1rem;
+  margin-bottom: 1.6rem;
+  font-weight: 300;
+}
+
+ul, ol {
+  font-size: 1rem;
+  margin: 0 0 1.6rem 1.28rem;
+}
+
+ul { list-style: disc; }
+ol { list-style: decimal; }
+
+li > ul,
+li > ol {
+  margin-bottom: 0;
+  margin-left: 1.6rem;
+}
+
+/* Links */
+a {
+  color: #007ab8;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+a:hover,
+a:focus,
+a:active {
+  color: #0066a3;
+}
+
+/* SVG Icons */
+.icon {
+  height: 1.15em;
+  width: 1.15em;
+  position: relative;
+  top: 0.15em;
+  fill: #333;
+}
+
+a .icon,
+a:visited .icon {
+  fill: #007ab8;
+}
+
+a:hover .icon {
+  fill: #0066a3;
+}
+
+/* Screen Reader Text */
+.screen-reader-text {
+  clip: rect(1px, 1px, 1px, 1px);
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+}
+
+.screen-reader-text:focus {
+  background-color: #ddd;
+  border-radius: 3px;
+  box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.6);
+  clip: auto !important;
+  color: #444;
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  height: auto;
+  left: 5px;
+  line-height: normal;
+  padding: 15px 23px 14px;
+  text-decoration: none;
+  top: 5px;
+  width: auto;
+  z-index: 100000;
+}
+
+/* Animations */
+@keyframes slideInTop {
+  0% {
+    opacity: 0;
+    height: auto;
+    max-height: 0;
+  }
+  50% {
+    height: auto;
+    max-height: 200px;
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Structure and Layout */
+:root {
+  --desktop: 48rem;
+  --tablet: 34rem;
+  --mobile: 24rem;
+}
+
+/* Container and Clearfix */
+.container,
+.row,
+.clr,
+.group {
+  max-width: 840px;
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+@media (min-width: 768px) {
+  .container,
+  .row,
+  .clr,
+  .group {
+    margin: 0 auto;
+  }
+}
+
+.container:after,
+.row:after,
+.clr:after,
+.group:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Wide Container */
+.container--wide,
+.row--wide {
+  max-width: 840px;
+}
+
+header[role="banner"] {
+  margin-bottom: var(--spacing-base) * 0.5;
+}
+
+/* Responsive Breakpoints */
+@media (min-width: 34rem) {
+  .container--wide,
+  .row--wide {
+    max-width: 840px;
+  }
+}
+
+/* Mobile Only */
+@media (max-width: 33.99rem) {
+  .mobile-only {
+    /* Add mobile-only styles here */
+  }
+}
+
+/* Tablet Only */
+@media (min-width: 34rem) and (max-width: 47.99rem) {
+  .tablet-only {
+    /* Add tablet-only styles here */
+  }
+}
+
+/* Everything but Desktop */
+@media (max-width: 47.99rem) {
+  .everything-but-desktop {
+    /* Add non-desktop styles here */
+  }
+}
+
+/* Desktop */
+@media (min-width: 48rem) {
+  .desktop {
+    /* Add desktop styles here */
+  }
+} 

@@ -1,0 +1,10 @@
+.header {
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.siteTitle {
+  font-size: 1.15rem;
+  border-bottom: 1px solid var(--font-color);
+} 

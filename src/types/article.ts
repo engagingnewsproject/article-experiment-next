@@ -1,21 +1,21 @@
 export interface Article {
   id: string;
+  title: string;
+  content: string;
+  pubdate: string;
   author: {
     name: string;
     photo?: string;
     bio?: string;
   };
-  pubdate: string;
-  title: string;
   featuredImage?: string;
   comments_display: boolean;
   anonymous: boolean;
-  who_spoke_to?: string[];
+  explain_box?: string[];
   where_written?: string;
   editor?: string;
   corrections?: string;
   version_history?: string;
-  content: string;
   comments?: Array<{
     userId: string;
     content: string;
@@ -25,4 +25,17 @@ export interface Article {
     enabled: boolean;
     content?: string;
   };
+  metadata?: {
+    who_spoke_to?: string[];
+    where_written?: string;
+    editor?: string;
+    corrections?: string;
+    version_history?: string;
+    category?: string;
+    tags?: string[];
+  };
+  slug?: string;
+  createdAt?: typeof Timestamp;
+  updatedAt?: typeof Timestamp;
+  status?: 'draft' | 'published';
 } 

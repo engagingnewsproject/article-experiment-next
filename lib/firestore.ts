@@ -14,48 +14,8 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
-// Types
-export interface Article {
-  id?: string;
-  title: string;
-  content: string;
-  slug: string;
-  createdAt: typeof Timestamp;
-  updatedAt: typeof Timestamp;
-  status: 'draft' | 'published';
-  metadata: {
-    author: string;
-    category: string;
-    tags: string[];
-  };
-}
-
-export interface Comment {
-  id?: string;
-  articleId: string;
-  content: string;
-  createdAt: typeof Timestamp;
-  status: 'pending' | 'approved' | 'rejected';
-  metadata: {
-    userAgent: string;
-    ipAddress: string;
-  };
-}
-
-export interface Author {
-  id?: string;
-  name: string;
-  bio: {
-    personal: string;
-    basic: string;
-  };
-  image: {
-    src: string;
-    alt: string;
-  };
-  createdAt: typeof Timestamp;
-  updatedAt: typeof Timestamp;
-}
+// Import consolidated interfaces
+import { Article, Comment, Author } from '@/types/article'; // Adjust the path as necessary
 
 // Articles
 export const getArticleBySlug = async (slug: string): Promise<Article | null> => {

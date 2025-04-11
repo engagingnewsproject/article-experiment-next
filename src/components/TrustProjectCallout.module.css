@@ -1,0 +1,49 @@
+.trustProject {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 2rem 0;
+  padding: 1.5rem;
+}
+
+.trustProjectCallout__logo {
+  margin-bottom: 1rem;
+}
+
+.trustProject__logo {
+  display: inline-block;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.trustProject__svg {
+  fill: currentColor;
+  height: 24px;
+  width: 24px;
+}
+
+.trustProject__title {
+  display: inline-block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.trustProjectCallout__content {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.trustProjectCallout__content p {
+  margin: 0 0 1rem;
+}
+
+.trustProjectCallout__content a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.trustProjectCallout__content a:hover {
+  text-decoration: underline;
+} 

@@ -1,0 +1,79 @@
+.article {
+  margin-bottom: 2rem;
+  padding: 0 1.6rem;
+}
+
+.articleWrapped {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .articleWrapped {
+    display: flex;
+    gap: 2em;
+  }
+}
+
+.articleText {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .articleText {
+    width: 65%;
+  }
+}
+
+.articleExplanation {
+  width: 100%;
+  float: none;
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  .articleExplanation {
+    width: 35%;
+    float: right;
+  }
+}
+
+.articleImg {
+  display: block;
+  margin: 0 auto 1rem;
+}
+
+@media (min-width: 768px) {
+  .articleImg {
+    max-width: 150%;
+    margin-left: -20%;
+  }
+}
+
+.featuredImage {
+  margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+  .featuredImage {
+    margin-bottom: 2rem;
+  }
+}
+
+.featuredImage img {
+  margin-bottom: 0;
+}
+
+.featuredImage figcaption {
+  font-size: 0.8rem;
+}
+
+.byline {
+  font-size: 0.75rem;
+  margin-bottom: 0.6rem;
+  color: #666;
+}
+
+.trustIndicators {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #000;
+} 

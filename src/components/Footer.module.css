@@ -1,0 +1,17 @@
+.footer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.row {
+  width: 100%;
+}
+
+.copyright {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+} 
