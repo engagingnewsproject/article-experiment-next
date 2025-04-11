@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { getArticleBySlug, getArticle, getComments, type Article, type Comment } from '../../lib/firestore';
+import { useAuthorVariations } from '../../lib/useAuthorVariations';
 
 export default function ArticlePage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function ArticlePage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { authorName, authorBio, authorPhoto, pubdate, siteName } = useAuthorVariations();
 
   useEffect(() => {
     console.log('Component mounted, slug:', slug);
@@ -60,7 +62,7 @@ export default function ArticlePage() {
         <header className="mb-8">
           <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
           <div className="flex items-center space-x-4 text-gray-600">
-            <span>By {article.metadata.author}</span>
+            <span>By {authorName}</span>
             <span>•</span>
             <span>{article.metadata.category}</span>
           </div>
@@ -72,6 +74,24 @@ export default function ArticlePage() {
             <p>This is the explanation box content for {slug}.</p>
           </div>
         )}
+
+        <div className="flex items-center space-x-4 mb-8">
+          {authorPhoto && (
+            <img
+              src={authorPhoto.src}
+              alt={authorPhoto.alt}
+              className="w-16 h-16 rounded-full"
+            />
+          )}
+          <div>
+            <p className="font-semibold">{authorName}</p>
+            <p className="text-sm text-gray-600">{pubdate}</p>
+          </div>
+        </div>
+
+        <div className="mb-8 text-gray-700">
+          {authorBio}
+        </div>
 
         <div className="prose prose-lg lg:prose-xl max-w-none">
           <div dangerouslySetInnerHTML={{ __html: article.content }} />
