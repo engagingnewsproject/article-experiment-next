@@ -55,43 +55,53 @@ export default function ArticlePage() {
   if (!article) return <div className="p-4">Article not found</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <article className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
-        <div className="text-gray-600 mb-4">
-          By {article.metadata.author} • {article.metadata.category}
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <article className="prose prose-lg lg:prose-xl">
+        <header className="mb-8">
+          <h1 className="text-4xl font-bold mb-4">{article.title}</h1>
+          <div className="flex items-center space-x-4 text-gray-600">
+            <span>By {article.metadata.author}</span>
+            <span>•</span>
+            <span>{article.metadata.category}</span>
+          </div>
+        </header>
         
         {explain_box !== 'none' && (
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <h3 className="font-semibold mb-2">Explanation Box</h3>
+          <div className="bg-blue-50 p-6 rounded-lg mb-8 prose-p:my-0">
+            <h3 className="text-xl font-semibold mb-3">Explanation Box</h3>
             <p>This is the explanation box content for {slug}.</p>
           </div>
         )}
 
-        <div className="prose max-w-none">
-          {article.content}
+        <div className="prose prose-lg lg:prose-xl max-w-none">
+          <div dangerouslySetInnerHTML={{ __html: article.content }} />
         </div>
-        <div className="mt-4">
-          {article.metadata.tags.map(tag => (
-            <span key={tag} className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
-              {tag}
-            </span>
-          ))}
+
+        <div className="mt-8 pt-6 border-t">
+          <div className="flex flex-wrap gap-2">
+            {article.metadata.tags.map(tag => (
+              <span 
+                key={tag} 
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </article>
 
-      <section className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Comments</h2>
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold mb-6">Comments</h2>
         {comments.length === 0 ? (
-          <p>No comments yet</p>
+          <p className="text-gray-600">No comments yet</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {comments.map(comment => (
-              <div key={comment.id} className="border rounded-lg p-4">
-                <p className="text-gray-700">{comment.content}</p>
-                <div className="mt-2 text-sm text-gray-500">
-                  Status: {comment.status}
+              <div key={comment.id} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                <p className="text-gray-800">{comment.content}</p>
+                <div className="mt-3 text-sm text-gray-500">
+                  Status: <span className="font-medium">{comment.status}</span>
                 </div>
               </div>
             ))}
