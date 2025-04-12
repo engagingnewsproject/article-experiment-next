@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface Article {
   id: string;
   title: string;
@@ -38,7 +40,7 @@ export interface Article {
     tags?: string[];
   };
   slug?: string;
-  createdAt?: typeof Timestamp;
-  updatedAt?: typeof Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
   status?: 'draft' | 'published';
 } 

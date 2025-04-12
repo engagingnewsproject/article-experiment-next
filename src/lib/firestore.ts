@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
 export type Article = {
@@ -6,11 +6,22 @@ export type Article = {
   title: string;
   slug: string;
   content: string;
-  createdAt: Date;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
   anonymous?: boolean;
   pubdate: string;
   author: Author;
   comments_display: boolean;
+  explain_box?: string[];
+  metadata?: {
+    who_spoke_to?: string[];
+    where_written?: string;
+    editor?: string;
+    corrections?: string;
+    version_history?: string;
+    category?: string;
+    tags?: string[];
+  };
 };
 
 export type Comment = {

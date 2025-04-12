@@ -7,6 +7,7 @@ import { useAuthorVariations } from '@/lib/useAuthorVariations';
 import { Header } from '@/components/Header';
 import { ArticleContent } from '@/components/ArticleContent';
 import { Footer } from '@/components/Footer';
+import { Timestamp } from 'firebase/firestore';
 
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const searchParams = useSearchParams();
@@ -74,7 +75,9 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
               bio: authorBio,
               photo: authorPhoto?.src
             },
-            anonymous: article.anonymous || false
+            anonymous: article.anonymous || false,
+            createdAt: article.createdAt instanceof Date ? Timestamp.fromDate(article.createdAt) : article.createdAt,
+            updatedAt: article.updatedAt instanceof Date ? Timestamp.fromDate(article.updatedAt) : article.updatedAt
           }} 
           showExplainBox={!!explain_box} 
           explainBoxValue={explain_box || ''}

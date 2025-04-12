@@ -41,7 +41,7 @@ export function ArticleContent({ article, showExplainBox = false, explainBoxValu
           <div className={styles.articleWrapped}>
             <div className={styles.articleText} dangerouslySetInnerHTML={{ __html: article.content }} />
             <div className={styles.articleExplanation}>
-              <BehindTheStory explainBox={article.explain_box} article={article.metadata} />
+              <BehindTheStory explainBox={article.explain_box} article={article.metadata || {}} />
             </div>
           </div>
         ) : (
