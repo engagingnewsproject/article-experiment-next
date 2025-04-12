@@ -6,31 +6,24 @@ import { getArticleBySlug, getArticle, getComments, getAuthors, type Article, ty
 import { useAuthorVariations } from '@/lib/useAuthorVariations';
 import { Header } from '@/components/Header';
 import { ArticleContent } from '@/components/ArticleContent';
-import { Comments } from '@/components/Comments';
 import { Footer } from '@/components/Footer';
 
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const searchParams = useSearchParams();
   const explain_box = searchParams?.get('explain_box') || '';
+  const author_bio = searchParams?.get('author_bio') || 'basic';
   const [article, setArticle] = useState<Article | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { loading: authorLoading } = useAuthorVariations();
-
-  useEffect(() => {
-    const fetchAuthors = async () => {
-      try {
-        const authorsData = await getAuthors();
-        setAuthors(authorsData);
-      } catch (err) {
-        console.error('Error fetching authors:', err);
-      }
-    };
-
-    fetchAuthors();
-  }, []);
+  const { 
+    loading: authorLoading, 
+    authorName, 
+    authorBio, 
+    authorPhoto,
+    pubdate,
+    siteName 
+  } = useAuthorVariations();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,16 +64,23 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   return (
     <>
       <Header />
-      <ArticleContent 
-        article={article} 
-        showExplainBox={!!explain_box} 
-        explainBoxValue={explain_box || ''}
-      />
-      <Comments 
-        comments={comments} 
-        anonymous={article.anonymous} 
-        identifier={article.id || ''} 
-      />
+      <main>
+        <ArticleContent 
+          article={{ 
+            ...article, 
+            id: article.id || '',
+            author: {
+              name: authorName,
+              bio: authorBio,
+              photo: authorPhoto?.src
+            },
+            anonymous: article.anonymous || false
+          }} 
+          showExplainBox={!!explain_box} 
+          explainBoxValue={explain_box || ''}
+          comments={comments}
+        />
+      </main>
       <Footer />
     </>
   );

@@ -54,7 +54,10 @@ export function useAuthorVariations() {
     loading,
     error,
     authorName: loading ? '' : (currentAuthor?.name || defaultConfig.author.name),
-    authorBio: getAuthorBio(currentAuthor),
+    authorBio: {
+      personal: getAuthorBio(currentAuthor, 'personal'),
+      basic: getAuthorBio(currentAuthor, 'basic')
+    },
     authorPhoto: getAuthorPhoto(currentAuthor),
     pubdate: loading ? '' : (currentAuthor?.createdAt || defaultConfig.pubdate),
     siteName: defaultConfig.siteName

@@ -6,7 +6,10 @@ export interface Article {
   author: {
     name: string;
     photo?: string;
-    bio?: string;
+    bio?: {
+      personal?: string;
+      basic?: string;
+    };
   };
   featuredImage?: string;
   comments_display: boolean;

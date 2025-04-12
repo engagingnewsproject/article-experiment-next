@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_ANALYTICS_ID = "G-XXXXXXXXXX"  # Replace with your actual Google Analytics ID if needed
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs" 

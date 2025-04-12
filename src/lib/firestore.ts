@@ -8,6 +8,9 @@ export type Article = {
   content: string;
   createdAt: Date;
   anonymous?: boolean;
+  pubdate: string;
+  author: Author;
+  comments_display: boolean;
 };
 
 export type Comment = {
