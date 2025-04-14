@@ -15,7 +15,9 @@ A Next.js-based article experiment project focused on testing and implementing v
 
 ## Project Overview
 
-This project is designed to experiment with different article presentation formats and user engagement features. Key features include:
+This project is a Next.js-based article experiment platform designed to test and implement various article presentation formats and user engagement features. The project combines modern web technologies with innovative content presentation approaches.
+
+### Key Features
 
 - Dynamic author information with multiple bio variations
 - Explanation boxes for article context
@@ -24,18 +26,29 @@ This project is designed to experiment with different article presentation forma
 - Trust Project integration
 - Google Analytics integration
 
-## Tech Stack
+### Technical Stack
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: CSS Modules
-- **Database**: Firebase/Firestore
-- **Analytics**: Google Analytics
-- **Deployment**: Netlify
-- **Development Tools**:
-  - ESLint for code linting
-  - TypeScript for type safety
-  - SWC for fast compilation
+- **Frontend Framework**: Next.js with TypeScript
+- **Styling**: CSS Modules and global styles
+- **Architecture**: Component-based for modular development
+- **Configuration**: Environment variables
+- **Development Tools**: ESLint and TypeScript
+
+### Project Structure
+
+The project follows Next.js conventions with:
+- `/src` for main source code
+- `/pages` for Next.js pages
+- `/public` for static assets
+- `/lib` for utility functions
+- Component-based CSS organization
+
+This structure enables:
+- Clean separation of concerns
+- Modular component development
+- Efficient asset management
+- Organized utility functions
+- Maintainable styling approach
 
 ## Getting Started
 
@@ -114,24 +127,6 @@ Components are organized by feature and follow a consistent pattern:
 - **lib/firestore.ts**: Contains database operations
 - **lib/articles.ts**: Article-specific data utilities
 - **lib/config.ts**: Default configuration values
-
-## Project Summary
-
-This is a Next.js-based article experiment project focused on testing and implementing various article-related features. The project uses:
-
-- Next.js with TypeScript for the frontend framework
-- CSS Modules and global styles for styling
-- Component-based architecture for modular development
-- Environment variables for configuration
-- Modern development tools including ESLint and TypeScript
-
-The project structure follows Next.js conventions with:
-- `/src` for main source code
-- `/pages` for Next.js pages
-- `/public` for static assets
-- `/lib` for utility functions
-- Component-based CSS organization
-
 
 ## Environment Setup
 
