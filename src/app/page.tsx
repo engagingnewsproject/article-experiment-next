@@ -1,3 +1,19 @@
+/**
+ * Article page component that displays a single article with optional explanation box
+ * and author variations.
+ * 
+ * This component:
+ * - Fetches article data and comments from Firestore
+ * - Handles different author variations (name, bio, photo)
+ * - Supports explanation box display based on URL parameters
+ * - Manages loading and error states
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Object} props.params - Route parameters
+ * @param {string} props.params.slug - The article slug from the URL
+ * @returns {JSX.Element} The article page layout with content and controls
+ */
 'use client';
 
 import { useEffect, useState } from 'react';

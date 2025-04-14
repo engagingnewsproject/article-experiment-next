@@ -1,9 +1,34 @@
+/**
+ * TrustProjectCallout component that displays information about the Trust Project initiative.
+ * 
+ * This component:
+ * - Shows the Trust Project logo and title
+ * - Provides information about the Trust Project's mission
+ * - Includes links to learn more about the initiative
+ * - Maintains consistent styling with the application
+ * - Tracks referral URLs for analytics
+ * 
+ * @component
+ * @returns {JSX.Element} The Trust Project callout section
+ */
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './TrustProjectCallout.module.css';
 
+/**
+ * TrustProjectCallout component that renders information about the Trust Project.
+ * 
+ * This component:
+ * - Displays the Trust Project logo and branding
+ * - Provides educational content about the initiative
+ * - Includes navigation links with referral tracking
+ * - Uses CSS modules for styling
+ * - Maintains accessibility standards
+ * 
+ * @returns {JSX.Element} The rendered Trust Project callout
+ */
 export default function TrustProjectCallout() {
   const pathname = usePathname();
   const currentUrl = encodeURIComponent(pathname || '/');

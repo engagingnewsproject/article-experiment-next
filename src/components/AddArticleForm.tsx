@@ -1,13 +1,44 @@
+/**
+ * Form component for adding new articles to the application.
+ * 
+ * This component:
+ * - Provides a form interface for creating new articles
+ * - Handles form state management
+ * - Submits article data to Firestore
+ * - Displays success/error messages
+ * 
+ * @component
+ * @returns {JSX.Element} The article creation form
+ */
 import { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+/**
+ * AddArticleForm component that manages article creation.
+ * 
+ * This component:
+ * - Maintains form state for title, slug, and content
+ * - Handles form submission and validation
+ * - Manages error states
+ * - Provides user feedback
+ * 
+ * @returns {JSX.Element} The rendered article creation form
+ */
 const AddArticleForm = () => {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Adds a new article to the Firestore database.
+   * 
+   * @param {string} title - The title of the article
+   * @param {string} slug - The URL-friendly slug for the article
+   * @param {string} content - The content of the article
+   * @returns {Promise<void>} A promise that resolves when the article is added
+   */
   const addArticle = async (title: string, slug: string, content: string) => {
     const articlesCollection = collection(db, 'articles');
     await addDoc(articlesCollection, {
@@ -18,6 +49,19 @@ const AddArticleForm = () => {
     });
   };
 
+  /**
+   * Handles form submission.
+   * 
+   * This function:
+   * - Prevents default form submission
+   * - Calls addArticle with form data
+   * - Resets form fields on success
+   * - Displays success message
+   * - Handles and displays errors
+   * 
+   * @param {React.FormEvent} e - The form submission event
+   * @returns {Promise<void>} A promise that resolves when submission is complete
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {

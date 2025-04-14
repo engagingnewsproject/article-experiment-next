@@ -1,3 +1,16 @@
+/**
+ * Home page component that displays a list of articles with options to view them
+ * with or without explanation boxes.
+ * 
+ * This component:
+ * - Fetches articles from Firestore on mount
+ * - Displays loading and error states
+ * - Provides links to view articles with different explanation box configurations
+ * - Includes an AddArticleForm component for adding new articles
+ * 
+ * @component
+ * @returns {JSX.Element} The home page layout with article list and controls
+ */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,6 +22,11 @@ import { ArticleContent } from '@/components/ArticleContent';
 import { Footer } from '@/components/Footer';
 import { Timestamp } from 'firebase/firestore';
 
+/**
+ * Main home page component that manages article data and rendering.
+ * 
+ * @returns {JSX.Element} The rendered home page with article list
+ */
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const searchParams = useSearchParams();
   const explain_box = searchParams?.get('explain_box') || '';
@@ -26,6 +44,14 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     siteName 
   } = useAuthorVariations();
 
+  /**
+   * Fetches articles from Firestore and updates the component state.
+   * 
+   * This effect:
+   * - Runs once on component mount
+   * - Handles loading and error states
+   * - Updates the articles list on successful fetch
+   */
   useEffect(() => {
     const fetchData = async () => {
       if (!params.slug) {

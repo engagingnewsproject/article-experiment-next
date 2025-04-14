@@ -1,6 +1,33 @@
+/**
+ * BehindTheStory component that displays additional context and metadata about an article.
+ * 
+ * This component:
+ * - Shows the explanation of why the article was written
+ * - Lists sources and people interviewed
+ * - Displays article metadata (location, editor, corrections, version history)
+ * - Provides transparency about the article's creation process
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {string|string[]} [props.explainBox] - Explanation of why the article was written
+ * @param {Object} props.article - Article metadata
+ * @returns {JSX.Element} The behind-the-story section
+ */
 import React from 'react';
 import styles from './BehindTheStory.module.css';
 
+/**
+ * Props interface for the BehindTheStory component.
+ * 
+ * @interface BehindTheStoryProps
+ * @property {string|string[]} [explainBox] - Explanation of why the article was written
+ * @property {Object} article - Article metadata
+ * @property {string[]} [article.who_spoke_to] - List of people interviewed
+ * @property {string} [article.where_written] - Location where the article was written
+ * @property {string} [article.editor] - Name of the editor
+ * @property {string} [article.corrections] - Information about corrections made
+ * @property {string} [article.version_history] - History of article versions
+ */
 interface BehindTheStoryProps {
   explainBox?: string | string[];
   article: {
@@ -12,6 +39,19 @@ interface BehindTheStoryProps {
   };
 }
 
+/**
+ * BehindTheStory component that renders additional context about an article.
+ * 
+ * This component:
+ * - Displays the explanation box content if provided
+ * - Shows a list of people interviewed
+ * - Presents article metadata in organized sections
+ * - Uses CSS modules for consistent styling
+ * - Conditionally renders sections based on available data
+ * 
+ * @param {BehindTheStoryProps} props - Component props
+ * @returns {JSX.Element} The rendered behind-the-story section
+ */
 const BehindTheStory: React.FC<BehindTheStoryProps> = ({ explainBox, article }) => {
   const explainBoxArray = Array.isArray(explainBox) ? explainBox : explainBox ? [explainBox] : [];
   

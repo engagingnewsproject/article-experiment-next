@@ -1,3 +1,20 @@
+/**
+ * ArticleContent component that displays the main content of an article.
+ * 
+ * This component:
+ * - Renders the article header, content, and author bio
+ * - Handles explanation box display based on URL parameters
+ * - Integrates with Trust Project callout
+ * - Manages comments section
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Article} props.article - The article data to display
+ * @param {boolean} [props.showExplainBox=false] - Whether to show the explanation box
+ * @param {string} [props.explainBoxValue] - The value for the explanation box
+ * @param {Comment[]} [props.comments=[]] - Array of comments for the article
+ * @returns {JSX.Element} The article content layout
+ */
 import { Article } from '@/types/article';
 import { Comment } from '@/lib/firestore';
 import BehindTheStory from '@/components/BehindTheStory';
@@ -8,6 +25,15 @@ import { Comments } from '@/components/Comments';
 import styles from './ArticleContent.module.css';
 import { useSearchParams } from 'next/navigation';
 
+/**
+ * Props interface for the ArticleContent component.
+ * 
+ * @interface ArticleContentProps
+ * @property {Article} article - The article data to display
+ * @property {boolean} [showExplainBox=false] - Whether to show the explanation box
+ * @property {string} [explainBoxValue] - The value for the explanation box
+ * @property {Comment[]} [comments=[]] - Array of comments for the article
+ */
 interface ArticleContentProps {
   article: Article;
   showExplainBox?: boolean;
@@ -15,6 +41,19 @@ interface ArticleContentProps {
   comments?: Comment[];
 }
 
+/**
+ * Main article content component that orchestrates the display of article elements.
+ * 
+ * This component:
+ * - Renders the article header with title and metadata
+ * - Displays the author bio with configurable bio type
+ * - Shows article content with optional explanation box
+ * - Includes Trust Project callout
+ * - Manages the comments section
+ * 
+ * @param {ArticleContentProps} props - Component props
+ * @returns {JSX.Element} The complete article content layout
+ */
 export function ArticleContent({ article, showExplainBox = false, explainBoxValue, comments = [] }: ArticleContentProps) {
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get('author_bio') || 'basic';

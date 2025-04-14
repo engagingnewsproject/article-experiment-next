@@ -1,3 +1,27 @@
+/**
+ * Configuration types and defaults for the article system.
+ * 
+ * This module:
+ * - Defines interfaces for author and article configuration
+ * - Provides default values for article metadata
+ * - Ensures consistent author information across the application
+ * - Maintains type safety for configuration objects
+ * 
+ * @module config
+ */
+
+/**
+ * Interface for author configuration.
+ * 
+ * @interface AuthorConfig
+ * @property {string} name - The author's full name
+ * @property {Object} bio - Author biography information
+ * @property {string} bio.personal - Detailed personal biography
+ * @property {string} bio.basic - Concise professional biography
+ * @property {Object} image - Author image information
+ * @property {string} image.src - Path to the author's image
+ * @property {string} image.alt - Alt text for the author's image
+ */
 export interface AuthorConfig {
   name: string;
   bio: {
@@ -10,12 +34,31 @@ export interface AuthorConfig {
   };
 }
 
+/**
+ * Interface for article configuration.
+ * 
+ * @interface ArticleConfig
+ * @property {AuthorConfig} author - Author information
+ * @property {string} pubdate - Publication date of the article
+ * @property {string} siteName - Name of the publishing site
+ */
 export interface ArticleConfig {
   author: AuthorConfig;
   pubdate: string;
   siteName: string;
 }
 
+/**
+ * Default configuration values for articles.
+ * 
+ * This object:
+ * - Provides fallback values for article metadata
+ * - Ensures consistent author information
+ * - Maintains a standard format for publication dates
+ * - Sets default site branding
+ * 
+ * @type {ArticleConfig}
+ */
 export const defaultConfig: ArticleConfig = {
   author: {
     name: "(default) Jim Phelps",

@@ -1,6 +1,32 @@
+/**
+ * Comments component that handles the display and submission of article comments.
+ * 
+ * This component:
+ * - Displays existing comments with user information and timestamps
+ * - Provides a form for submitting new comments
+ * - Supports anonymous and authenticated comment modes
+ * - Includes reaction buttons (thumbs up/down)
+ * - Manages comment form state
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Comment[]} props.comments - Array of existing comments
+ * @param {boolean} props.anonymous - Whether the article is anonymous
+ * @param {string} props.identifier - Unique identifier for the article
+ * @returns {JSX.Element} The comments section
+ */
 import React, { useState } from 'react';
 import styles from './Comments.module.css';
 
+/**
+ * Interface for a single comment.
+ * 
+ * @interface Comment
+ * @property {string} id - Unique identifier for the comment
+ * @property {string} name - Name of the commenter
+ * @property {string} content - The comment text
+ * @property {string} timestamp - When the comment was posted
+ */
 interface Comment {
   id: string;
   name: string;
@@ -8,12 +34,33 @@ interface Comment {
   timestamp: string;
 }
 
+/**
+ * Props interface for the Comments component.
+ * 
+ * @interface CommentsProps
+ * @property {Comment[]} comments - Array of existing comments
+ * @property {boolean} anonymous - Whether the article is anonymous
+ * @property {string} identifier - Unique identifier for the article
+ */
 interface CommentsProps {
   comments: Comment[];
   anonymous: boolean;
   identifier: string;
 }
 
+/**
+ * Comments component that manages the display and submission of article comments.
+ * 
+ * This component:
+ * - Renders existing comments with user information
+ * - Provides a form for new comment submission
+ * - Handles different form fields based on anonymous status
+ * - Manages form state and submission
+ * - Uses CSS modules for styling
+ * 
+ * @param {CommentsProps} props - Component props
+ * @returns {JSX.Element} The rendered comments section
+ */
 export const Comments: React.FC<CommentsProps> = ({ comments, anonymous, identifier }) => {
   const [newComment, setNewComment] = useState({
     name: '',
@@ -21,6 +68,11 @@ export const Comments: React.FC<CommentsProps> = ({ comments, anonymous, identif
     content: ''
   });
 
+  /**
+   * Handles the submission of a new comment.
+   * 
+   * @param {React.FormEvent} e - The form submission event
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle comment submission
