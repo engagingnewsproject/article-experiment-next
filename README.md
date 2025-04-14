@@ -4,14 +4,12 @@ A Next.js-based article experiment project focused on testing and implementing v
 
 ## Table of Contents
 - [Project Overview](#project-overview)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
 - [Development Workflow](#development-workflow)
 - [Deployment](#deployment)
-- [Testing](#testing)
 - [Contributing](#contributing)
+- [Additional Resources](#additional-resources)
 
 ## Project Overview
 
