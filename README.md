@@ -34,82 +34,15 @@ This project is a Next.js-based article experiment platform designed to test and
 - **Configuration**: Environment variables
 - **Development Tools**: ESLint and TypeScript
 
-### Project Structure
-
-The project follows Next.js conventions with:
-- `/src` for main source code
-- `/pages` for Next.js pages
-- `/public` for static assets
-- `/lib` for utility functions
-- Component-based CSS organization
-
-This structure enables:
-- Clean separation of concerns
-- Modular component development
-- Efficient asset management
-- Organized utility functions
-- Maintainable styling approach
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18.x or later
-- npm or yarn
-- Firebase account and project
-- Google Analytics account
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone [repository-url]
-   cd article-experiment-next
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Set up environment variables:
-   Create a `.env.local` file in the root directory with the following variables:
-   ```
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
 ## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-### Key Directories and Files
-
-- **src/app/**: Contains the Next.js app router pages and layouts
-- **src/components/**: React components organized by feature
-- **src/lib/**: Utility functions, hooks, and data management
-- **src/types/**: TypeScript type definitions
-- **src/styles/**: Global styles and CSS variables
-- **public/**: Static assets and images
-- **.env.local**: Environment variables for development
-- **next.config.js**: Next.js configuration
-- **netlify.toml**: Netlify deployment configuration
+The project follows Next.js App Router conventions with:
+- `/src/app` for Next.js pages and layouts
+- `/src/components` for React components
+- `/public` for static assets
+- `/src/lib` for utility functions
+- `/src/types` for TypeScript definitions
+- `/src/styles` for global styles and CSS variables
 
 ### Component Organization
 
@@ -130,19 +63,22 @@ Components are organized by feature and follow a consistent pattern:
 
 ## Environment Setup
 
-### Firebase Configuration
+### Required Environment Variables
 
-1. Create a Firebase project
-2. Enable Firestore database
-3. Set up authentication if needed
-4. Configure security rules
-5. Add your Firebase configuration to `.env.local`
+Create a `.env.local` file with:
 
-### Google Analytics Setup
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
-1. Create a Google Analytics property
-2. Set up Firebase Analytics
-3. Add your Measurement ID to `.env.local`
+# Analytics Configuration
+NEXT_PUBLIC_GA_MEASUREMENT_ID=your_ga_id
+```
 
 ## Development Workflow
 
@@ -168,29 +104,36 @@ Components are organized by feature and follow a consistent pattern:
 
 ## Deployment
 
+### Branch Management
+
+The project uses two main branches:
+- **main**: Development branch for feature development and testing
+- **prod**: Production branch that deploys to Netlify
+
 ### Netlify Deployment
 
 1. Connect your repository to Netlify
 2. Configure build settings:
    - Build command: `npm run build`
    - Publish directory: `.next`
+   - Base directory: `article-experiment-next`
 3. Set up environment variables in Netlify dashboard
-4. Deploy!
+4. Configure branch settings:
+   - Production branch: `prod`
+   - Deploy previews: Enabled for pull requests
+5. Deploy!
 
 ### Build Process
 
 ```bash
-npm run build    # Build the application
-npm run start    # Start production server
-```
+# Development
+git checkout main
+npm run dev    # Start development server
 
-## Testing
-
-### Running Tests
-
-```bash
-npm run test     # Run all tests
-npm run lint     # Run ESLint
+# Production
+git checkout prod
+npm run build  # Build the application
+npm run start  # Start production server
 ```
 
 ## Contributing
