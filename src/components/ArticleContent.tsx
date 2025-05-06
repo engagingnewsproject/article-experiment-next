@@ -35,10 +35,48 @@ import { useSearchParams } from 'next/navigation';
  * @property {Comment[]} [comments=[]] - Array of comments for the article
  */
 interface ArticleContentProps {
-  article: Article;
-  showExplainBox?: boolean;
-  explainBoxValue?: string;
-  comments?: Comment[];
+  article: {
+    id: string;
+    title: string;
+    content: string;
+    author: {
+      name: string;
+      bio: {
+        personal: string;
+        basic: string;
+      };
+      photo?: string;
+    };
+    anonymous: boolean;
+    createdAt?: any;
+    updatedAt?: any;
+    comments_display: boolean;
+    pubdate: string;
+    explain_box?: string[];
+    metadata?: {
+      who_spoke_to?: string[];
+      where_written?: string;
+      editor?: string;
+      corrections?: string;
+      version_history?: string;
+      category?: string;
+      tags?: string[];
+    };
+  };
+  showExplainBox: boolean;
+  explainBoxValue: string;
+  comments: {
+    id: string;
+    name: string;
+    content: string;
+    timestamp: string;
+    replies: {
+      id: string;
+      name: string;
+      content: string;
+      timestamp: string;
+    }[];
+  }[];
 }
 
 /**
@@ -89,16 +127,24 @@ export function ArticleContent({ article, showExplainBox = false, explainBoxValu
 
         <TrustProjectCallout />
         
-        <Comments 
-          comments={comments.map(comment => ({
-            id: comment.id || '',
-            name: 'Anonymous', // or get from user data if available
-            content: comment.content,
-            timestamp: comment.createdAt.toISOString()
-          }))} 
-          anonymous={article.anonymous || false} 
-          identifier={article.id || ''} 
-        />
+        {article.comments_display && (
+          <Comments 
+            comments={comments.map(comment => ({
+              id: comment.id,
+              name: comment.name,
+              content: comment.content,
+              createdAt: comment.timestamp,
+              replies: comment.replies.map(reply => ({
+                id: reply.id,
+                name: reply.name,
+                content: reply.content,
+                createdAt: reply.timestamp
+              }))
+            }))}
+            anonymous={article.anonymous}
+            identifier={article.id}
+          />
+        )}
       </article>
     </main>
   );

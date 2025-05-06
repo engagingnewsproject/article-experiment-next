@@ -1,116 +1,110 @@
 /**
- * Home page component that displays a list of articles with options to view them
- * with or without explanation boxes.
+ * Article page component that displays a single article with optional explanation box
+ * and author variations.
  * 
  * This component:
- * - Fetches articles from Firestore on mount
- * - Displays loading and error states
- * - Provides links to view articles with different explanation box configurations
- * - Includes an AddArticleForm component for adding new articles
+ * - Fetches article data and comments from Firestore
+ * - Handles different author variations (name, bio, photo)
+ * - Supports explanation box display based on URL parameters
+ * - Manages loading and error states
  * 
  * @component
- * @returns {JSX.Element} The home page layout with article list and controls
+ * @param {Object} props - Component props
+ * @param {Object} props.params - Route parameters
+ * @param {string} props.params.slug - The article slug from the URL
+ * @returns {JSX.Element} The article page layout with content and controls
  */
-'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { getArticleBySlug, getArticle, getComments, getAuthors, type Article, type Comment, type Author } from '@/lib/firestore';
-import { useAuthorVariations } from '@/lib/useAuthorVariations';
+import { Suspense } from 'react';
+import { getArticleBySlug, getArticle, getComments, getArticles, type Article, type Comment } from '@/lib/firestore';
 import { Header } from '@/components/Header';
-import { ArticleContent } from '@/components/ArticleContent';
 import { Footer } from '@/components/Footer';
+import ArticleClient from './ArticleClient';
 import { Timestamp } from 'firebase/firestore';
 
 /**
- * Main home page component that manages article data and rendering.
- * 
- * @returns {JSX.Element} The rendered home page with article list
+ * Converts Firestore Timestamp to ISO string
  */
-export default function ArticlePage({ params }: { params: { slug: string } }) {
-  const searchParams = useSearchParams();
-  const explain_box = searchParams?.get('explain_box') || '';
-  const author_bio = searchParams?.get('author_bio') || 'basic';
-  const [article, setArticle] = useState<Article | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { 
-    loading: authorLoading, 
-    authorName, 
-    authorBio, 
-    authorPhoto,
-    pubdate,
-    siteName 
-  } = useAuthorVariations();
+function convertTimestamp(timestamp: any): string {
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate().toISOString();
+  }
+  if (typeof timestamp === 'string') {
+    return timestamp;
+  }
+  return new Date().toISOString();
+}
 
-  /**
-   * Fetches articles from Firestore and updates the component state.
-   * 
-   * This effect:
-   * - Runs once on component mount
-   * - Handles loading and error states
-   * - Updates the articles list on successful fetch
-   */
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!params.slug) {
-        console.log('Slug is not available:', params.slug);
-        return;
+/**
+ * Converts Firestore data to plain objects
+ */
+function convertToPlainObject(data: any): any {
+  if (!data) return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(item => convertToPlainObject(item));
+  }
+  
+  if (typeof data === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value instanceof Timestamp) {
+        result[key] = convertTimestamp(value);
+      } else if (typeof value === 'object') {
+        result[key] = convertToPlainObject(value);
+      } else {
+        result[key] = value;
       }
+    }
+    return result;
+  }
+  
+  return data;
+}
 
-      try {
-        let articleData = await getArticle(params.slug);
-        
-        if (!articleData) {
-          articleData = await getArticleBySlug(params.slug);
-        }
+/**
+ * Main article page component that manages article data and rendering.
+ * 
+ * @returns {JSX.Element} The rendered article page with content and controls
+ */
+export default async function ArticlePage({ params }: { params: { slug: string } }) {
+  if (!params.slug) {
+    return <div className="p-4">Slug is not available</div>;
+  }
 
-        if (articleData && articleData.id) {
-          const commentsData = await getComments(articleData.id);
-          setArticle(articleData);
-          if (commentsData) {
-            setComments(commentsData);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching article:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    let articleData = await getArticle(params.slug);
+    
+    if (!articleData) {
+      articleData = await getArticleBySlug(params.slug);
+    }
 
-    fetchData();
-  }, [params.slug]);
+    if (!articleData) {
+      return <div className="p-4">Article not found</div>;
+    }
 
-  if (loading || authorLoading) return <div className="p-4">Loading...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
-  if (!article) return <div className="p-4">Article not found</div>;
+    const commentsData = await getComments(articleData.id || '');
 
-  return (
-    <>
-      <Header />
-      <main>
-        <ArticleContent 
-          article={{ 
-            ...article, 
-            id: article.id || '',
-            author: {
-              name: authorName,
-              bio: authorBio,
-              photo: authorPhoto?.src
-            },
-            anonymous: article.anonymous || false,
-            createdAt: article.createdAt instanceof Date ? Timestamp.fromDate(article.createdAt) : article.createdAt,
-            updatedAt: article.updatedAt instanceof Date ? Timestamp.fromDate(article.updatedAt) : article.updatedAt
-          }} 
-          showExplainBox={!!explain_box} 
-          explainBoxValue={explain_box || ''}
-          comments={comments}
-        />
-      </main>
-      <Footer />
-    </>
-  );
+    // Convert Firestore data to plain objects
+    const plainArticle = convertToPlainObject(articleData);
+    const plainComments = commentsData?.map(convertToPlainObject) || [];
+
+    return (
+      <>
+        <Header />
+        <main>
+          <Suspense fallback={<div className="p-4">Loading article content...</div>}>
+            <ArticleClient 
+              article={plainArticle}
+              comments={plainComments}
+            />
+          </Suspense>
+        </main>
+        <Footer />
+      </>
+    );
+  } catch (err) {
+    console.error('Error fetching article:', err);
+    return <div className="p-4 text-red-500">Error: {err instanceof Error ? err.message : 'An error occurred'}</div>;
+  }
 } 

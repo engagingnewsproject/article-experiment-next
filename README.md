@@ -6,6 +6,7 @@ A Next.js-based article experiment project focused on testing and implementing v
 - [Project Overview](#project-overview)
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
+- [Installation and Running](#installation-and-running)
 - [Development Workflow](#development-workflow)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
@@ -77,6 +78,61 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 # Analytics Configuration
 NEXT_PUBLIC_GA_MEASUREMENT_ID=your_ga_id
 ```
+
+## Installation and Running
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm (v9 or higher)
+- Git
+
+### Installation Steps
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/article-experiment-next.git
+   cd article-experiment-next
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   - Copy `.env.example` to `.env.local`
+   - Fill in the required environment variables as described in [Environment Setup](#environment-setup)
+
+### Running the Project
+
+#### Development Mode
+```bash
+npm run dev
+```
+This will start the development server at `http://localhost:3000`
+
+#### Production Build
+```bash
+npm run build
+npm start
+```
+This will create an optimized production build and start the server.
+
+#### Running Tests
+```bash
+npm test
+```
+
+### Common Issues
+
+- If you encounter any dependency-related issues, try:
+  ```bash
+  rm -rf node_modules
+  npm install
+  ```
+- Ensure all environment variables are properly set in `.env.local`
+- Check that you're using the correct Node.js version
 
 ## Development Workflow
 
