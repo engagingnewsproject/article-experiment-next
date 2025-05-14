@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { type Comment } from '@/lib/firestore';
 import styles from './Comments.module.css';
 import { saveComment, deleteComment } from '@/lib/firestore';
+import Link from 'next/link';
 
 interface CommentListProps {
   comments: Comment[];
@@ -163,13 +164,19 @@ export const CommentList: React.FC<CommentListProps> = ({
   anonymous,
   identifier
 }) => {
+  const COMMENTS_REVEAL_COUNT = 20;
+  const [maxRevealLength, setMaxRevealLength] = useState(COMMENTS_REVEAL_COUNT);
+  
   if (comments.length === 0) {
     return null;
   }
+  
+  const allCommentsVisible = comments.length <= maxRevealLength;
+  const shownComments = allCommentsVisible ? comments : comments.slice(0, maxRevealLength);
 
   return (
     <div className={styles.commentList}>
-      {comments.map((comment) => (
+      {shownComments.map((comment) => (
         <CommentItem 
           key={comment.id} 
           comment={comment} 
@@ -178,6 +185,15 @@ export const CommentList: React.FC<CommentListProps> = ({
           identifier={identifier}
         />
       ))}
+      { allCommentsVisible 
+        ? null 
+        : <button 
+            className={styles.readMore} 
+            onClick={() => setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT)}
+          >
+            Read more...
+          </button>
+      }
     </div>
   );
 }; 

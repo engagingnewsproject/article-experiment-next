@@ -238,3 +238,17 @@
   background-color: #ff9999;
   cursor: not-allowed;
 } 
+
+.readMore {
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  font-size: 0.975rem;
+  padding: 0.25rem 0;
+  margin-left: 0.35rem;
+}
+
+.readMore:hover {
+  text-decoration: underline;
+}
