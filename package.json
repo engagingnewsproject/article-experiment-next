@@ -12,17 +12,21 @@
   "dependencies": {
     "@analytics/google-analytics": "^1.1.0",
     "firebase": "^10.8.0",
-    "next": "14.1.0",
+    "next": "^14.2.28",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.21",
     "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.6",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   }

@@ -52,9 +52,12 @@ export default function Home() {
         <h1 className="text-3xl font-bold">Articles</h1>
         <Link
           href="/admin/add-default-comments"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 transition-colors"
         >
-          Admin: Add Default Comments
+          <span className="text-white"
+          >
+            Admin: Add Default Comments
+          </span>
         </Link>
       </div>
       <AddArticleForm />
@@ -69,14 +72,14 @@ export default function Home() {
                 href={`/articles/${article.slug}?explain_box=none`}
                 className="text-blue-600 hover:underline"
               >
-                {article.title}: No explanation
+                {article.title} — No explanation
               </Link>
               <br />
               <Link
                 href={`/articles/${article.slug}?explain_box=${article.slug}`}
                 className="text-blue-600 hover:underline"
               >
-                {article.title}: Explanation box
+                {article.title} — Explanation box
               </Link>
             </div>
           </li>
