@@ -1,11 +1,11 @@
 /**
  * CommentList component that displays a list of comments.
- * 
+ *
  * This component:
  * - Displays existing comments with user information and timestamps
  * - Includes reaction buttons (thumbs up/down)
  * - Shows a message when there are no comments
- * 
+ *
  * @component
  * @param {Object} props - Component props
  * @param {Comment[]} props.comments - Array of comments to display
@@ -14,11 +14,11 @@
  * @param {string} props.identifier - Article identifier
  * @returns {JSX.Element} The comments list
  */
-import React, { useState } from 'react';
-import { type Comment } from '@/lib/firestore';
-import styles from './Comments.module.css';
-import { saveComment, deleteComment } from '@/lib/firestore';
-import Link from 'next/link';
+import React, { useState } from "react";
+import styles from "./Comments.module.css";
+import { saveComment, deleteComment } from "@/lib/firestore";
+import { type Comment } from "@/lib/firestore";
+import CommentVoteSection from "./CommentVoteSection";
 
 interface CommentListProps {
   comments: Comment[];
@@ -27,14 +27,14 @@ interface CommentListProps {
   identifier: string;
 }
 
-const CommentItem: React.FC<{ 
-  comment: Comment; 
+const CommentItem: React.FC<{
+  comment: Comment;
   onCommentSubmitted: () => void;
   anonymous?: boolean;
   identifier: string;
 }> = ({ comment, onCommentSubmitted, anonymous, identifier }) => {
   const [isReplying, setIsReplying] = useState(false);
-  const [replyContent, setReplyContent] = useState('');
+  const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -46,13 +46,13 @@ const CommentItem: React.FC<{
     try {
       await saveComment(identifier, {
         content: replyContent,
-        parentId: comment.id
+        parentId: comment.id,
       });
-      setReplyContent('');
+      setReplyContent("");
       setIsReplying(false);
       onCommentSubmitted();
     } catch (err) {
-      console.error('Failed to submit reply:', err);
+      console.error("Failed to submit reply:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -60,14 +60,14 @@ const CommentItem: React.FC<{
 
   const handleDelete = async () => {
     if (!comment.id) return;
-    
-    if (window.confirm('Are you sure you want to delete this comment?')) {
+
+    if (window.confirm("Are you sure you want to delete this comment?")) {
       setIsDeleting(true);
       try {
         await deleteComment(identifier, comment.id);
         await onCommentSubmitted();
       } catch (err) {
-        console.error('Failed to delete comment:', err);
+        console.error("Failed to delete comment:", err);
       } finally {
         setIsDeleting(false);
       }
@@ -76,13 +76,13 @@ const CommentItem: React.FC<{
 
   const handleDeleteReply = async (replyId: string) => {
     if (!comment.id || !replyId) return;
-    
-    if (window.confirm('Are you sure you want to delete this reply?')) {
+
+    if (window.confirm("Are you sure you want to delete this reply?")) {
       try {
         await deleteComment(identifier, replyId, comment.id);
         await onCommentSubmitted();
       } catch (err) {
-        console.error('Failed to delete reply:', err);
+        console.error("Failed to delete reply:", err);
       }
     }
   };
@@ -92,26 +92,35 @@ const CommentItem: React.FC<{
       <div className={styles.commentHeader}>
         <span className={styles.commentAuthor}>{comment.name}</span>
         <span className={styles.commentDate}>
-          {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Unknown date'}
+          {comment.createdAt
+            ? new Date(comment.createdAt).toLocaleString()
+            : "Unknown date"}
         </span>
-        {process.env.NODE_ENV === 'development' && (
-          <button 
+        {process.env.NODE_ENV === "development" && (
+          <button
             onClick={handleDelete}
             disabled={isDeleting}
             className={styles.deleteButton}
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         )}
       </div>
       <p className={styles.commentContent}>{comment.content}</p>
-      <button 
-        className={styles.replyButton}
-        onClick={() => setIsReplying(!isReplying)}
-      >
-        {isReplying ? 'Cancel Reply' : 'Reply'}
-      </button>
-      
+      <div className={styles.commentFooter}>
+        <button
+          className={styles.replyButton}
+          onClick={() => setIsReplying(!isReplying)}
+        >
+          {isReplying ? "Cancel Reply" : "Reply"}
+        </button>
+        <CommentVoteSection 
+          commentId={comment.id!}
+          identifier={identifier}
+          comment={comment}
+        />
+      </div>
+
       {isReplying && (
         <form onSubmit={handleReply} className={styles.inlineReplyForm}>
           <textarea
@@ -121,12 +130,12 @@ const CommentItem: React.FC<{
             className={styles.inlineTextarea}
             required
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.inlineSubmitButton}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Reply'}
+            {isSubmitting ? "Submitting..." : "Submit Reply"}
           </button>
         </form>
       )}
@@ -138,10 +147,12 @@ const CommentItem: React.FC<{
               <div className={styles.commentHeader}>
                 <span className={styles.commentAuthor}>{reply.name}</span>
                 <span className={styles.commentDate}>
-                  {reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Unknown date'}
+                  {reply.createdAt
+                    ? new Date(reply.createdAt).toLocaleString()
+                    : "Unknown date"}
                 </span>
-                {process.env.NODE_ENV === 'development' && reply.id && (
-                  <button 
+                {process.env.NODE_ENV === "development" && reply.id && (
+                  <button
                     onClick={() => handleDeleteReply(reply.id!)}
                     className={styles.deleteButton}
                   >
@@ -158,42 +169,45 @@ const CommentItem: React.FC<{
   );
 };
 
-export const CommentList: React.FC<CommentListProps> = ({ 
-  comments, 
+export const CommentList: React.FC<CommentListProps> = ({
+  comments,
   onCommentSubmitted,
   anonymous,
-  identifier
+  identifier,
 }) => {
   const COMMENTS_REVEAL_COUNT = 20;
   const [maxRevealLength, setMaxRevealLength] = useState(COMMENTS_REVEAL_COUNT);
-  
+
   if (comments.length === 0) {
     return null;
   }
-  
+
   const allCommentsVisible = comments.length <= maxRevealLength;
-  const shownComments = allCommentsVisible ? comments : comments.slice(0, maxRevealLength);
+  const shownComments = allCommentsVisible
+    ? comments
+    : comments.slice(0, maxRevealLength);
 
   return (
     <div className={styles.commentList}>
       {shownComments.map((comment) => (
-        <CommentItem 
-          key={comment.id} 
-          comment={comment} 
+        <CommentItem
+          key={comment.id}
+          comment={comment}
           onCommentSubmitted={onCommentSubmitted}
           anonymous={anonymous}
           identifier={identifier}
         />
       ))}
-      { allCommentsVisible 
-        ? null 
-        : <button 
-            className={styles.readMore} 
-            onClick={() => setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT)}
-          >
-            Read more...
-          </button>
-      }
+      {allCommentsVisible ? null : (
+        <button
+          className={styles.readMore}
+          onClick={() =>
+            setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT)
+          }
+        >
+          Read more...
+        </button>
+      )}
     </div>
   );
-}; 
+};

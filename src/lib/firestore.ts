@@ -10,7 +10,7 @@
  * @module firestore
  */
 
-import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp, serverTimestamp, deleteDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 
 /**
@@ -64,6 +64,8 @@ export type Article = {
  * @property {string} name - Name of the commenter
  * @property {string} [createdAt] - Comment creation timestamp
  * @property {string} [parentId] - ID of the parent comment (for replies)
+ * @property {number} upvotes - Number of upvotes on comment
+ * @property {number} downvotes - Number of downvotes on comment
  * @property {Comment[]} [replies] - Array of reply comments
  */
 export type Comment = {
@@ -72,6 +74,8 @@ export type Comment = {
   name: string;
   createdAt?: string;
   parentId?: string;
+  upvotes?: number;
+  downvotes?: number;
   replies?: Comment[];
 };
 
@@ -189,6 +193,8 @@ export async function getComments(articleId: string): Promise<Comment[]> {
       id: doc.id,
       name: data.name || 'Anonymous',
       content: data.content,
+      upvotes: data.upvotes || 0,
+      downvotes: data.downvotes || 0,
       createdAt: data.createdAt instanceof Timestamp 
         ? data.createdAt.toDate().toISOString()
         : new Date().toISOString(),
@@ -222,6 +228,8 @@ export async function getAuthors(): Promise<Author[]> {
  * @param {string} commentData.content - The comment text
  * @param {string} [commentData.name] - The commenter's name (optional for anonymous comments)
  * @param {string} [commentData.email] - The commenter's email (optional for anonymous comments)
+ * @param {number} upvotes - The comment's upvote count
+ * @param {number} downvotes - The comment's downvote count
  * @param {string} [commentData.parentId] - ID of the parent comment (for replies)
  * @returns {Promise<string>} The ID of the created comment
  */
@@ -229,6 +237,8 @@ export async function saveComment(articleId: string, commentData: {
   content: string;
   name?: string;
   email?: string;
+  upvotes?: number;
+  downvotes?: number;
   parentId?: string;
 }): Promise<string> {
   if (commentData.parentId) {
@@ -250,6 +260,8 @@ export async function saveComment(articleId: string, commentData: {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
       email: commentData.email || null,
+      upvotes: commentData.upvotes || 0,
+      downvotes: commentData.downvotes || 0,
       createdAt: serverTimestamp(),
       status: 'pending' // For moderation if needed
     };
@@ -306,6 +318,8 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
   // Convert the comments to include proper timestamps
   const commentsWithTimestamps = defaultComments.map(comment => ({
     ...comment,
+    upvotes: comment.upvotes || 0,
+    downvotes: comment.downvotes || 0,
     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
     replies: comment.replies?.map(reply => ({
       ...reply,
@@ -330,6 +344,8 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
     const docRef = await addDoc(commentsRef, {
       content: comment.content,
       name: comment.name,
+      upvotes: comment.upvotes || 0,
+      downvotes: comment.downvotes || 0,
       createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
       status: 'approved'
     });
@@ -348,6 +364,66 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
     }
   }));
 }
+
+/**
+ * Increment upvotes or downvotes for a comment.
+ *
+ * @param {string} articleId - The ID of the article.
+ * @param {string} commentId - The ID of the comment.
+ * @param {'upvotes' | 'downvotes'} field - The field to increment.
+ * @param {number} value - The value to increment by (positive or negative).
+ * @returns {Promise<void>}
+ */ 
+export async function updateCommentVotes(
+  articleId : string,
+  commentId : string,
+  field: 'upvotes' | 'downvotes',
+  value : number
+) : Promise<void> {
+  const commentRef = doc(db, 'articles', articleId, 'comments', commentId);
+  await updateDoc(commentRef, {
+    [field]: increment(value)
+  });
+}
+
+// export async function migrateAddVotesToComments() {
+//   const articlesSnapshot = await getDocs(collection(db, 'articles'));
+//   for (const articleDoc of articlesSnapshot.docs) {
+//     const articleId = articleDoc.id;
+//     const commentsRef = collection(db, 'articles', articleId, 'comments');
+//     const commentsSnapshot = await getDocs(commentsRef);
+
+//     for (const commentDoc of commentsSnapshot.docs) {
+//       const commentData = commentDoc.data();
+//       const commentRef = doc(db, 'articles', articleId, 'comments', commentDoc.id);
+
+//       // Only update if missing
+//       const updateData: any = {};
+//       if (typeof commentData.upvotes !== 'number') updateData.upvotes = 0;
+//       if (typeof commentData.downvotes !== 'number') updateData.downvotes = 0;
+
+//       if (Object.keys(updateData).length > 0) {
+//         await updateDoc(commentRef, updateData);
+//       }
+
+//       // Now do the same for replies
+//       const repliesRef = collection(db, 'articles', articleId, 'comments', commentDoc.id, 'replies');
+//       const repliesSnapshot = await getDocs(repliesRef);
+//       for (const replyDoc of repliesSnapshot.docs) {
+//         const replyData = replyDoc.data();
+//         const replyRef = doc(db, 'articles', articleId, 'comments', commentDoc.id, 'replies', replyDoc.id);
+
+//         const replyUpdateData: any = {};
+//         if (typeof replyData.upvotes !== 'number') replyUpdateData.upvotes = 0;
+//         if (typeof replyData.downvotes !== 'number') replyUpdateData.downvotes = 0;
+
+//         if (Object.keys(replyUpdateData).length > 0) {
+//           await updateDoc(replyRef, replyUpdateData);
+//         }
+//       }
+//     }
+//   }
+// }
 
 // Example usage:
 /*

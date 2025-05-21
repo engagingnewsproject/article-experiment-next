@@ -32,6 +32,8 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
     name: comment.name || 'Anonymous',
     content: comment.content,
     timestamp: comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Unknown date',
+    upvotes: comment.upvotes || 0,
+    downvotes: comment.downvotes || 0,
     replies: comment.replies?.map(reply => ({
       id: reply.id || '',
       name: reply.name || 'Anonymous',
