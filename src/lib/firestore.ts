@@ -386,45 +386,6 @@ export async function updateCommentVotes(
   });
 }
 
-// export async function migrateAddVotesToComments() {
-//   const articlesSnapshot = await getDocs(collection(db, 'articles'));
-//   for (const articleDoc of articlesSnapshot.docs) {
-//     const articleId = articleDoc.id;
-//     const commentsRef = collection(db, 'articles', articleId, 'comments');
-//     const commentsSnapshot = await getDocs(commentsRef);
-
-//     for (const commentDoc of commentsSnapshot.docs) {
-//       const commentData = commentDoc.data();
-//       const commentRef = doc(db, 'articles', articleId, 'comments', commentDoc.id);
-
-//       // Only update if missing
-//       const updateData: any = {};
-//       if (typeof commentData.upvotes !== 'number') updateData.upvotes = 0;
-//       if (typeof commentData.downvotes !== 'number') updateData.downvotes = 0;
-
-//       if (Object.keys(updateData).length > 0) {
-//         await updateDoc(commentRef, updateData);
-//       }
-
-//       // Now do the same for replies
-//       const repliesRef = collection(db, 'articles', articleId, 'comments', commentDoc.id, 'replies');
-//       const repliesSnapshot = await getDocs(repliesRef);
-//       for (const replyDoc of repliesSnapshot.docs) {
-//         const replyData = replyDoc.data();
-//         const replyRef = doc(db, 'articles', articleId, 'comments', commentDoc.id, 'replies', replyDoc.id);
-
-//         const replyUpdateData: any = {};
-//         if (typeof replyData.upvotes !== 'number') replyUpdateData.upvotes = 0;
-//         if (typeof replyData.downvotes !== 'number') replyUpdateData.downvotes = 0;
-
-//         if (Object.keys(replyUpdateData).length > 0) {
-//           await updateDoc(replyRef, replyUpdateData);
-//         }
-//       }
-//     }
-//   }
-// }
-
 // Example usage:
 /*
 const defaultComments = [
