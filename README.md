@@ -180,6 +180,8 @@ The project uses two main branches:
 
 ### Netlify Deployment
 
+[Netlify Project Admin](https://app.netlify.com/projects/article-experiment-next/overview) | [Netlify Public URL](https://article-experiment-next.netlify.app/)
+
 1. Connect your repository to Netlify
 2. Configure build settings:
    - Build command: `npm run build`
