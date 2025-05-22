@@ -2,7 +2,7 @@ import { Comment, updateCommentVotes } from "@/lib/firestore";
 import Cookies from "js-cookie";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
-
+// TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
   identifier: string;

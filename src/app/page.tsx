@@ -15,7 +15,6 @@
  * @returns {JSX.Element} The article page layout with content and controls
  */
 
-// TODO: List all available articles with URL parameters.
 'use client';
 
 import { useEffect, useState } from 'react';
