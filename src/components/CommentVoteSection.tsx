@@ -56,7 +56,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   };
 
   return (
-    <div className={styles.voteSection}>
+    <>
       <button 
         onClick={() => handleVote('upvotes', 1)}
         className={styles.voteButton}
@@ -71,6 +71,6 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
         <span>{comment.downvotes || 0}</span>
         <span>Downvotes</span>
       </button>
-    </div>
+    </>
   );
 };
