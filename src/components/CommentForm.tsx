@@ -20,9 +20,12 @@ import { saveComment } from "@/lib/firestore";
 import { type Comment } from "@/lib/firestore";
 
 interface CommentFormProps {
-  anonymous?: boolean;
+  /** Whether the article is anonymous, which determines if name/email fields are shown */
+  anonymous: boolean;
+  /** Unique identifier for the article, used when saving comments to the database */
   identifier: string;
-  onCommentSubmitted: () => void;
+  /** Callback function that is called when a new comment is submitted, passing the comment data to the parent component */
+  onCommentSubmitted: (comment: Comment) => void;
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
@@ -38,10 +41,14 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Prevent submission of empty comments or comments containing only whitespace
+    if (!content.trim()) return;
+
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Save to database
       const commentData = {
         name: name || "Anonymous",
         email: email || "",
@@ -51,16 +58,24 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       };
 
       await saveComment(identifier, commentData);
-      setName("");
-      setEmail("");
-      setContent("");
-      onCommentSubmitted();
+
+      // Create local comment for immediate display
+      const newComment: Comment = {
+        content,
+        name: name || 'Anonymous',
+        createdAt: new Date().toISOString(),
+        upvotes: 0,
+        downvotes: 0
+      };
+
+      // Update parent component with new comment and reset form fields
+      onCommentSubmitted(newComment);
+      setContent('');
+      setName('');
+      setEmail('');
     } catch (err) {
       setError("Failed to submit comment. Please try again.");
-      console.log(err);
-      console.log(name);
-      console.log(email);
-      console.log(content);
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }

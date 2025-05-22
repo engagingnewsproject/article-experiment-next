@@ -48,22 +48,46 @@ interface CommentsProps {
  * @returns {JSX.Element} The rendered comments section
  */
 export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, identifier }) => {
+  // Keep default comments in state
+  const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
+  // Track temporary user interactions
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
 
-  const handleCommentSubmitted = async () => {
-    try {
-      // Fetch updated comments after submission
-      const updatedComments = await getComments(identifier);
-      setLocalComments(updatedComments);
-    } catch (err) {
-      console.error('Failed to fetch updated comments:', err);
-    }
+  const handleCommentSubmitted = async (newComment: Comment) => {
+    // Add the new comment to local state only
+    setLocalComments(prev => [...prev, newComment]);
   };
 
-  // Update local comments when props change
+  const handleVote = (commentId: string, type: 'upvotes' | 'downvotes', value: number) => {
+    // Update votes in local state only
+    setLocalComments(prev => prev.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          [type]: (comment[type] || 0) + value
+        };
+      }
+      return comment;
+    }));
+  };
+
+  const handleReply = (commentId: string, reply: Comment) => {
+    // Add reply to local state only
+    setLocalComments(prev => prev.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), reply]
+        };
+      }
+      return comment;
+    }));
+  };
+
+  // Reset to default comments when component mounts
   React.useEffect(() => {
-    setLocalComments(comments);
-  }, [comments]);
+    setLocalComments(defaultComments);
+  }, [defaultComments]);
 
   return (
     <section className={styles.commentsSection}>
@@ -71,6 +95,8 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
         <CommentList 
           comments={localComments} 
           onCommentSubmitted={handleCommentSubmitted}
+          onVote={handleVote}
+          onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
         />

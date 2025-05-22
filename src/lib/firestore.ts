@@ -167,42 +167,13 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
  * @throws {Error} If database operation fails
  */
 export async function getComments(articleId: string): Promise<Comment[]> {
-  const commentsRef = collection(db, 'articles', articleId, 'comments');
-  const q = query(commentsRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  // Get the article to retrieve default comments
+  const articleRef = doc(db, 'articles', articleId);
+  const articleSnap = await getDoc(articleRef);
+  const articleData = articleSnap.data();
   
-  // Get all comments and their replies
-  const allComments = await Promise.all(querySnapshot.docs.map(async doc => {
-    const data = doc.data();
-    // Get replies for this comment
-    const repliesRef = collection(db, 'articles', articleId, 'comments', doc.id, 'replies');
-    const repliesSnapshot = await getDocs(repliesRef);
-    const replies = repliesSnapshot.docs.map(replyDoc => {
-      const replyData = replyDoc.data();
-      return {
-        id: replyDoc.id,
-        name: replyData.name || 'Anonymous',
-        content: replyData.content,
-        createdAt: replyData.createdAt instanceof Timestamp 
-          ? replyData.createdAt.toDate().toISOString()
-          : new Date().toISOString()
-      };
-    });
-
-    return {
-      id: doc.id,
-      name: data.name || 'Anonymous',
-      content: data.content,
-      upvotes: data.upvotes || 0,
-      downvotes: data.downvotes || 0,
-      createdAt: data.createdAt instanceof Timestamp 
-        ? data.createdAt.toDate().toISOString()
-        : new Date().toISOString(),
-      replies: replies
-    };
-  }));
-
-  return allComments;
+  // Return default comments (or empty array if none exist)
+  return articleData?.default_comments || [];
 }
 
 /**
@@ -248,8 +219,7 @@ export async function saveComment(articleId: string, commentData: {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
       email: commentData.email || null,
-      createdAt: serverTimestamp(),
-      status: 'pending' // For moderation if needed
+      createdAt: serverTimestamp()
     };
     const docRef = await addDoc(repliesRef, reply);
     return docRef.id;
@@ -262,8 +232,7 @@ export async function saveComment(articleId: string, commentData: {
       email: commentData.email || null,
       upvotes: commentData.upvotes || 0,
       downvotes: commentData.downvotes || 0,
-      createdAt: serverTimestamp(),
-      status: 'pending' // For moderation if needed
+      createdAt: serverTimestamp()
     };
     const docRef = await addDoc(commentsRef, comment);
     return docRef.id;
@@ -346,8 +315,7 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
       name: comment.name,
       upvotes: comment.upvotes || 0,
       downvotes: comment.downvotes || 0,
-      createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
-      status: 'approved'
+      createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now()))
     });
 
     // Add replies if they exist
@@ -357,8 +325,7 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
         addDoc(repliesRef, {
           content: reply.content,
           name: reply.name,
-          createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now())),
-          status: 'approved'
+          createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
         })
       ));
     }

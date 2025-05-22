@@ -25,6 +25,20 @@ This project is a Next.js-based article experiment platform designed to test and
 - Trust Project integration
 - Google Analytics integration
 
+### Comment System
+
+The comment system implements a research-focused approach:
+- Default comments are stored in the article document and shown to all users
+- User interactions (comments, votes, replies) are:
+  - Saved to the database for research tracking
+  - Displayed immediately to the interacting user
+  - Reset to default comments on page refresh
+- Components:
+  - `Comments`: Main orchestrator component
+  - `CommentList`: Displays comments and handles interactions
+  - `CommentForm`: Handles new comment submission
+  - `CommentVoteSection`: Manages voting functionality
+
 ### Technical Stack
 
 - **Frontend Framework**: Next.js with TypeScript

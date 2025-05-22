@@ -18,21 +18,37 @@ import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { saveComment, deleteComment } from "@/lib/firestore";
 import { type Comment } from "@/lib/firestore";
-import CommentVoteSection from "./CommentVoteSection";
+import { CommentVoteSection } from "./CommentVoteSection";
 
 interface CommentListProps {
+  /** Array of comments to display, including their replies and vote counts */
   comments: Comment[];
-  onCommentSubmitted: () => void;
-  anonymous?: boolean;
+  /** Whether the article is anonymous, which affects how user information is displayed */
+  anonymous: boolean;
+  /** Unique identifier for the article, used for database operations and cookie management */
   identifier: string;
+  /** Callback function called when a new comment is submitted, used to update parent component state */
+  onCommentSubmitted: (comment: Comment) => void;
+  /** Callback function called when a comment is voted on, handles both upvotes and downvotes */
+  onVote: (commentId: string, type: 'upvotes' | 'downvotes', value: number) => void;
+  /** Callback function called when a reply is submitted to a comment, updates parent component state */
+  onReply: (commentId: string, reply: Comment) => void;
 }
 
 const CommentItem: React.FC<{
+  /** The comment data to display, including content, author, and metadata */
   comment: Comment;
-  onCommentSubmitted: () => void;
+  /** Callback function called when a comment is submitted, used to update parent state */
+  onCommentSubmitted: (comment: Comment) => void;
+  /** Optional flag to control whether user information is displayed anonymously */
   anonymous?: boolean;
+  /** Unique identifier for the article, used for database operations */
   identifier: string;
-}> = ({ comment, onCommentSubmitted, anonymous, identifier }) => {
+  /** Callback function for handling vote interactions on this comment */
+  onVote: (commentId: string, type: 'upvotes' | 'downvotes', value: number) => void;
+  /** Callback function for handling replies to this comment */
+  onReply: (commentId: string, reply: Comment) => void;
+}> = ({ comment, onCommentSubmitted, anonymous, identifier, onVote, onReply }) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,13 +60,24 @@ const CommentItem: React.FC<{
 
     setIsSubmitting(true);
     try {
+      // Save to database
       await saveComment(identifier, {
         content: replyContent,
         parentId: comment.id,
       });
+
+      // Create local reply for immediate display
+      const newReply: Comment = {
+        content: replyContent,
+        name: 'Anonymous', // or get from form if available
+        createdAt: new Date().toISOString(),
+        upvotes: 0,
+        downvotes: 0
+      };
+
+      onReply(comment.id!, newReply);
       setReplyContent("");
       setIsReplying(false);
-      onCommentSubmitted();
     } catch (err) {
       console.error("Failed to submit reply:", err);
     } finally {
@@ -65,8 +92,10 @@ const CommentItem: React.FC<{
       setIsDeleting(true);
       try {
         await deleteComment(identifier, comment.id);
-        await onCommentSubmitted();
+        // Update parent component state after successful deletion
+        onCommentSubmitted(comment);
       } catch (err) {
+        // Log error and allow UI to recover from failed deletion
         console.error("Failed to delete comment:", err);
       } finally {
         setIsDeleting(false);
@@ -80,11 +109,19 @@ const CommentItem: React.FC<{
     if (window.confirm("Are you sure you want to delete this reply?")) {
       try {
         await deleteComment(identifier, replyId, comment.id);
-        await onCommentSubmitted();
+        onCommentSubmitted(comment);
       } catch (err) {
         console.error("Failed to delete reply:", err);
       }
     }
+  };
+
+  /** 
+   * Handles vote interactions for this comment by passing the vote type and value to the parent component.
+   * Uses non-null assertion for comment.id since we know it exists in this context.
+   */
+  const handleVote = (type: 'upvotes' | 'downvotes', value: number) => {
+    onVote(comment.id!, type, value);
   };
 
   return (
@@ -118,6 +155,7 @@ const CommentItem: React.FC<{
           commentId={comment.id!}
           identifier={identifier}
           comment={comment}
+          onVote={handleVote}
         />
       </div>
 
@@ -171,9 +209,11 @@ const CommentItem: React.FC<{
 
 export const CommentList: React.FC<CommentListProps> = ({
   comments,
-  onCommentSubmitted,
   anonymous,
   identifier,
+  onCommentSubmitted,
+  onVote,
+  onReply
 }) => {
   const COMMENTS_REVEAL_COUNT = 20;
   const [maxRevealLength, setMaxRevealLength] = useState(COMMENTS_REVEAL_COUNT);
@@ -196,6 +236,8 @@ export const CommentList: React.FC<CommentListProps> = ({
           onCommentSubmitted={onCommentSubmitted}
           anonymous={anonymous}
           identifier={identifier}
+          onVote={onVote}
+          onReply={onReply}
         />
       ))}
       {allCommentsVisible ? null : (
