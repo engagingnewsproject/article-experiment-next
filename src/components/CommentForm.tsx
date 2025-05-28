@@ -14,10 +14,10 @@
  * @param {Function} props.onCommentSubmitted - Callback when a comment is submitted
  * @returns {JSX.Element} The comment form
  */
+import { saveComment, type Comment } from "@/lib/firestore";
+import Cookies from "js-cookie";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
-import { saveComment } from "@/lib/firestore";
-import { type Comment } from "@/lib/firestore";
 
 interface CommentFormProps {
   /** Whether the article is anonymous, which determines if name/email fields are shown */
@@ -57,10 +57,12 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         downvotes: 0,
       };
 
-      await saveComment(identifier, commentData);
+      // Save the comment and get the returned string (e.g., comment ID)
+      const commentId = await saveComment(identifier, commentData);
 
       // Create local comment for immediate display
       const newComment: Comment = {
+        id: commentId,
         content,
         name: name || 'Anonymous',
         createdAt: new Date().toISOString(),
@@ -70,6 +72,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 
       // Update parent component with new comment and reset form fields
       onCommentSubmitted(newComment);
+      Cookies.set(`comments_${identifier}_${commentId}`, "true");
       setContent('');
       setName('');
       setEmail('');

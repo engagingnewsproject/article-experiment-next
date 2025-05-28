@@ -222,6 +222,7 @@ export async function saveComment(articleId: string, commentData: {
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(repliesRef, reply);
+    // await updateDoc(docRef, {id: docRef.id})
     return docRef.id;
   } else {
     // Save as a top-level comment
@@ -235,6 +236,7 @@ export async function saveComment(articleId: string, commentData: {
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(commentsRef, comment);
+    // await updateDoc(docRef, {id: docRef.id})
     return docRef.id;
   }
 }

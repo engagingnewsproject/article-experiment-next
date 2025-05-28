@@ -7,15 +7,16 @@ interface CommentVoteSectionProps {
   commentId: string;
   identifier: string;
   comment: Comment;
-  onVote: (type: 'upvotes' | 'downvotes', value: number) => void;
 }
 
 export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({ 
   commentId, 
   identifier, 
   comment,
-  onVote 
 }) => {
+  const [upvotes, setUpvotes] = useState(comment.upvotes || 0);
+  const [downvotes, setDownvotes] = useState(comment.downvotes || 0);
+  const [isVoting, setIsVoting] = useState(false);
   const [voted, setVoted] = useState(() => {
     return {
       upvotes: Cookies.get(`upvotes_${identifier}_${commentId}`) === "true",
@@ -23,52 +24,67 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
     };
   });
 
-  const handleVote = async (type: 'upvotes' | 'downvotes', value: number) => {
-    const isVoted = voted[type];
+  const handleVote = async (voteType: 'upvotes' | 'downvotes') => {
+    const isVoted = voted[voteType];
     const voteValue = isVoted ? -1 : 1;
     const newVotedState = { ...voted };
 
     try {
+      if (isVoting) return;
+      setIsVoting(true);
+      
+      // Update vote state
       if (isVoted) {
-        Cookies.remove(`${type}_${identifier}_${commentId}`);
-        newVotedState[type] = false;
+        Cookies.remove(`${voteType}_${identifier}_${commentId}`);
+        newVotedState[voteType] = false;
       } else {
-        const otherVoteType = type === "upvotes" ? "downvotes" : "upvotes";
+        // Handle otherVoteType state
+        const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
         if (voted[otherVoteType]) {
           Cookies.remove(`${otherVoteType}_${identifier}_${commentId}`);
           await updateCommentVotes(identifier, commentId, otherVoteType, -1);
           newVotedState[otherVoteType] = false;
+          
+          // Decrement locally
+          voteType === "upvotes"
+            ? setDownvotes(downvotes - 1)
+            : setUpvotes(upvotes - 1);
         }
-        Cookies.set(`${type}_${identifier}_${commentId}`, "true");
-        newVotedState[type] = true;
+        Cookies.set(`${voteType}_${identifier}_${commentId}`, "true");
+        newVotedState[voteType] = true;
       }
-
-      // Update local state
-      onVote(type, voteValue);
+      
+      // Increment locally
+      voteType === "upvotes"
+      ? setUpvotes(upvotes + voteValue)
+      : setDownvotes(downvotes + voteValue);
       
       // Save to database
-      await updateCommentVotes(identifier, commentId, type, voteValue);
-      
+      await updateCommentVotes(identifier, commentId, voteType, voteValue);
       setVoted(newVotedState);
     } catch (err) {
       console.error("Failed to vote:", err);
+    } finally {
+      setIsVoting(false);
     }
   };
 
   return (
     <>
       <button 
-        onClick={() => handleVote('upvotes', 1)}
+        onClick={() => handleVote('upvotes')}
         className={styles.voteButton}
+        disabled={isVoting}
       >
-        <span>{comment.upvotes || 0}</span>
+        <span>{upvotes}</span>
         <span>Upvotes</span>
       </button>
       <button 
-        onClick={() => handleVote('downvotes', 1)}
+        onClick={() => handleVote('downvotes')}
         className={styles.voteButton}
+        disabled={isVoting}
       >
-        <span>{comment.downvotes || 0}</span>
+        <span>{downvotes}</span>
         <span>Downvotes</span>
       </button>
     </>

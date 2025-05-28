@@ -15,7 +15,6 @@
  */
 import React, { useState } from 'react';
 import styles from './Comments.module.css';
-import { getComments } from '@/lib/firestore';
 import { CommentForm } from './CommentForm';
 import { CommentList } from './CommentList';
 import { type Comment } from '@/lib/firestore';
@@ -57,19 +56,19 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
     // Add the new comment to local state only
     setLocalComments(prev => [...prev, newComment]);
   };
-
-  const handleVote = (commentId: string, type: 'upvotes' | 'downvotes', value: number) => {
-    // Update votes in local state only
-    setLocalComments(prev => prev.map(comment => {
-      if (comment.id === commentId) {
-        return {
-          ...comment,
-          [type]: (comment[type] || 0) + value
-        };
-      }
-      return comment;
-    }));
-  };
+  
+  const handleCommentRemoved = async (commentId: string) => {
+    setLocalComments(prevComments => {
+      return prevComments
+      .filter(comment => comment.id !== commentId)
+      .map(comment => ({
+        ...comment,
+        replies: comment.replies
+        ? comment.replies.filter(reply => reply.id !== commentId)
+        : []
+      }));
+    });
+  }
 
   const handleReply = (commentId: string, reply: Comment) => {
     // Add reply to local state only
@@ -94,8 +93,7 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
       <div className={styles.commentsContainer}>
         <CommentList 
           comments={localComments} 
-          onCommentSubmitted={handleCommentSubmitted}
-          onVote={handleVote}
+          onCommentRemoved={handleCommentRemoved}
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
