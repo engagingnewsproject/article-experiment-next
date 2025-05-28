@@ -18,6 +18,7 @@ import styles from './Comments.module.css';
 import { CommentForm } from './CommentForm';
 import { CommentList } from './CommentList';
 import { type Comment } from '@/lib/firestore';
+import Cookies from 'js-cookie';
 
 /**
  * Props interface for the Comments component.
@@ -107,3 +108,15 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
     </section>
   );
 }; 
+
+export const readCookie = (type: string, articleId: string, commentId: string) => {
+  return Cookies.get(`${type}_${articleId}_${commentId}`);
+}
+
+export const createCookie = (type: string, articleId: string, commentId: string) => {
+  return Cookies.set(`${type}_${articleId}_${commentId}`, "true");
+}
+
+export const deleteCookie = (type: string, articleId: string, commentId: string) => {
+  Cookies.remove(`${type}_${articleId}_${commentId}`);
+}

@@ -1,7 +1,7 @@
 import { Comment, updateCommentVotes } from "@/lib/firestore";
-import Cookies from "js-cookie";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
+import { createCookie, deleteCookie, readCookie } from "./Comments";
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
@@ -19,8 +19,8 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   const [isVoting, setIsVoting] = useState(false);
   const [voted, setVoted] = useState(() => {
     return {
-      upvotes: Cookies.get(`upvotes_${identifier}_${commentId}`) === "true",
-      downvotes: Cookies.get(`downvotes_${identifier}_${commentId}`) === "true",
+      upvotes: readCookie("upvotes", identifier, commentId) === "true",
+      downvotes: readCookie("downvotes", identifier, commentId) === "true",
     };
   });
 
@@ -35,13 +35,13 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
       
       // Update vote state
       if (isVoted) {
-        Cookies.remove(`${voteType}_${identifier}_${commentId}`);
+        deleteCookie(voteType, identifier, commentId);
         newVotedState[voteType] = false;
       } else {
         // Handle otherVoteType state
         const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
         if (voted[otherVoteType]) {
-          Cookies.remove(`${otherVoteType}_${identifier}_${commentId}`);
+          deleteCookie(otherVoteType, identifier, commentId);
           await updateCommentVotes(identifier, commentId, otherVoteType, -1);
           newVotedState[otherVoteType] = false;
           
@@ -50,7 +50,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
             ? setDownvotes(downvotes - 1)
             : setUpvotes(upvotes - 1);
         }
-        Cookies.set(`${voteType}_${identifier}_${commentId}`, "true");
+        createCookie(voteType, identifier, commentId);
         newVotedState[voteType] = true;
       }
       

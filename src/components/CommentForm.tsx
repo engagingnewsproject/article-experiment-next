@@ -15,9 +15,9 @@
  * @returns {JSX.Element} The comment form
  */
 import { saveComment, type Comment } from "@/lib/firestore";
-import Cookies from "js-cookie";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
+import { createCookie } from "./Comments";
 
 interface CommentFormProps {
   /** Whether the article is anonymous, which determines if name/email fields are shown */
@@ -72,7 +72,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 
       // Update parent component with new comment and reset form fields
       onCommentSubmitted(newComment);
-      Cookies.set(`comments_${identifier}_${commentId}`, "true");
+      createCookie("comments", identifier, commentId);
       setContent('');
       setName('');
       setEmail('');

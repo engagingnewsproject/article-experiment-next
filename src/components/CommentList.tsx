@@ -117,7 +117,7 @@ const CommentItem: React.FC<{
   return (
     <div className={styles.comment}>
       <div className={styles.commentHeader}>
-        <span className={styles.commentAuthor}>{comment.id}</span>
+        <span className={styles.commentAuthor}>{comment.name}</span>
         <span className={styles.commentDate}>
           {comment.createdAt
             ? new Date(comment.createdAt).toLocaleString()
