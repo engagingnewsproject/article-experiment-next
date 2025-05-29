@@ -5,12 +5,14 @@ import { createCookie, deleteCookie, readCookie } from "./Comments";
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
+  parentId?: string;
   identifier: string;
   comment: Comment;
 }
 
 export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({ 
   commentId, 
+  parentId,
   identifier, 
   comment,
 }) => {
@@ -25,44 +27,47 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   });
 
   const handleVote = async (voteType: 'upvotes' | 'downvotes') => {
-    const isVoted = voted[voteType];
-    const voteValue = isVoted ? -1 : 1;
-    const newVotedState = { ...voted };
+if (isVoting) return;
+  setIsVoting(true);
 
-    try {
-      if (isVoting) return;
-      setIsVoting(true);
-      
-      // Update vote state
-      if (isVoted) {
-        deleteCookie(voteType, identifier, commentId);
-        newVotedState[voteType] = false;
-      } else {
-        // Handle otherVoteType state
-        const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
-        if (voted[otherVoteType]) {
-          deleteCookie(otherVoteType, identifier, commentId);
-          await updateCommentVotes(identifier, commentId, otherVoteType, -1);
-          newVotedState[otherVoteType] = false;
-          
-          // Decrement locally
-          voteType === "upvotes"
-            ? setDownvotes(downvotes - 1)
-            : setUpvotes(upvotes - 1);
-        }
-        createCookie(voteType, identifier, commentId);
-        newVotedState[voteType] = true;
-      }
-      
-      // Increment locally
+  const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
+  const isOtherVoted = voted[otherVoteType];
+  const isVoted = voted[voteType];
+  const newVotedState = { ...voted };
+
+  try {
+    if (isVoted) {
+      deleteCookie(voteType, identifier, commentId);
+      newVotedState[voteType] = false;
+
       voteType === "upvotes"
-      ? setUpvotes(upvotes + voteValue)
-      : setDownvotes(downvotes + voteValue);
-      
-      // Save to database
-      await updateCommentVotes(identifier, commentId, voteType, voteValue);
-      setVoted(newVotedState);
-    } catch (err) {
+        ? setUpvotes(upvotes - 1)
+        : setDownvotes(downvotes - 1);
+
+      await updateCommentVotes(identifier, commentId, voteType, -1, parentId);
+    } else {
+      createCookie(voteType, identifier, commentId);
+      newVotedState[voteType] = true;
+
+      voteType === "upvotes"
+        ? setUpvotes(upvotes + 1)
+        : setDownvotes(downvotes + 1);
+
+      if (isOtherVoted) {
+        deleteCookie(otherVoteType, identifier, commentId);
+        newVotedState[otherVoteType] = false;
+
+        otherVoteType === "upvotes"
+          ? setUpvotes(upvotes - 1)
+          : setDownvotes(downvotes - 1);
+        
+        await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId);
+      }
+
+      await updateCommentVotes(identifier, commentId, voteType, 1, parentId);
+    }
+    setVoted(newVotedState);
+  } catch (err) {
       console.error("Failed to vote:", err);
     } finally {
       setIsVoting(false);

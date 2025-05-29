@@ -10,7 +10,7 @@
  * @module firestore
  */
 
-import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp, serverTimestamp, deleteDoc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp, serverTimestamp, deleteDoc, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 /**
@@ -219,6 +219,8 @@ export async function saveComment(articleId: string, commentData: {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
       email: commentData.email || null,
+      upvotes: commentData.upvotes || 0,
+      downvotes: commentData.downvotes || 0,
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(repliesRef, reply);
@@ -289,6 +291,7 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
   // Convert the comments to include proper timestamps
   const commentsWithTimestamps = defaultComments.map(comment => ({
     ...comment,
+    id: comment.id,
     upvotes: comment.upvotes || 0,
     downvotes: comment.downvotes || 0,
     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
@@ -312,7 +315,9 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
 
   // Create new comments
   await Promise.all(defaultComments.map(async (comment) => {
-    const docRef = await addDoc(commentsRef, {
+    const docRef = doc(commentsRef);
+    await setDoc(docRef, {
+      id: docRef.id,
       content: comment.content,
       name: comment.name,
       upvotes: comment.upvotes || 0,
@@ -327,10 +332,13 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
         addDoc(repliesRef, {
           content: reply.content,
           name: reply.name,
+          upvotes: comment.upvotes || 0,
+          downvotes: comment.downvotes || 0,
           createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
         })
       ));
     }
+
   }));
 }
 
@@ -347,9 +355,12 @@ export async function updateCommentVotes(
   articleId : string,
   commentId : string,
   field: 'upvotes' | 'downvotes',
-  value : number
+  value : number,
+  parentId?: string
 ) : Promise<void> {
-  const commentRef = doc(db, 'articles', articleId, 'comments', commentId);
+  const commentRef = parentId !== undefined
+  ? doc(db, 'articles', articleId, 'comments', parentId, 'replies', commentId) 
+  : doc(db, 'articles', articleId, 'comments', commentId);
   await updateDoc(commentRef, {
     [field]: increment(value)
   });

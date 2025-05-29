@@ -91,6 +91,11 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
 
   return (
     <section className={styles.commentsSection}>
+        <CommentForm 
+          anonymous={anonymous}
+          identifier={identifier}
+          onCommentSubmitted={handleCommentSubmitted}
+        />
       <div className={styles.commentsContainer}>
         <CommentList 
           comments={localComments} 
@@ -98,11 +103,6 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
-        />
-        <CommentForm 
-          anonymous={anonymous}
-          identifier={identifier}
-          onCommentSubmitted={handleCommentSubmitted}
         />
       </div>
     </section>

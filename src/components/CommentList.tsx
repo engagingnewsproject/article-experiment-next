@@ -188,6 +188,20 @@ const CommentItem: React.FC<{
                 )}
               </div>
               <p className={styles.commentContent}>{reply.content}</p>
+              <div className={styles.commentFooter}>
+                <button
+                  className={styles.replyButton}
+                  onClick={() => setIsReplying(!isReplying)}
+                >
+                  {isReplying ? "Cancel Reply" : "Reply"}
+                </button>
+                <CommentVoteSection 
+                  commentId={reply.id!}
+                  parentId={reply.parentId!}
+                  identifier={identifier}
+                  comment={reply}
+                />
+              </div>
             </div>
           ))}
         </div>
