@@ -72,7 +72,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
 
       // Update parent component with new comment and reset form fields
       onCommentSubmitted(newComment);
-      createCookie("comments", identifier, commentId);
+      createCookie("comment", identifier, commentId);
       setContent('');
       setName('');
       setEmail('');

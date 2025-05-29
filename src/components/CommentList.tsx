@@ -18,6 +18,7 @@ import { deleteComment, saveComment, type Comment } from "@/lib/firestore";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { CommentVoteSection } from "./CommentVoteSection";
+import { createCookie, deleteCookie } from "./Comments";
 
 interface CommentListProps {
   /** Array of comments to display, including their replies and vote counts */
@@ -74,6 +75,7 @@ const CommentItem: React.FC<{
       };
 
       onReply(comment.id!, newReply);
+      createCookie("reply", identifier, replyId);
       setReplyContent("");
       setIsReplying(false);
     } catch (err) {
@@ -92,6 +94,7 @@ const CommentItem: React.FC<{
         await deleteComment(identifier, comment.id);
         // Update parent component state after successful deletion
         onCommentRemoved(comment.id);
+        cleanCookieData("comment", identifier, comment.id);
       } catch (err) {
         // Log error and allow UI to recover from failed deletion
         console.error("Failed to delete comment:", err);
@@ -101,6 +104,18 @@ const CommentItem: React.FC<{
     }
   };
 
+  const cleanCookieData = (type: string, articleId: string, commentId: string) => {
+    deleteCookie(type, identifier, commentId);
+    deleteCookie("upvotes", articleId, commentId);
+    deleteCookie("downvotes", articleId, commentId);
+
+    comment.replies?.map((reply) => {
+      deleteCookie("reply", articleId, reply.id!);
+      deleteCookie("upvotes", articleId, reply.id!);
+      deleteCookie("downvotes", articleId, reply.id!);
+    });
+  }
+
   const handleDeleteReply = async (replyId: string) => {
     if (!comment.id || !replyId) return;
 
@@ -108,6 +123,7 @@ const CommentItem: React.FC<{
       try {
         await deleteComment(identifier, replyId, comment.id);
         onCommentRemoved(replyId);
+        cleanCookieData("reply", identifier, replyId);
       } catch (err) {
         console.error("Failed to delete reply:", err);
       }
