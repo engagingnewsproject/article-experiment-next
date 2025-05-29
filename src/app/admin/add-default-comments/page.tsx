@@ -55,6 +55,7 @@ export default function AddDefaultCommentsPage() {
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error(err);
     }
   };
 
@@ -77,7 +78,8 @@ export default function AddDefaultCommentsPage() {
               className="w-full p-2 border rounded mb-2"
               placeholder="Enter article ID"
               required
-            />        </div>
+            />        
+          </div>
 
           <div className="space-y-6">
             <h4 className="text-md font-medium underline">Comments</h4>

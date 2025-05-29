@@ -1,7 +1,7 @@
 import { Comment, updateCommentVotes } from "@/lib/firestore";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
-import { createCookie, deleteCookie, readCookie } from "./Comments";
+import { createCookie, deleteCookie } from "./Comments";
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
@@ -21,53 +21,53 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   const [isVoting, setIsVoting] = useState(false);
   const [voted, setVoted] = useState(() => {
     return {
-      upvotes: readCookie("upvotes", identifier, commentId) === "true",
-      downvotes: readCookie("downvotes", identifier, commentId) === "true",
+      upvotes: false,
+      downvotes: false,
     };
   });
 
   const handleVote = async (voteType: 'upvotes' | 'downvotes') => {
-if (isVoting) return;
-  setIsVoting(true);
+    if (isVoting) return;
+    setIsVoting(true);
 
-  const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
-  const isOtherVoted = voted[otherVoteType];
-  const isVoted = voted[voteType];
-  const newVotedState = { ...voted };
+    const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
+    const isOtherVoted = voted[otherVoteType];
+    const isVoted = voted[voteType];
+    const newVotedState = { ...voted };
 
-  try {
-    if (isVoted) {
-      deleteCookie(voteType, identifier, commentId);
-      newVotedState[voteType] = false;
+    try {
+      if (isVoted) {
+        deleteCookie(voteType, identifier, commentId);
+        newVotedState[voteType] = false;
 
-      voteType === "upvotes"
-        ? setUpvotes(upvotes - 1)
-        : setDownvotes(downvotes - 1);
+        voteType === "upvotes"
+          ? setUpvotes((upvotes) => upvotes - 1)
+          : setDownvotes((downvotes) => downvotes - 1);
 
-      await updateCommentVotes(identifier, commentId, voteType, -1, parentId);
-    } else {
-      createCookie(voteType, identifier, commentId);
-      newVotedState[voteType] = true;
+        await updateCommentVotes(identifier, commentId, voteType, -1, parentId);
+      } else {
+        createCookie(voteType, identifier, commentId);
+        newVotedState[voteType] = true;
 
-      voteType === "upvotes"
-        ? setUpvotes(upvotes + 1)
-        : setDownvotes(downvotes + 1);
+        voteType === "upvotes"
+          ? setUpvotes((upvotes) => upvotes + 1)
+          : setDownvotes((downvotes) => downvotes + 1);
 
-      if (isOtherVoted) {
-        deleteCookie(otherVoteType, identifier, commentId);
-        newVotedState[otherVoteType] = false;
+        if (isOtherVoted) {
+          deleteCookie(otherVoteType, identifier, commentId);
+          newVotedState[otherVoteType] = false;
 
-        otherVoteType === "upvotes"
-          ? setUpvotes(upvotes - 1)
-          : setDownvotes(downvotes - 1);
-        
-        await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId);
+          otherVoteType === "upvotes"
+            ? setUpvotes((upvotes) => upvotes - 1)
+            : setDownvotes((downvotes) => downvotes - 1);
+          
+          await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId);
+        }
+
+        await updateCommentVotes(identifier, commentId, voteType, 1, parentId);
       }
-
-      await updateCommentVotes(identifier, commentId, voteType, 1, parentId);
-    }
-    setVoted(newVotedState);
-  } catch (err) {
+      setVoted(newVotedState);
+    } catch (err) {
       console.error("Failed to vote:", err);
     } finally {
       setIsVoting(false);
