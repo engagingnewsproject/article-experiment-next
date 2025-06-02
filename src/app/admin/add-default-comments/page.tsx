@@ -9,22 +9,26 @@ import { Header } from '@/components/Header';
 export interface CommentFormData {
   content: string;
   name: string;
+  upvotes: number;
+  downvotes: number;
   replies: {
     content: string;
     name: string;
+    upvotes: number;
+    downvotes: number;
   }[];
 }
 
 export default function AddDefaultCommentsPage() {
   const [articleId, setArticleId] = useState('');
   const [comments, setComments] = useState<CommentFormData[]>([
-    { content: '', name: '', replies: [] }
+    { content: '', name: '', upvotes: 0, downvotes: 0, replies: [] }
   ]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const addComment = () => {
-    setComments([...comments, { content: '', name: '', replies: [] }]);
+    setComments([...comments, { content: '', name: '', upvotes: 0, downvotes: 0, replies: [] }]);
   };
 
   const removeComment = (index: number) => {
@@ -42,10 +46,14 @@ export default function AddDefaultCommentsPage() {
       const defaultComments: Comment[] = comments.map(comment => ({
         content: comment.content,
         name: comment.name,
+        upvotes: Number(comment.upvotes),
+        downvotes: Number(comment.downvotes),
         createdAt: new Date().toISOString(),
         replies: comment.replies.map(reply => ({
           content: reply.content,
           name: reply.name,
+          upvotes: Number(reply.upvotes),
+          downvotes: Number(reply.downvotes),
           createdAt: new Date().toISOString()
         }))
       }));

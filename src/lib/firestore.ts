@@ -299,6 +299,8 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
       ...reply,
       parentId: `default_${commentIndex}`,
       id: `default_${commentIndex}_${replyIndex}`,
+      upvotes: reply.upvotes || 0,
+      downvotes: reply.downvotes || 0,
       createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
     }))
   }));

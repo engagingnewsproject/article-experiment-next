@@ -31,7 +31,7 @@ const AdminCommentForm: React.FC<AdminCommentFormProps> = ({
       
       const comment = {
         ...newComments[commentIndex],
-        replies: [...newComments[commentIndex].replies, { content: '', name: '' }]
+        replies: [...newComments[commentIndex].replies, { content: '', name: '', upvotes: 0, downvotes: 0 }]
       };
 
       newComments[commentIndex] = comment;
@@ -55,7 +55,7 @@ const AdminCommentForm: React.FC<AdminCommentFormProps> = ({
   const updateReply = (
     commentIndex: number,
     replyIndex: number,
-    field: 'content' | 'name',
+    field: 'content' | 'name' | 'upvotes' | 'downvotes',
     value: string
   ) => {
     setComments((prev) => {
@@ -106,6 +106,32 @@ const AdminCommentForm: React.FC<AdminCommentFormProps> = ({
           />
         </div>
 
+        <div className="flex flex-row mb-6">
+          <div className="flex flex-col mr-6">
+            <label className="block text-md font-medium mb-1 mr-4">Upvotes</label>
+            <input 
+              type="number"
+              value={comment.upvotes}
+              onChange={(e) => updateComment('upvotes', e.target.value)}
+              className='w-20 p-2 border rounded'
+              placeholder='Upvotes'
+              required
+             />
+          </div>
+
+          <div className="flex flex-col mr-6">
+            <label className="block text-md font-medium mb-1 mr-4">Downvotes</label>
+            <input 
+              type="number"
+              value={comment.downvotes}
+              onChange={(e) => updateComment('downvotes', e.target.value)}
+              className='w-20 p-2 border rounded'
+              placeholder='Downvotes'
+              required
+             />
+          </div>
+        </div>
+
         <div className="space-y-4">
           <div className="mb-4">
             <h4 className="text-md font-medium underline">Replies</h4>
@@ -152,6 +178,31 @@ const AdminCommentForm: React.FC<AdminCommentFormProps> = ({
                       className="w-full p-2 border rounded min-h-[140px]"
                       placeholder="Reply content"
                       rows={2}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-row mb-6">
+                  <div className="flex flex-col mr-6">
+                    <label className="block text-md font-medium mb-1 mr-4">Upvotes</label>
+                    <input 
+                      type="number"
+                      value={reply.upvotes}
+                      onChange={(e) => updateReply(commentIndex, replyIndex, 'upvotes', e.target.value)}
+                      className='w-20 p-2 border rounded'
+                      placeholder='Upvotes'
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col mr-6">
+                    <label className="block text-md font-medium mb-1 mr-4">Downvotes</label>
+                    <input 
+                      type="number"
+                      value={reply.downvotes}
+                      onChange={(e) => updateReply(commentIndex, replyIndex, 'downvotes', e.target.value)}
+                      className='w-20 p-2 border rounded'
+                      placeholder='Downvotes'
                       required
                     />
                   </div>
