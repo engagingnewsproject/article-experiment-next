@@ -10,7 +10,7 @@
  * @module firestore
  */
 
-import { collection, query, where, getDocs, doc, getDoc, addDoc, orderBy, Timestamp, serverTimestamp, deleteDoc, updateDoc, increment } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 
 /**
@@ -219,9 +219,12 @@ export async function saveComment(articleId: string, commentData: {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
       email: commentData.email || null,
+      upvotes: commentData.upvotes || 0,
+      downvotes: commentData.downvotes || 0,
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(repliesRef, reply);
+    // await updateDoc(docRef, {id: docRef.id})
     return docRef.id;
   } else {
     // Save as a top-level comment
@@ -235,6 +238,7 @@ export async function saveComment(articleId: string, commentData: {
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(commentsRef, comment);
+    // await updateDoc(docRef, {id: docRef.id})
     return docRef.id;
   }
 }
@@ -285,13 +289,18 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
   const articleRef = doc(db, 'articles', articleId);
   
   // Convert the comments to include proper timestamps
-  const commentsWithTimestamps = defaultComments.map(comment => ({
+  const commentsWithTimestamps = defaultComments.map((comment, commentIndex) => ({
     ...comment,
+    id: `default_${commentIndex}`,
     upvotes: comment.upvotes || 0,
     downvotes: comment.downvotes || 0,
     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
-    replies: comment.replies?.map(reply => ({
+    replies: comment.replies?.map((reply, replyIndex) => ({
       ...reply,
+      parentId: `default_${commentIndex}`,
+      id: `default_${commentIndex}_${replyIndex}`,
+      upvotes: reply.upvotes || 0,
+      downvotes: reply.downvotes || 0,
       createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
     }))
   }));
@@ -308,28 +317,32 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
   const existingComments = await getDocs(commentsRef);
   await Promise.all(existingComments.docs.map(doc => deleteDoc(doc.ref)));
 
-  // Create new comments
-  await Promise.all(defaultComments.map(async (comment) => {
-    const docRef = await addDoc(commentsRef, {
-      content: comment.content,
-      name: comment.name,
-      upvotes: comment.upvotes || 0,
-      downvotes: comment.downvotes || 0,
-      createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now()))
-    });
+  // // Create new comments
+  // await Promise.all(defaultComments.map(async (comment) => {
+  //   const docRef = doc(commentsRef);
+  //   await setDoc(docRef, {
+  //     content: comment.content,
+  //     name: comment.name,
+  //     upvotes: comment.upvotes || 0,
+  //     downvotes: comment.downvotes || 0,
+  //     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now()))
+  //   });
 
-    // Add replies if they exist
-    if (comment.replies && comment.replies.length > 0) {
-      const repliesRef = collection(db, 'articles', articleId, 'comments', docRef.id, 'replies');
-      await Promise.all(comment.replies.map(reply => 
-        addDoc(repliesRef, {
-          content: reply.content,
-          name: reply.name,
-          createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
-        })
-      ));
-    }
-  }));
+  //   // Add replies if they exist
+  //   if (comment.replies && comment.replies.length > 0) {
+  //     const repliesRef = collection(db, 'articles', articleId, 'comments', docRef.id, 'replies');
+  //     await Promise.all(comment.replies.map(reply => 
+  //       addDoc(repliesRef, {
+  //         content: reply.content,
+  //         name: reply.name,
+  //         upvotes: comment.upvotes || 0,
+  //         downvotes: comment.downvotes || 0,
+  //         createdAt: Timestamp.fromDate(new Date(reply.createdAt || Date.now()))
+  //       })
+  //     ));
+  //   }
+
+  // }));
 }
 
 /**
@@ -342,12 +355,20 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
  * @returns {Promise<void>}
  */ 
 export async function updateCommentVotes(
-  articleId : string,
-  commentId : string,
+  articleId: string,
+  commentId: string,
   field: 'upvotes' | 'downvotes',
-  value : number
-) : Promise<void> {
-  const commentRef = doc(db, 'articles', articleId, 'comments', commentId);
+  value: number,
+  parentId?: string
+): Promise<void> {
+  if (commentId.startsWith("default_") || parentId?.startsWith("default_")) return;
+
+  const commentsPath = `articles/${articleId}/comments`;
+  const commentRef = parentId !== undefined
+    ? doc(db, commentsPath, parentId, 'replies', commentId)
+    : doc(db, commentsPath, commentId);
+  const commentSnap = await getDoc(commentRef);
+  if (!commentSnap.exists()) return;
   await updateDoc(commentRef, {
     [field]: increment(value)
   });
@@ -390,4 +411,4 @@ const defaultComments = [
 
 // To use this function:
 await updateArticleWithDefaultComments('your-article-id', defaultComments);
-*/ 
+*/

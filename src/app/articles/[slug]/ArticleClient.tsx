@@ -38,6 +38,8 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
       id: reply.id || '',
       name: reply.name || 'Anonymous',
       content: reply.content,
+      upvotes: reply.upvotes || 0,
+      downvotes: reply.downvotes || 0,
       timestamp: reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Unknown date'
     })) || []
   }));

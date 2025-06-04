@@ -76,6 +76,8 @@ interface ArticleContentProps {
       id: string;
       name: string;
       content: string;
+      upvotes: number;
+      downvotes: number;
       timestamp: string;
     }[];
   }[];
@@ -155,6 +157,8 @@ export function ArticleContent({
                 id: reply.id,
                 name: reply.name,
                 content: reply.content,
+                upvotes: reply.upvotes,
+                downvotes: reply.downvotes,
                 createdAt: reply.timestamp,
               })),
             }))}

@@ -1,74 +1,95 @@
 import { Comment, updateCommentVotes } from "@/lib/firestore";
-import Cookies from "js-cookie";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
+import { createCookie, deleteCookie } from "./Comments";
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
+  parentId?: string;
   identifier: string;
   comment: Comment;
-  onVote: (type: 'upvotes' | 'downvotes', value: number) => void;
 }
 
 export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({ 
   commentId, 
+  parentId,
   identifier, 
   comment,
-  onVote 
 }) => {
+  const [upvotes, setUpvotes] = useState(comment.upvotes || 0);
+  const [downvotes, setDownvotes] = useState(comment.downvotes || 0);
+  const [isVoting, setIsVoting] = useState(false);
   const [voted, setVoted] = useState(() => {
     return {
-      upvotes: Cookies.get(`upvotes_${identifier}_${commentId}`) === "true",
-      downvotes: Cookies.get(`downvotes_${identifier}_${commentId}`) === "true",
+      upvotes: false,
+      downvotes: false,
     };
   });
 
-  const handleVote = async (type: 'upvotes' | 'downvotes', value: number) => {
-    const isVoted = voted[type];
-    const voteValue = isVoted ? -1 : 1;
+  const handleVote = async (voteType: 'upvotes' | 'downvotes') => {
+    if (isVoting) return;
+    setIsVoting(true);
+
+    const otherVoteType = voteType === "upvotes" ? "downvotes" : "upvotes";
+    const isOtherVoted = voted[otherVoteType];
+    const isVoted = voted[voteType];
     const newVotedState = { ...voted };
 
     try {
       if (isVoted) {
-        Cookies.remove(`${type}_${identifier}_${commentId}`);
-        newVotedState[type] = false;
-      } else {
-        const otherVoteType = type === "upvotes" ? "downvotes" : "upvotes";
-        if (voted[otherVoteType]) {
-          Cookies.remove(`${otherVoteType}_${identifier}_${commentId}`);
-          await updateCommentVotes(identifier, commentId, otherVoteType, -1);
-          newVotedState[otherVoteType] = false;
-        }
-        Cookies.set(`${type}_${identifier}_${commentId}`, "true");
-        newVotedState[type] = true;
-      }
+        deleteCookie(voteType, identifier, commentId);
+        newVotedState[voteType] = false;
 
-      // Update local state
-      onVote(type, voteValue);
-      
-      // Save to database
-      await updateCommentVotes(identifier, commentId, type, voteValue);
-      
+        voteType === "upvotes"
+          ? setUpvotes((upvotes) => upvotes - 1)
+          : setDownvotes((downvotes) => downvotes - 1);
+
+        await updateCommentVotes(identifier, commentId, voteType, -1, parentId);
+      } else {
+        createCookie(voteType, identifier, commentId);
+        newVotedState[voteType] = true;
+
+        voteType === "upvotes"
+          ? setUpvotes((upvotes) => upvotes + 1)
+          : setDownvotes((downvotes) => downvotes + 1);
+
+        if (isOtherVoted) {
+          deleteCookie(otherVoteType, identifier, commentId);
+          newVotedState[otherVoteType] = false;
+
+          otherVoteType === "upvotes"
+            ? setUpvotes((upvotes) => upvotes - 1)
+            : setDownvotes((downvotes) => downvotes - 1);
+          
+          await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId);
+        }
+
+        await updateCommentVotes(identifier, commentId, voteType, 1, parentId);
+      }
       setVoted(newVotedState);
     } catch (err) {
       console.error("Failed to vote:", err);
+    } finally {
+      setIsVoting(false);
     }
   };
 
   return (
     <>
       <button 
-        onClick={() => handleVote('upvotes', 1)}
+        onClick={() => handleVote('upvotes')}
         className={styles.voteButton}
+        disabled={isVoting}
       >
-        <span>{comment.upvotes || 0}</span>
+        <span>{upvotes}</span>
         <span>Upvotes</span>
       </button>
       <button 
-        onClick={() => handleVote('downvotes', 1)}
+        onClick={() => handleVote('downvotes')}
         className={styles.voteButton}
+        disabled={isVoting}
       >
-        <span>{comment.downvotes || 0}</span>
+        <span>{downvotes}</span>
         <span>Downvotes</span>
       </button>
     </>

@@ -9,16 +9,16 @@
  * @component
  * @param {Object} props - Component props
  * @param {Comment[]} props.comments - Array of comments to display
- * @param {Function} props.onCommentSubmitted - Function to handle comment submission
+ * @param {Function} props.onCommentRemoved - Function to handle comment removal
  * @param {boolean} props.anonymous - Whether the comments are anonymous
  * @param {string} props.identifier - Article identifier
  * @returns {JSX.Element} The comments list
  */
+import { deleteComment, saveComment, type Comment } from "@/lib/firestore";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
-import { saveComment, deleteComment } from "@/lib/firestore";
-import { type Comment } from "@/lib/firestore";
 import { CommentVoteSection } from "./CommentVoteSection";
+import { createCookie, deleteCookie } from "./Comments";
 
 interface CommentListProps {
   /** Array of comments to display, including their replies and vote counts */
@@ -27,10 +27,8 @@ interface CommentListProps {
   anonymous: boolean;
   /** Unique identifier for the article, used for database operations and cookie management */
   identifier: string;
-  /** Callback function called when a new comment is submitted, used to update parent component state */
-  onCommentSubmitted: (comment: Comment) => void;
-  /** Callback function called when a comment is voted on, handles both upvotes and downvotes */
-  onVote: (commentId: string, type: 'upvotes' | 'downvotes', value: number) => void;
+    /** Callback function called when a new comment is removed, used to update parent component state */
+  onCommentRemoved: (commentId: string) => void;
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
   onReply: (commentId: string, reply: Comment) => void;
 }
@@ -39,16 +37,15 @@ const CommentItem: React.FC<{
   /** The comment data to display, including content, author, and metadata */
   comment: Comment;
   /** Callback function called when a comment is submitted, used to update parent state */
-  onCommentSubmitted: (comment: Comment) => void;
+  /** Callback function called when a comment is removed, used to update parent state */
+  onCommentRemoved: (commentId: string) => void;
   /** Optional flag to control whether user information is displayed anonymously */
   anonymous?: boolean;
   /** Unique identifier for the article, used for database operations */
   identifier: string;
-  /** Callback function for handling vote interactions on this comment */
-  onVote: (commentId: string, type: 'upvotes' | 'downvotes', value: number) => void;
   /** Callback function for handling replies to this comment */
   onReply: (commentId: string, reply: Comment) => void;
-}> = ({ comment, onCommentSubmitted, anonymous, identifier, onVote, onReply }) => {
+}> = ({ comment, onCommentRemoved, identifier, onReply }) => {
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,13 +58,15 @@ const CommentItem: React.FC<{
     setIsSubmitting(true);
     try {
       // Save to database
-      await saveComment(identifier, {
+      const replyId = await saveComment(identifier, {
         content: replyContent,
         parentId: comment.id,
       });
 
       // Create local reply for immediate display
       const newReply: Comment = {
+        id: replyId,
+        parentId: comment.id,
         content: replyContent,
         name: 'Anonymous', // or get from form if available
         createdAt: new Date().toISOString(),
@@ -76,6 +75,7 @@ const CommentItem: React.FC<{
       };
 
       onReply(comment.id!, newReply);
+      createCookie("reply", identifier, replyId);
       setReplyContent("");
       setIsReplying(false);
     } catch (err) {
@@ -93,7 +93,8 @@ const CommentItem: React.FC<{
       try {
         await deleteComment(identifier, comment.id);
         // Update parent component state after successful deletion
-        onCommentSubmitted(comment);
+        onCommentRemoved(comment.id);
+        cleanCookieData("comment", identifier, comment.id);
       } catch (err) {
         // Log error and allow UI to recover from failed deletion
         console.error("Failed to delete comment:", err);
@@ -103,25 +104,30 @@ const CommentItem: React.FC<{
     }
   };
 
+  const cleanCookieData = (type: string, articleId: string, commentId: string) => {
+    deleteCookie(type, identifier, commentId);
+    deleteCookie("upvotes", articleId, commentId);
+    deleteCookie("downvotes", articleId, commentId);
+
+    comment.replies?.map((reply) => {
+      deleteCookie("reply", articleId, reply.id!);
+      deleteCookie("upvotes", articleId, reply.id!);
+      deleteCookie("downvotes", articleId, reply.id!);
+    });
+  }
+
   const handleDeleteReply = async (replyId: string) => {
     if (!comment.id || !replyId) return;
 
     if (window.confirm("Are you sure you want to delete this reply?")) {
       try {
         await deleteComment(identifier, replyId, comment.id);
-        onCommentSubmitted(comment);
+        onCommentRemoved(replyId);
+        cleanCookieData("reply", identifier, replyId);
       } catch (err) {
         console.error("Failed to delete reply:", err);
       }
     }
-  };
-
-  /** 
-   * Handles vote interactions for this comment by passing the vote type and value to the parent component.
-   * Uses non-null assertion for comment.id since we know it exists in this context.
-   */
-  const handleVote = (type: 'upvotes' | 'downvotes', value: number) => {
-    onVote(comment.id!, type, value);
   };
 
   return (
@@ -155,7 +161,6 @@ const CommentItem: React.FC<{
           commentId={comment.id!}
           identifier={identifier}
           comment={comment}
-          onVote={handleVote}
         />
       </div>
 
@@ -180,8 +185,8 @@ const CommentItem: React.FC<{
 
       {comment.replies && comment.replies.length > 0 && (
         <div className={styles.replies}>
-          {comment.replies.map((reply) => (
-            <div key={reply.id} className={styles.reply}>
+          {comment.replies.map((reply, replyIndex) => (
+            <div key={reply.id || replyIndex} className={styles.reply}>
               <div className={styles.commentHeader}>
                 <span className={styles.commentAuthor}>{reply.name}</span>
                 <span className={styles.commentDate}>
@@ -199,6 +204,20 @@ const CommentItem: React.FC<{
                 )}
               </div>
               <p className={styles.commentContent}>{reply.content}</p>
+              <div className={styles.commentFooter}>
+                <button
+                  className={styles.replyButton}
+                  onClick={() => setIsReplying(!isReplying)}
+                >
+                  {isReplying ? "Cancel Reply" : "Reply"}
+                </button>
+                <CommentVoteSection 
+                  commentId={reply.id!}
+                  parentId={reply.parentId!}
+                  identifier={identifier}
+                  comment={reply}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -211,8 +230,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   comments,
   anonymous,
   identifier,
-  onCommentSubmitted,
-  onVote,
+  onCommentRemoved,
   onReply
 }) => {
   const COMMENTS_REVEAL_COUNT = 20;
@@ -229,14 +247,13 @@ export const CommentList: React.FC<CommentListProps> = ({
 
   return (
     <div className={styles.commentList}>
-      {shownComments.map((comment) => (
+      {shownComments.map((comment, commentIndex) => (
         <CommentItem
-          key={comment.id}
+          key={comment.id || commentIndex}
           comment={comment}
-          onCommentSubmitted={onCommentSubmitted}
+          onCommentRemoved={onCommentRemoved}
           anonymous={anonymous}
           identifier={identifier}
-          onVote={onVote}
           onReply={onReply}
         />
       ))}
