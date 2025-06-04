@@ -202,6 +202,7 @@ export async function getAuthors(): Promise<Author[]> {
  * @param {number} upvotes - The comment's upvote count
  * @param {number} downvotes - The comment's downvote count
  * @param {string} [commentData.parentId] - ID of the parent comment (for replies)
+ * @param {string} [commentData.grandParentId] - ID of the grandparent comment (for replies to replies)
  * @returns {Promise<string>} The ID of the created comment
  */
 export async function saveComment(articleId: string, commentData: {
@@ -211,10 +212,13 @@ export async function saveComment(articleId: string, commentData: {
   upvotes?: number;
   downvotes?: number;
   parentId?: string;
+  grandParentId?: string;
 }): Promise<string> {
   if (commentData.parentId) {
     // Save as a reply in the parent comment's replies subcollection
-    const repliesRef = collection(db, 'articles', articleId, 'comments', commentData.parentId, 'replies');
+    const repliesRef = commentData.grandParentId 
+      ? collection(db, 'articles', articleId, 'comments', commentData.grandParentId, 'replies', commentData.parentId, 'replies') 
+      : collection(db, 'articles', articleId, 'comments', commentData.parentId, 'replies');
     const reply = {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
@@ -224,7 +228,8 @@ export async function saveComment(articleId: string, commentData: {
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(repliesRef, reply);
-    // await updateDoc(docRef, {id: docRef.id})
+    // Debugging purposes
+    // await updateDoc(docRef, {parentId: commentData.parentId})
     return docRef.id;
   } else {
     // Save as a top-level comment
@@ -238,6 +243,7 @@ export async function saveComment(articleId: string, commentData: {
       createdAt: serverTimestamp()
     };
     const docRef = await addDoc(commentsRef, comment);
+    // Debugging purposes
     // await updateDoc(docRef, {id: docRef.id})
     return docRef.id;
   }
@@ -249,24 +255,46 @@ export async function saveComment(articleId: string, commentData: {
  * @param {string} articleId - The ID of the article
  * @param {string} commentId - The ID of the comment to delete
  * @param {string} [parentId] - Optional ID of the parent comment (if deleting a reply)
+ * @param {string} [grandParentId] - Optional ID of the top-level comment (if deleting a subReply)
  * @returns {Promise<void>}
  */
-export async function deleteComment(articleId: string, commentId: string, parentId?: string): Promise<void> {
+export async function deleteComment(articleId: string, commentId: string, parentId?: string, grandParentId?: string): Promise<void> {  
   try {
-    if (parentId) {
+    const commentsPath = `articles/${articleId}/comments`;
+
+    if (grandParentId && parentId) {
+      // Delete a subReply
+      const subReplyRef = doc(db, commentsPath, grandParentId, 'replies', parentId, 'replies', commentId);
+      await deleteDoc(subReplyRef);
+    }
+    else if (parentId) {
       // Delete a reply
-      const replyRef = doc(db, 'articles', articleId, 'comments', parentId, 'replies', commentId);
+      const replyRef = doc(db, commentsPath, parentId, 'replies', commentId);
+      
+      // First, delete all subReplies
+      const subRepliesRef = collection(db, commentsPath, parentId, 'replies', commentId, 'replies')
+      const subRepliesSnapshot = await getDocs(subRepliesRef);
+      const deletePromises = subRepliesSnapshot.docs.map(async doc => deleteDoc(doc.ref))
+
+      await Promise.all(deletePromises);
+      
+      // Then delete the reply
       await deleteDoc(replyRef);
     } else {
       // Delete a comment and all its replies
-      const commentRef = doc(db, 'articles', articleId, 'comments', commentId);
+      const commentRef = doc(db, commentsPath, commentId);
       
-      // First, delete all replies
-      const repliesRef = collection(db, 'articles', articleId, 'comments', commentId, 'replies');
+      // Delete all replies
+      const repliesRef = collection(db, commentsPath, commentId, 'replies');
       const repliesSnapshot = await getDocs(repliesRef);
       
-      // Delete all replies first
-      const deletePromises = repliesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      const deletePromises = repliesSnapshot.docs.map(async doc => {
+        // First, delete all subReplies
+        const subRepliesRef = collection(db, commentsPath, commentId, 'replies', doc.id, 'replies')
+        const subRepliesSnapshot = await getDocs(subRepliesRef);
+        await Promise.all(subRepliesSnapshot.docs.map(async subDoc => deleteDoc(subDoc.ref)));
+        deleteDoc(doc.ref)
+      });
       await Promise.all(deletePromises);
       
       // Then delete the comment
@@ -297,7 +325,7 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
     replies: comment.replies?.map((reply, replyIndex) => ({
       ...reply,
-      parentId: `default_${commentIndex}`,
+      parentId: comment.id || `default_${commentIndex}`,
       id: `default_${commentIndex}_${replyIndex}`,
       upvotes: reply.upvotes || 0,
       downvotes: reply.downvotes || 0,
@@ -359,14 +387,22 @@ export async function updateCommentVotes(
   commentId: string,
   field: 'upvotes' | 'downvotes',
   value: number,
-  parentId?: string
+  parentId?: string,
+  grandParentId?: string,
 ): Promise<void> {
-  if (commentId.startsWith("default_") || parentId?.startsWith("default_")) return;
+  if (commentId.startsWith("default_")) return;
 
   const commentsPath = `articles/${articleId}/comments`;
-  const commentRef = parentId !== undefined
-    ? doc(db, commentsPath, parentId, 'replies', commentId)
-    : doc(db, commentsPath, commentId);
+
+  let commentRef = doc(db, commentsPath, commentId);
+  if (grandParentId && parentId) {
+    commentRef = doc(db, commentsPath, grandParentId, 'replies', parentId, 'replies', commentId);
+  }
+  else if (parentId) {
+    commentRef = doc(db, commentsPath, parentId, 'replies', commentId);
+  }
+
+  // Update vote count
   const commentSnap = await getDoc(commentRef);
   if (!commentSnap.exists()) return;
   await updateDoc(commentRef, {

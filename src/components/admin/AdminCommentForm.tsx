@@ -31,7 +31,10 @@ const AdminCommentForm: React.FC<AdminCommentFormProps> = ({
       
       const comment = {
         ...newComments[commentIndex],
-        replies: [...newComments[commentIndex].replies, { content: '', name: '', upvotes: 0, downvotes: 0 }]
+        replies: [
+          ...newComments[commentIndex].replies,
+          { content: '', name: '', upvotes: 0, downvotes: 0, replies: [] }
+        ]
       };
 
       newComments[commentIndex] = comment;

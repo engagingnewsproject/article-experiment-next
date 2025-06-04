@@ -16,6 +16,7 @@ export interface CommentFormData {
     name: string;
     upvotes: number;
     downvotes: number;
+    replies: {}
   }[];
 }
 
