@@ -191,7 +191,10 @@ The project uses two main branches:
 4. Configure branch settings:
    - Production branch: `prod`
    - Deploy previews: Enabled for pull requests
-5. Deploy!
+5. Deploy:
+   - Make sure you are in the `main` branch and status is clear
+   - Checkout `prod` branch
+   - Merge `main` into `prod`. Deployment to Netlify will run.
 
 ### Build Process
 
