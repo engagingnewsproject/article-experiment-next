@@ -46,12 +46,12 @@ const CommentItem: React.FC<{
   /** Callback function for handling replies to this comment */
   onReply: (commentId: string, reply: Comment) => void;
 }> = ({ comment, onCommentRemoved, identifier, onReply }) => {
-  const [isReplying, setIsReplying] = useState(false);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleReply = async (e: React.FormEvent) => {
+  const handleReply = async (e: React.FormEvent, parentId?: string, grandParentId?: string) => {
     e.preventDefault();
     if (!replyContent.trim()) return;
 
@@ -60,13 +60,14 @@ const CommentItem: React.FC<{
       // Save to database
       const replyId = await saveComment(identifier, {
         content: replyContent,
-        parentId: comment.id,
+        parentId: parentId,
+        grandParentId: grandParentId
       });
 
       // Create local reply for immediate display
       const newReply: Comment = {
         id: replyId,
-        parentId: comment.id,
+        parentId: parentId,
         content: replyContent,
         name: 'Anonymous', // or get from form if available
         createdAt: new Date().toISOString(),
@@ -74,10 +75,10 @@ const CommentItem: React.FC<{
         downvotes: 0
       };
 
-      onReply(comment.id!, newReply);
-      createCookie("reply", identifier, replyId);
+      onReply(parentId!, newReply);
+      createCookie(grandParentId ? "subReply" : "reply", identifier, replyId);
       setReplyContent("");
-      setIsReplying(false);
+      setReplyingToId(null);
     } catch (err) {
       console.error("Failed to submit reply:", err);
     } finally {
@@ -109,19 +110,25 @@ const CommentItem: React.FC<{
     deleteCookie("upvotes", articleId, commentId);
     deleteCookie("downvotes", articleId, commentId);
 
-    comment.replies?.map((reply) => {
+    comment.replies?.map(reply => {
       deleteCookie("reply", articleId, reply.id!);
       deleteCookie("upvotes", articleId, reply.id!);
       deleteCookie("downvotes", articleId, reply.id!);
+      
+      reply.replies?.map(subReply => {
+        deleteCookie("subReply", articleId, subReply.id!);
+        deleteCookie("upvotes", articleId, subReply.id!);
+        deleteCookie("downvotes", articleId, subReply.id!);
+      })
     });
   }
 
-  const handleDeleteReply = async (replyId: string) => {
+  const handleDeleteReply = async (replyId: string, parentId: string, grandParentId?: string) => {
     if (!comment.id || !replyId) return;
 
     if (window.confirm("Are you sure you want to delete this reply?")) {
       try {
-        await deleteComment(identifier, replyId, comment.id);
+        await deleteComment(identifier, replyId, parentId, grandParentId);
         onCommentRemoved(replyId);
         cleanCookieData("reply", identifier, replyId);
       } catch (err) {
@@ -153,9 +160,9 @@ const CommentItem: React.FC<{
       <div className={styles.commentFooter}>
         <button
           className={styles.replyButton}
-          onClick={() => setIsReplying(!isReplying)}
+          onClick={() => setReplyingToId(replyingToId === comment.id ? null : comment.id!)}
         >
-          {isReplying ? "Cancel Reply" : "Reply"}
+          {replyingToId === comment.id ? "Cancel Reply" : "Reply"}
         </button>
         <CommentVoteSection 
           commentId={comment.id!}
@@ -164,23 +171,13 @@ const CommentItem: React.FC<{
         />
       </div>
 
-      {isReplying && (
-        <form onSubmit={handleReply} className={styles.inlineReplyForm}>
-          <textarea
-            placeholder="Write your reply..."
-            value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-            className={styles.inlineTextarea}
-            required
-          />
-          <button
-            type="submit"
-            className={styles.inlineSubmitButton}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Reply"}
-          </button>
-        </form>
+      {replyingToId === comment.id && (
+        <CommentReplyForm 
+          handleReply={(e) => handleReply(e, comment.id)}
+          setReplyContent={setReplyContent}
+          replyContent={replyContent}
+          isSubmitting={isSubmitting}
+        />
       )}
 
       {comment.replies && comment.replies.length > 0 && (
@@ -196,7 +193,7 @@ const CommentItem: React.FC<{
                 </span>
                 {process.env.NODE_ENV === "development" && reply.id && (
                   <button
-                    onClick={() => handleDeleteReply(reply.id!)}
+                    onClick={() => handleDeleteReply(reply.id!, comment.id!)}
                     className={styles.deleteButton}
                   >
                     Delete
@@ -205,12 +202,14 @@ const CommentItem: React.FC<{
               </div>
               <p className={styles.commentContent}>{reply.content}</p>
               <div className={styles.commentFooter}>
-                <button
-                  className={styles.replyButton}
-                  onClick={() => setIsReplying(!isReplying)}
-                >
-                  {isReplying ? "Cancel Reply" : "Reply"}
-                </button>
+                { reply.parentId === comment.id && (
+                  <button
+                    className={styles.replyButton}
+                    onClick={() => setReplyingToId(replyingToId === reply.id ? null : reply.id!) }
+                  >
+                    {replyingToId === reply.id ? "Cancel Reply" : "Reply"}
+                  </button>
+                )}
                 <CommentVoteSection 
                   commentId={reply.id!}
                   parentId={reply.parentId!}
@@ -218,6 +217,51 @@ const CommentItem: React.FC<{
                   comment={reply}
                 />
               </div>
+              
+              {replyingToId === reply.id && (
+                <CommentReplyForm
+                  handleReply={(e) => handleReply(e, reply.id, reply.parentId)} 
+                  setReplyContent={setReplyContent}
+                  replyContent={replyContent}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+
+              {reply.replies && reply.replies.length > 0 && (
+                <div className={styles.replies}>
+                  {reply.replies.map((subReply, subReplyIndex) => (
+                    <div key={subReply.id || subReplyIndex} className={styles.reply}>
+                      <div className={styles.commentHeader}>
+                        <span className={styles.commentAuthor}>{subReply.name}</span>
+                        <span className={styles.commentDate}>
+                          {subReply.createdAt
+                            ? new Date(subReply.createdAt).toLocaleString()
+                            : "Unknown date"
+                          }
+                        </span>
+                        {process.env.NODE_ENV === "development" && reply.id && (
+                          <button
+                            onClick={() => handleDeleteReply(subReply.id!, reply.id!, comment.id!)}
+                            className={styles.deleteButton}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                      <p className={styles.commentContent}>{subReply.content}</p>
+                      <div className={styles.commentFooter}>
+                        <CommentVoteSection 
+                          commentId={subReply.id!}
+                          parentId={reply.id!}
+                          grandParentId={comment.id}
+                          identifier={identifier}
+                          comment={subReply}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -268,5 +312,38 @@ export const CommentList: React.FC<CommentListProps> = ({
         </button>
       )}
     </div>
+  );
+};
+
+interface CommentReplyFormProps {
+  handleReply: (e: React.FormEvent) => void;
+  replyContent: string;
+  setReplyContent: (value: string) => void;
+  isSubmitting: boolean;
+}
+
+export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
+  handleReply,
+  setReplyContent,
+  replyContent,
+  isSubmitting
+}) => {
+  return (
+        <form onSubmit={handleReply} className={styles.inlineReplyForm}>
+          <textarea
+            placeholder="Write your reply..."
+            value={replyContent}
+            onChange={(e) => setReplyContent(e.target.value)}
+            className={styles.inlineTextarea}
+            required
+          />
+          <button
+            type="submit"
+            className={styles.inlineSubmitButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Submit Reply"}
+          </button>
+        </form>
   );
 };

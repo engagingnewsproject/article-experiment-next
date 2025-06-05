@@ -73,12 +73,22 @@ interface ArticleContentProps {
     upvotes: number;
     downvotes: number;
     replies: {
+      parentId: string;
       id: string;
       name: string;
       content: string;
       upvotes: number;
       downvotes: number;
       timestamp: string;
+      replies: {
+        parentId: string;
+        id: string;
+        name: string;
+        content: string;
+        upvotes: number;
+        downvotes: number;
+        timestamp: string;
+      }[];
     }[];
   }[];
 }
@@ -154,12 +164,22 @@ export function ArticleContent({
               upvotes: comment.upvotes,
               downvotes: comment.downvotes,
               replies: comment.replies.map((reply) => ({
+                parentId: comment.id,
                 id: reply.id,
                 name: reply.name,
                 content: reply.content,
                 upvotes: reply.upvotes,
                 downvotes: reply.downvotes,
                 createdAt: reply.timestamp,
+                replies: reply.replies.map((subReply) => ({
+                  parentId: reply.id,
+                  id: subReply.id,
+                  name: subReply.name,
+                  content: subReply.content,
+                  upvotes: subReply.upvotes,
+                  downvotes: subReply.downvotes,
+                  createdAt: subReply.timestamp,
+                })),
               })),
             }))}
             anonymous={article.anonymous}

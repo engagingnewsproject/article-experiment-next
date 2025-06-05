@@ -35,12 +35,22 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
     upvotes: comment.upvotes || 0,
     downvotes: comment.downvotes || 0,
     replies: comment.replies?.map(reply => ({
+      parentId: comment.id || '',
       id: reply.id || '',
       name: reply.name || 'Anonymous',
       content: reply.content,
       upvotes: reply.upvotes || 0,
       downvotes: reply.downvotes || 0,
-      timestamp: reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Unknown date'
+      timestamp: reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Unknown date',
+      replies: reply.replies?.map(subReply => ({
+        parentId: reply.id || '',
+        id: subReply.id || '',
+        name: subReply.name || 'Anonymous',
+        content: subReply.content,
+        upvotes: subReply.upvotes || 0,
+        downvotes: subReply.downvotes || 0,
+        timestamp: subReply.createdAt ? new Date(subReply.createdAt).toLocaleString() : 'Unknown date',
+      })) || []
     })) || []
   }));
 

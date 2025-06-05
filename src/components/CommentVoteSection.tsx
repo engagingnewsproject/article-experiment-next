@@ -2,10 +2,13 @@ import { Comment, updateCommentVotes } from "@/lib/firestore";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { createCookie, deleteCookie } from "./Comments";
+import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
+
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
   parentId?: string;
+  grandParentId?: string;
   identifier: string;
   comment: Comment;
 }
@@ -13,6 +16,7 @@ interface CommentVoteSectionProps {
 export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({ 
   commentId, 
   parentId,
+  grandParentId,
   identifier, 
   comment,
 }) => {
@@ -44,7 +48,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
           ? setUpvotes((upvotes) => upvotes - 1)
           : setDownvotes((downvotes) => downvotes - 1);
 
-        await updateCommentVotes(identifier, commentId, voteType, -1, parentId);
+        await updateCommentVotes(identifier, commentId, voteType, -1, parentId, grandParentId);
       } else {
         createCookie(voteType, identifier, commentId);
         newVotedState[voteType] = true;
@@ -61,10 +65,10 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
             ? setUpvotes((upvotes) => upvotes - 1)
             : setDownvotes((downvotes) => downvotes - 1);
           
-          await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId);
+          await updateCommentVotes(identifier, commentId, otherVoteType, -1, parentId, grandParentId);
         }
 
-        await updateCommentVotes(identifier, commentId, voteType, 1, parentId);
+        await updateCommentVotes(identifier, commentId, voteType, 1, parentId, grandParentId);
       }
       setVoted(newVotedState);
     } catch (err) {
@@ -81,16 +85,16 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
         className={styles.voteButton}
         disabled={isVoting}
       >
+        {voted.upvotes ? <BiSolidLike /> : <BiLike />}
         <span>{upvotes}</span>
-        <span>Upvotes</span>
       </button>
       <button 
         onClick={() => handleVote('downvotes')}
         className={styles.voteButton}
         disabled={isVoting}
       >
+        {voted.downvotes ? <BiSolidDislike /> : <BiDislike />}
         <span>{downvotes}</span>
-        <span>Downvotes</span>
       </button>
     </>
   );

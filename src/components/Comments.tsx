@@ -13,12 +13,12 @@
  * @param {string} props.identifier - Unique identifier for the article
  * @returns {JSX.Element} The comments section
  */
-import React, { useState } from 'react';
-import styles from './Comments.module.css';
-import { CommentForm } from './CommentForm';
-import { CommentList } from './CommentList';
-import { type Comment } from '@/lib/firestore';
-import Cookies from 'js-cookie';
+import React, { useState } from "react";
+import styles from "./Comments.module.css";
+import { CommentForm } from "./CommentForm";
+import { CommentList } from "./CommentList";
+import { type Comment } from "@/lib/firestore";
+import Cookies from "js-cookie";
 
 /**
  * Props interface for the Comments component.
@@ -47,7 +47,11 @@ interface CommentsProps {
  * @param {CommentsProps} props - Component props
  * @returns {JSX.Element} The rendered comments section
  */
-export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, identifier }) => {
+export const Comments: React.FC<CommentsProps> = ({
+  comments = [],
+  anonymous,
+  identifier,
+}) => {
   // Keep default comments in state
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
   // Track temporary user interactions
@@ -55,34 +59,42 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
 
   const handleCommentSubmitted = async (newComment: Comment) => {
     // Add the new comment to local state only
-    setLocalComments(prev => [...prev, newComment]);
-  };
+    setLocalComments((prev) => [...prev, newComment]);
+  }
   
-  const handleCommentRemoved = async (commentId: string) => {
-    setLocalComments(prevComments => {
-      return prevComments
+  // Recursively remove a comment or reply by id
+  const removeCommentById = (comments: Comment[], commentId: string): Comment[] => {
+    return comments
       .filter(comment => comment.id !== commentId)
       .map(comment => ({
         ...comment,
-        replies: comment.replies
-        ? comment.replies.filter(reply => reply.id !== commentId)
-        : []
+        replies: comment.replies ? removeCommentById(comment.replies, commentId) : []
       }));
-    });
   }
 
-  const handleReply = (commentId: string, reply: Comment) => {
-    // Add reply to local state only
-    setLocalComments(prev => prev.map(comment => {
+  const handleCommentRemoved = async (commentId: string) => {
+    setLocalComments(prevComments => removeCommentById(prevComments, commentId));
+  }
+
+  // Recursively add a reply to the correct comment or reply
+  const addReplyById = (comments: Comment[], commentId: string, reply: Comment): Comment[] => {
+    return comments.map(comment => {
       if (comment.id === commentId) {
         return {
           ...comment,
           replies: [...(comment.replies || []), reply]
         };
       }
-      return comment;
-    }));
-  };
+      return {
+        ...comment,
+        replies: comment.replies ? addReplyById(comment.replies, commentId, reply) : []
+      };
+    });
+  }
+
+  const handleReply = (commentId: string, reply: Comment) => {
+    setLocalComments(prev => addReplyById(prev, commentId, reply));
+  }
 
   // Reset to default comments when component mounts
   React.useEffect(() => {
@@ -109,14 +121,26 @@ export const Comments: React.FC<CommentsProps> = ({ comments = [], anonymous, id
   );
 }; 
 
-export const readCookie = (type: string, articleId: string, commentId: string) => {
+export const readCookie = (
+  type: string,
+  articleId: string,
+  commentId: string
+) => {
   return Cookies.get(`${type}_${articleId}_${commentId}`);
-}
+};
 
-export const createCookie = (type: string, articleId: string, commentId: string) => {
+export const createCookie = (
+  type: string,
+  articleId: string,
+  commentId: string
+) => {
   return Cookies.set(`${type}_${articleId}_${commentId}`, "true");
-}
+};
 
-export const deleteCookie = (type: string, articleId: string, commentId: string) => {
+export const deleteCookie = (
+  type: string,
+  articleId: string,
+  commentId: string
+) => {
   Cookies.remove(`${type}_${articleId}_${commentId}`);
-}
+};
