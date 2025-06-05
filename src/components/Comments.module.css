@@ -255,6 +255,7 @@
 .voteButton {
   display: flex;
   flex-direction: row;
+  align-items: center;
   background: none;
   border: none;
   color: #0066cc;

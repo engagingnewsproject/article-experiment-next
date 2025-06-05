@@ -2,6 +2,8 @@ import { Comment, updateCommentVotes } from "@/lib/firestore";
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { createCookie, deleteCookie } from "./Comments";
+import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
+
 // TODO: User should only be able to vote once.
 interface CommentVoteSectionProps {
   commentId: string;
@@ -83,16 +85,16 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
         className={styles.voteButton}
         disabled={isVoting}
       >
+        {voted.upvotes ? <BiSolidLike /> : <BiLike />}
         <span>{upvotes}</span>
-        <span>Upvotes</span>
       </button>
       <button 
         onClick={() => handleVote('downvotes')}
         className={styles.voteButton}
         disabled={isVoting}
       >
+        {voted.downvotes ? <BiSolidDislike /> : <BiDislike />}
         <span>{downvotes}</span>
-        <span>Downvotes</span>
       </button>
     </>
   );
