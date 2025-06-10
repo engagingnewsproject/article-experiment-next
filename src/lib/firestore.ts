@@ -30,6 +30,7 @@ import { db } from './firebase';
  * @property {string[]} [explain_box] - Explanation box content
  * @property {Object} [metadata] - Additional article metadata
  * @property {Comment[]} [default_comments] - Default comments for the article
+ * @property {ArticleHighlight[]} [highlights] - Highlights for the article
  */
 export type Article = {
   id?: string;
@@ -53,6 +54,7 @@ export type Article = {
     tags?: string[];
   };
   default_comments?: Comment[];
+  highlights?: ArticleHighlight[];
 };
 
 /**
@@ -78,6 +80,16 @@ export type Comment = {
   downvotes?: number;
   replies?: Comment[];
 };
+
+/**
+ * Article Highlight
+ * 
+ * @typedef {Object} ArticleHighlight
+ * @property {string} content - Article's highlight content
+ */
+export type ArticleHighlight = {
+  content: string;
+}
 
 /**
  * Author type definition.
