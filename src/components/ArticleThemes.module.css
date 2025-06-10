@@ -1,10 +1,10 @@
-.highlights_section {
+.themes_section {
   margin-top: 2rem;
   padding: 1rem;
   border-top: 1px solid #eee;
 }
 
-.highlight {
+.theme {
   display: flex;
   background-color: #f5f5f5;
   border: 1px solid #ddd;
@@ -13,7 +13,7 @@
   padding: 1.5rem;
 }
 
-.highlight > p {
+.theme > p {
   font-size: 18px;
   text-align: center;
   margin: 0;

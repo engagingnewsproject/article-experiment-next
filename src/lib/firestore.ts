@@ -30,7 +30,7 @@ import { db } from './firebase';
  * @property {string[]} [explain_box] - Explanation box content
  * @property {Object} [metadata] - Additional article metadata
  * @property {Comment[]} [default_comments] - Default comments for the article
- * @property {ArticleHighlight[]} [highlights] - Highlights for the article
+ * @property {ArticleThemes[]} [themes] - Themes for the article
  */
 export type Article = {
   id?: string;
@@ -54,7 +54,7 @@ export type Article = {
     tags?: string[];
   };
   default_comments?: Comment[];
-  highlights?: ArticleHighlight[];
+  themes?: ArticleTheme[];
 };
 
 /**
@@ -82,12 +82,12 @@ export type Comment = {
 };
 
 /**
- * Article Highlight
+ * Article Theme
  * 
- * @typedef {Object} ArticleHighlight
- * @property {string} content - Article's highlight content
+ * @typedef {Object} ArticleTheme
+ * @property {string} content - Article's theme content
  */
-export type ArticleHighlight = {
+export type ArticleTheme = {
   content: string;
 }
 

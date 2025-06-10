@@ -20,11 +20,11 @@ import { AuthorBio } from "@/components/AuthorBio";
 import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
-import { ArticleHighlight, Comment } from "@/lib/firestore";
 import { Article } from "@/types/article";
 import { useSearchParams } from "next/navigation";
 import styles from "./ArticleContent.module.css";
-import { ArticleHighlightList } from "./ArticleHighlights";
+import { ArticleThemeList } from "./ArticleThemes";
+import { type ArticleTheme } from "@/lib/firestore";
 
 /**
  * Props interface for the ArticleContent component.
@@ -63,7 +63,7 @@ interface ArticleContentProps {
       category?: string;
       tags?: string[];
     };
-    highlights: ArticleHighlight[]
+    themes: ArticleTheme[]
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -155,7 +155,7 @@ export function ArticleContent({
         )}
 
         <TrustProjectCallout />
-        <ArticleHighlightList articleHighlights={article.highlights}/>
+        <ArticleThemeList articleThemes={article.themes}/>
 
         {article.comments_display && (
           <Comments
