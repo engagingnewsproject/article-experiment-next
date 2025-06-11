@@ -1,4 +1,4 @@
-import styles from "@/components/ArticleTHemes.module.css";
+import styles from "@/components/ArticleThemes.module.css";
 import { type ArticleTheme } from "@/lib/firestore";
 import React from 'react';
 
