@@ -31,6 +31,7 @@ import { db } from './firebase';
  * @property {Object} [metadata] - Additional article metadata
  * @property {Comment[]} [default_comments] - Default comments for the article
  * @property {ArticleThemes[]} [themes] - Themes for the article
+ * @property {string} [summary] - Comment Summary for the article
  */
 export type Article = {
   id?: string;
@@ -55,6 +56,7 @@ export type Article = {
   };
   default_comments?: Comment[];
   themes?: ArticleTheme[];
+  summary?: string;
 };
 
 /**

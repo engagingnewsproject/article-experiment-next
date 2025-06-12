@@ -68,7 +68,8 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         comments_display: article.comments_display || true,
-        themes: article.themes || []
+        themes: article.themes || [],
+        summary: article.summary || ''
       }} 
       showExplainBox={!!explain_box} 
       explainBoxValue={explain_box || ''}
