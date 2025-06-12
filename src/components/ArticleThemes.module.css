@@ -1,0 +1,19 @@
+.themes_section {
+  padding: 1rem;
+  /* border-top: 1px solid #eee; */
+}
+
+.theme {
+  display: flex;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 2rem;
+  padding: 1.5rem;
+}
+
+.theme > p {
+  font-size: 18px;
+  text-align: center;
+  margin: 0;
+}

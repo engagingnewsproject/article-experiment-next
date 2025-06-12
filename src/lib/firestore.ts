@@ -30,6 +30,7 @@ import { db } from './firebase';
  * @property {string[]} [explain_box] - Explanation box content
  * @property {Object} [metadata] - Additional article metadata
  * @property {Comment[]} [default_comments] - Default comments for the article
+ * @property {ArticleThemes[]} [themes] - Themes for the article
  */
 export type Article = {
   id?: string;
@@ -53,6 +54,7 @@ export type Article = {
     tags?: string[];
   };
   default_comments?: Comment[];
+  themes?: ArticleTheme[];
 };
 
 /**
@@ -78,6 +80,16 @@ export type Comment = {
   downvotes?: number;
   replies?: Comment[];
 };
+
+/**
+ * Article Theme
+ * 
+ * @typedef {Object} ArticleTheme
+ * @property {string} content - Article's theme content
+ */
+export type ArticleTheme = {
+  content: string;
+}
 
 /**
  * Author type definition.

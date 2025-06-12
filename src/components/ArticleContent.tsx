@@ -15,15 +15,16 @@
  * @param {Comment[]} [props.comments=[]] - Array of comments for the article
  * @returns {JSX.Element} The article content layout
  */
-import { Article } from "@/types/article";
-import { Comment } from "@/lib/firestore";
-import BehindTheStory from "@/components/BehindTheStory";
-import TrustProjectCallout from "@/components/TrustProjectCallout";
 import { ArticleHeader } from "@/components/ArticleHeader";
 import { AuthorBio } from "@/components/AuthorBio";
+import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
-import styles from "./ArticleContent.module.css";
+import TrustProjectCallout from "@/components/TrustProjectCallout";
+import { Article } from "@/types/article";
 import { useSearchParams } from "next/navigation";
+import styles from "./ArticleContent.module.css";
+import { ArticleThemeList } from "./ArticleThemes";
+import { type ArticleTheme } from "@/lib/firestore";
 
 /**
  * Props interface for the ArticleContent component.
@@ -62,6 +63,7 @@ interface ArticleContentProps {
       category?: string;
       tags?: string[];
     };
+    themes: ArticleTheme[]
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -153,6 +155,7 @@ export function ArticleContent({
         )}
 
         <TrustProjectCallout />
+        <ArticleThemeList articleThemes={article.themes}/>
 
         {article.comments_display && (
           <Comments
