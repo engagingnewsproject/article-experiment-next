@@ -4,13 +4,17 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "next dev",
+    "dev": "sh scripts/dev.sh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "emulator": "firebase emulators:start",
     "export-data": "node scripts/exportFirestoreData.js",
-    "import-data": "node scripts/importFirestoreData.js"
+    "import-data": "node scripts/importFirestoreData.js",
+    "dev:emulator": "concurrently -k -s first -n emulator,import,dev \"npm run emulator\" \"npm run import-data:wait\" \"next dev\"",
+    "import-data:wait": "wait-on http://localhost:8080 && sleep 2 && npm run import-data",
+    "prod": "next build && next start",
+    "import-and-dev": "wait-on http://localhost:8080 && npm run import-data && next dev"
   },
   "dependencies": {
     "@analytics/google-analytics": "^1.1.0",
@@ -28,6 +32,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.2",
     "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
@@ -35,6 +40,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.3"
   }
 }
