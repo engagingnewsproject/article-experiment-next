@@ -11,7 +11,7 @@
  */
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 /**
  * Firebase configuration object.
@@ -60,4 +60,9 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
  * 
  * @type {Firestore}
  */
-export const db = getFirestore(app); 
+export const db = getFirestore(app);
+
+// Connect to emulator in development
+if (process.env.NODE_ENV === 'development') {
+  connectFirestoreEmulator(db, 'localhost', 8080);
+} 
