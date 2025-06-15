@@ -69,6 +69,7 @@ interface ArticleContentProps {
   };
   showExplainBox: boolean;
   explainBoxValue: string;
+  version: string;
   comments: {
     id: string;
     name: string;
@@ -112,6 +113,7 @@ interface ArticleContentProps {
  */
 export function ArticleContent({
   article,
+  version,
   showExplainBox = false,
   explainBoxValue,
   comments = [],
@@ -157,11 +159,11 @@ export function ArticleContent({
         )}
 
         <TrustProjectCallout />
-        { article.summary &&
+        { article.summary && (version === '2' || version === '3') &&
           <ArticleSummary articleSummary={article.summary}/>
         }
-        
-        { article.themes && 
+
+        { article.themes && (version === '3' || version == '4') && 
           <ArticleThemeList articleThemes={article.themes}/>
         }
 

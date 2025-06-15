@@ -15,6 +15,7 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
   const searchParams = useSearchParams();
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
+  const version = searchParams?.get('version') || 'v1';
   const { 
     loading: authorLoading, 
     authorName, 
@@ -71,6 +72,7 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
         themes: article.themes || [],
         summary: article.summary || ''
       }} 
+      version={version}
       showExplainBox={!!explain_box} 
       explainBoxValue={explain_box || ''}
       comments={formattedComments}
