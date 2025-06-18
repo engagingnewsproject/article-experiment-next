@@ -26,6 +26,8 @@ import { useSearchParams } from "next/navigation";
 import styles from "./ArticleContent.module.css";
 import { ArticleSummary } from "./ArticleSummary";
 import { ArticleThemeList } from "./ArticleThemes";
+import { useLogger } from '@/hooks/useLogger';
+import { useEffect } from 'react';
 
 /**
  * Props interface for the ArticleContent component.
@@ -121,6 +123,31 @@ export function ArticleContent({
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
+  const { logPageView, logClick, logComment } = useLogger();
+
+  // Log page view when component mounts
+  useEffect(() => {
+    logPageView(
+      article.title,
+      article.id, // using article.id as identifier
+      'anonymous' // or you could pass userId as a prop if you have user authentication
+    );
+  }, [article.title, article.id, logPageView]);
+
+  // Handle link clicks within article content
+  const handleArticleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'A') {
+      const linkText = target.textContent || '';
+      const url = target.getAttribute('href') || '';
+      logClick(
+        `Article Link: ${linkText}`,
+        url,
+        article.id,
+        'anonymous'
+      );
+    }
+  };
 
   return (
     <main id="content" className="container" role="main">
@@ -146,6 +173,7 @@ export function ArticleContent({
             <div
               className={styles.articleText}
               dangerouslySetInnerHTML={{ __html: article.content }}
+              onClick={handleArticleLinkClick}
             />
             <div className={styles.articleExplanation}>
               <BehindTheStory
@@ -155,7 +183,10 @@ export function ArticleContent({
             </div>
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: article.content }} />
+          <div 
+            dangerouslySetInnerHTML={{ __html: article.content }}
+            onClick={handleArticleLinkClick}
+          />
         )}
 
         <TrustProjectCallout />
@@ -197,6 +228,14 @@ export function ArticleContent({
             }))}
             anonymous={article.anonymous}
             identifier={article.id}
+            onCommentSubmit={(name, content) => {
+              logComment(
+                name,
+                content,
+                article.id,
+                'anonymous'
+              );
+            }}
           />
         )}
       </article>

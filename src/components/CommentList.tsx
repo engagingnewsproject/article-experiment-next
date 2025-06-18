@@ -19,6 +19,7 @@ import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { CommentVoteSection } from "./CommentVoteSection";
 import { createCookie, deleteCookie } from "./Comments";
+import { useLogger } from '@/hooks/useLogger';
 
 interface CommentListProps {
   /** Array of comments to display, including their replies and vote counts */
@@ -50,6 +51,7 @@ const CommentItem: React.FC<{
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { logComment } = useLogger();
 
   const handleReply = async (e: React.FormEvent, parentId?: string, grandParentId?: string) => {
     e.preventDefault();
@@ -77,6 +79,15 @@ const CommentItem: React.FC<{
 
       onReply(parentId!, newReply);
       createCookie(grandParentId ? "subReply" : "reply", identifier, replyId);
+
+      // Log the reply event with Firestore reference
+      logComment(
+        newReply.name,
+        `Reply content: "${newReply.content}" | parentCommentId: ${parentId} | replyId: ${replyId}`,
+        identifier,
+        'anonymous'
+      );
+
       setReplyContent("");
       setReplyingToId(null);
     } catch (err) {
@@ -136,6 +147,11 @@ const CommentItem: React.FC<{
       }
     }
   };
+
+  // console.log('Rendering CommentVoteSection:', {
+  //   commentId: comment.id,
+  //   comment,
+  // });
 
   return (
     <div className={styles.comment}>
