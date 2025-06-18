@@ -80,10 +80,10 @@ const CommentItem: React.FC<{
       onReply(parentId!, newReply);
       createCookie(grandParentId ? "subReply" : "reply", identifier, replyId);
 
-      // Log the reply event
+      // Log the reply event with Firestore reference
       logComment(
         newReply.name,
-        newReply.content,
+        `Reply content: "${newReply.content}" | parentCommentId: ${parentId} | replyId: ${replyId}`,
         identifier,
         'anonymous'
       );
@@ -148,10 +148,10 @@ const CommentItem: React.FC<{
     }
   };
 
-  console.log('Rendering CommentVoteSection:', {
-    commentId: comment.id,
-    comment,
-  });
+  // console.log('Rendering CommentVoteSection:', {
+  //   commentId: comment.id,
+  //   comment,
+  // });
 
   return (
     <div className={styles.comment}>
