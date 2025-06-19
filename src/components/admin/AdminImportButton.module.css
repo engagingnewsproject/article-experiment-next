@@ -1,0 +1,63 @@
+.import-button-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.import-button {
+  background-color: #979797;
+  color: rgb(0, 0, 0);
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+}
+
+.import-button:hover,
+.import-button:focus {
+  background-color: #bdbdbd;
+  color: #222;
+  text-decoration: underline;
+}
+
+.import-button input[type="file"] {
+  display: none;
+}
+
+.imported {
+  background-color: #4caf50 !important;
+  color: #fff !important;
+}
+
+.import-error {
+  margin-left: 1rem;
+  color: red;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.import-filename {
+  margin: 0 1rem;
+  font-size: 1rem;
+  color: #333;
+  word-break: break-all;
+  max-width: 500px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+.import-filename:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}

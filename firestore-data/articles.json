@@ -1,0 +1,266 @@
+{
+  "3WclbqJctNOEpw4R8Jnx": {
+    "title": "New sample article (title)",
+    "slug": "new-sample-article",
+    "content": "New sample article (content). <a href=\"https://google.com\">Link to Google</a> Lorem ipsum dolor sit amet, consectetur adipiscing elit. In euismod elit dolor, sit amet feugiat nulla pharetra sit amet. Donec ut nunc vitae libero gravida aliquet in sed lacus. Donec nec ornare sem. Duis risus nulla, iaculis id hendrerit in, efficitur eget arcu. Cras pretium erat eget felis mollis mollis. Aenean fringilla tellus a rhoncus facilisis. Phasellus in pellentesque urna. Sed egestas nibh ut augue dictum sodales. Curabitur mi massa, maximus nec odio eget, facilisis egestas odio. Nulla quis mattis nunc. In euismod quis libero vehicula lacinia. In hac habitasse platea dictumst.\n\nAliquam pellentesque tincidunt nibh. Sed tristique ac lacus nec scelerisque. Aenean sed congue lacus. Fusce dignissim ipsum ut vestibulum mollis. Integer fermentum viverra elit, ac consectetur quam congue vel. Quisque non hendrerit velit. Sed ultricies tristique posuere. Aenean vehicula tellus mi, in blandit nisi tincidunt in. Ut et luctus odio. Nunc non bibendum nisl, vel imperdiet purus. Pellentesque risus neque, ultrices nec aliquet tincidunt, fermentum eu nisi. Etiam sollicitudin, massa ac volutpat facilisis, risus metus varius mi, ac commodo risus enim vel sapien. Quisque non erat faucibus, accumsan nisi quis, euismod mauris. Duis venenatis lacus mollis, sodales nulla non, egestas libero. Quisque neque elit, tincidunt vitae ullamcorper eget, pretium vel enim. Suspendisse potenti.\n\nAenean sit amet congue risus. Sed semper neque non felis tempus pharetra. Ut porta, metus non fermentum porttitor, nibh dolor bibendum ligula, vel eleifend neque lectus at metus. Praesent elementum bibendum urna, eget consectetur arcu hendrerit ullamcorper. Phasellus vel consectetur elit. Proin ultricies, elit dapibus ullamcorper maximus, massa eros tempor risus, quis accumsan ex dui et odio. Nam sit amet laoreet turpis.\n\nDuis lacinia quam id porta laoreet. Phasellus purus lectus, finibus sagittis imperdiet tincidunt, maximus et magna. Suspendisse hendrerit eget massa nec ultricies. Donec pretium laoreet odio, eu sollicitudin tortor pretium at. Mauris ac volutpat nunc. Quisque turpis ante, maximus vel nunc sed, semper condimentum nisi. Donec non urna nisi. Aenean et tellus enim. Integer nec venenatis elit. Nullam elementum commodo accumsan. Proin tortor ex, condimentum eget purus non, pulvinar gravida risus. Donec feugiat blandit imperdiet. Aliquam et aliquet elit. Phasellus ullamcorper accumsan urna, nec sodales ipsum tempor vitae.\n\nAliquam fringilla sodales metus, non aliquam purus. Pellentesque non lorem elementum, ornare odio nec, finibus lorem. Nunc et lorem ut ipsum aliquam venenatis. Duis volutpat, tellus id porta gravida, quam mi porta ipsum, eu faucibus diam nisl at sem. Mauris erat purus, vestibulum at pellentesque ac, mollis id leo. Mauris nunc sem, interdum non ipsum nec, ullamcorper scelerisque dui. Maecenas nec pellentesque ipsum, congue venenatis dolor. Proin egestas faucibus elit vulputate pretium. Quisque consequat, ex sit amet mollis viverra, velit tellus sollicitudin tellus, et consequat mi sapien ac odio. Nulla mollis ex vel tempor finibus. Nam laoreet urna vel feugiat ultrices. Suspendisse pharetra diam convallis, porta dolor ac, mattis nulla. Mauris vel tempus nibh.\n\n",
+    "createdAt": {
+      "_seconds": 1747938209,
+      "_nanoseconds": 950000000
+    },
+    "default_comments": [
+      {
+        "content": "Default comment (content) Lorem ipsum dolor sit amet, consectetur adipiscing elit. In euismod elit dolor, sit amet feugiat nulla pharetra sit amet. Donec ut nunc vitae libero gravida aliquet in sed lacus. Donec nec ornare sem. Duis risus nulla, iaculis id hendrerit in, efficitur eget arcu. Cras pretium erat eget felis mollis mollis. Aenean fringilla tellus a rhoncus facilisis. Phasellus in pellentesque urna. Sed egestas nibh ut augue dictum sodales. Curabitur mi massa, maximus nec odio eget, facilisis egestas odio.",
+        "name": "Default comment (name)",
+        "createdAt": {
+          "_seconds": 1747938956,
+          "_nanoseconds": 508000000
+        },
+        "replies": [
+          {
+            "content": "Reply (content) Donec ut nunc vitae libero gravida aliquet in sed lacus. Donec nec ornare sem.",
+            "name": "John Doe (name)",
+            "createdAt": {
+              "_seconds": 1747938956,
+              "_nanoseconds": 508000000
+            }
+          }
+        ],
+        "upvotes": 0,
+        "downvotes": 0
+      }
+    ]
+  },
+  "M3wd81Jhi5VpVDAiblpo": {
+    "status": "published",
+    "metadata": {
+      "author": "Jane Smith",
+      "category": "solidarity",
+      "tags": [
+        "community",
+        "support",
+        "social"
+      ]
+    },
+    "createdAt": {
+      "_seconds": 1744377418,
+      "_nanoseconds": 62000000
+    },
+    "updatedAt": {
+      "_seconds": 1744377418,
+      "_nanoseconds": 62000000
+    },
+    "title": "Women's March Downtown Calls for Reproductive Rights",
+    "content": "<p>Samantha Ripple was tattooed with a single word—“JUSTICE”—as she marched with about 500 people through the streets of Indianapolis on Saturday in the latest Women’s March to demand reproductive rights and access to safe, legal abortions.</p>         <p>“I came out because reproductive rights are human rights,” said Ripple, 22.</p>         <p>Ripple was one of the three demonstrators charged with disturbing the peace, Indianapolis police said. They were accused of violating a city noise ordinance by using megaphones without a permit. Also charged were Michelle Johnson, 72, and Suzann Brown, 45.</p>         <p>“We have to make our voices heard,” said Johnson, “The Supreme Court is trying to control our bodies, which violates our constitutional rights.”</p>         <p>The march is one of thousands of demonstrations that have swept the nation after the Supreme Court overturned Roe v. Wade, which had protected a constitutional right to abortion since 1973. These marches are part of a groundswell of grassroots activism fighting for reproductive rights and asking for states to protect access to abortion.</p>         <p>After the Court decision, a number of Republican-led states, mostly in the South and Midwest, implemented laws banning or restricting abortions, while many Democrat-led states have moved forward with measures to protect abortion access. According to the White House, almost 30 million women of reproductive age live in states with an ongoing abortion ban.</p>         <p>Johnson recalled that before Roe v. Wade, her close friend nearly bled to death in a sorority house because she was afraid she could get arrested if she sought an illegal abortion.</p>         <p>“I am marching for my friends and others like her,” Johnson said.</p>         <p>Brown said she has marched in a half dozen rallies for abortion rights since Roe was overturned. She became pregnant at age 15. “I agonized about whether to have an abortion,” said Brown, who ultimately put her baby up for adoption. “I’m marching because I can’t imagine not having a choice at that time.”</p>         <p>“Everybody has the right to their own body,” Brown said. “It’s not up to anyone else.”</p>",
+    "slug": "solidarity",
+    "default_comments": [
+      {
+        "content": "comment content 1",
+        "name": "comment name 1",
+        "createdAt": {
+          "_seconds": 1747038402,
+          "_nanoseconds": 857000000
+        },
+        "replies": [
+          {
+            "content": "reply content 2",
+            "name": "reply name 1",
+            "createdAt": {
+              "_seconds": 1747038402,
+              "_nanoseconds": 857000000
+            }
+          },
+          {
+            "content": "reply content 2",
+            "name": "reply name 1",
+            "createdAt": {
+              "_seconds": 1747038402,
+              "_nanoseconds": 857000000
+            }
+          }
+        ]
+      },
+      {
+        "content": "comment content 2",
+        "name": "comment name 1",
+        "createdAt": {
+          "_seconds": 1747038402,
+          "_nanoseconds": 857000000
+        },
+        "replies": []
+      }
+    ]
+  },
+  "NI95fb3wNkozJvTlGqSX": {
+    "title": "Default Article test 1.0",
+    "slug": "default-article-test-1",
+    "content": "Default article test 1.0 content. . .",
+    "createdAt": {
+      "_seconds": 1747943229,
+      "_nanoseconds": 265000000
+    },
+    "default_comments": [
+      {
+        "content": "Default comment content. . .",
+        "name": "Default comment 1",
+        "createdAt": {
+          "_seconds": 1747943423,
+          "_nanoseconds": 852000000
+        },
+        "replies": [
+          {
+            "content": "Default comment reply 1 (content). . .",
+            "name": "Default comment reply 1 (name)",
+            "createdAt": {
+              "_seconds": 1747943423,
+              "_nanoseconds": 852000000
+            }
+          },
+          {
+            "content": "Default comment reply 2 (content). . .",
+            "name": "Default comment reply 2 (name)",
+            "createdAt": {
+              "_seconds": 1747943423,
+              "_nanoseconds": 852000000
+            }
+          }
+        ],
+        "upvotes": 0,
+        "downvotes": 0
+      }
+    ]
+  },
+  "d90kaLWl5NR8gEQVBaKH": {
+    "content": "Inflation is a complex economic phenomenon that affects everyone...",
+    "createdAt": {
+      "_seconds": 1748452429,
+      "_nanoseconds": 819000000
+    },
+    "slug": "understanding-inflation-causes-and-effects",
+    "title": "Understanding Inflation: Causes and Effects",
+    "metadata": {
+      "category": "",
+      "tags": "",
+      "author": "Jim Phelps Jr."
+    },
+    "default_comments": [
+      {
+        "name": "John Doe",
+        "createdAt": {
+          "_seconds": 1749229020,
+          "_nanoseconds": 656000000
+        },
+        "replies": [
+          {
+            "downvotes": 2,
+            "createdAt": {
+              "_seconds": 1749229020,
+              "_nanoseconds": 656000000
+            },
+            "id": "default_0_0",
+            "upvotes": 12,
+            "parentId": "default_0",
+            "content": "I agree, I really enjoyed it as well.",
+            "name": "Jane Doe"
+          }
+        ],
+        "content": "This is a great article!",
+        "id": "default_0",
+        "downvotes": 2,
+        "upvotes": 5
+      }
+    ],
+    "themes": [
+      {
+        "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+      },
+      {
+        "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+      }
+    ],
+    "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+  },
+  "fMpIsYX1sPtLnkcWodXk": {
+    "title": "New article",
+    "slug": "new-article",
+    "content": "this content",
+    "createdAt": {
+      "_seconds": 1744418932,
+      "_nanoseconds": 713000000
+    }
+  },
+  "gacYTE8kdckSvrsZe0oV": {
+    "title": "The Future of Web Development",
+    "status": "published",
+    "metadata": {
+      "author": "John Doe",
+      "category": "Technology",
+      "tags": [
+        "web development",
+        "javascript",
+        "react"
+      ]
+    },
+    "createdAt": {
+      "_seconds": 1744376393,
+      "_nanoseconds": 11000000
+    },
+    "updatedAt": {
+      "_seconds": 1744376393,
+      "_nanoseconds": 11000000
+    },
+    "slug": "the-future-of-web-development",
+    "content": "(content) Web development has evolved significantly over the years. From static HTML pages to dynamic, interactive applications, the web continues to push boundaries...",
+    "default_comments": [
+      {
+        "replies": [],
+        "content": "content d1",
+        "name": "d1",
+        "createdAt": {
+          "_seconds": 1746490819,
+          "_nanoseconds": 907000000
+        }
+      }
+    ]
+  },
+  "iXrZJ3nFBgNz9BjibIQs": {
+    "title": "(custom) title",
+    "slug": "custom-title",
+    "content": "content here",
+    "createdAt": {
+      "_seconds": 1744397751,
+      "_nanoseconds": 412000000
+    }
+  },
+  "k1eS5mukQIkARDBQ1U1N": {
+    "title": "temp title",
+    "slug": "temp slug",
+    "content": "temp content",
+    "createdAt": {
+      "_seconds": 1746214159,
+      "_nanoseconds": 510000000
+    }
+  },
+  "kqNjPKGwfV4fKM7Di2Ru": {
+    "title": "Monitorial Citizenship in the Digital Age",
+    "content": "The concept of monitorial citizenship has evolved with the rise of digital media...",
+    "status": "published",
+    "metadata": {
+      "author": "John Doe",
+      "category": "monitorial",
+      "tags": [
+        "citizenship",
+        "digital",
+        "media"
+      ]
+    },
+    "createdAt": {
+      "_seconds": 1744377418,
+      "_nanoseconds": 128000000
+    },
+    "updatedAt": {
+      "_seconds": 1744377418,
+      "_nanoseconds": 128000000
+    },
+    "slug": "monitorial-citizenship-in-the-digital-age"
+  }
+}
