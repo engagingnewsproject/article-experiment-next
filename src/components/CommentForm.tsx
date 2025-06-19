@@ -26,12 +26,15 @@ interface CommentFormProps {
   identifier: string;
   /** Callback function that is called when a new comment is submitted, passing the comment data to the parent component */
   onCommentSubmitted: (comment: Comment) => void;
+  /** Optional callback function that is called when a comment is submitted, passing the name and content of the comment to the parent component */
+  onCommentSubmit?: (name: string, content: string) => void;
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
   anonymous = false,
   identifier,
   onCommentSubmitted,
+  onCommentSubmit,
 }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -48,6 +51,11 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     setError(null);
 
     try {
+      // Call onCommentSubmit if provided
+      if (onCommentSubmit) {
+        onCommentSubmit(name || 'Anonymous', content);
+      }
+
       // Save to database
       const commentData = {
         name: name || "Anonymous",

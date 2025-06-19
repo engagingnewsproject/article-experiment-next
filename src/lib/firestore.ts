@@ -185,7 +185,10 @@ export async function getComments(articleId: string): Promise<Comment[]> {
   const articleRef = doc(db, 'articles', articleId);
   const articleSnap = await getDoc(articleRef);
   const articleData = articleSnap.data();
-  
+
+  // Log the raw default_comments array
+  console.log('Firestore default_comments:', articleData?.default_comments);
+
   // Return default comments (or empty array if none exist)
   return articleData?.default_comments || [];
 }
