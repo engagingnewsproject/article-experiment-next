@@ -20,6 +20,7 @@ import styles from "./Comments.module.css";
 import { CommentVoteSection } from "./CommentVoteSection";
 import { createCookie, deleteCookie } from "./Comments";
 import { useLogger } from '@/hooks/useLogger';
+import { getOrCreateUserId } from '@/lib/userId';
 
 interface CommentListProps {
   /** Array of comments to display, including their replies and vote counts */
@@ -81,11 +82,13 @@ const CommentItem: React.FC<{
       createCookie(grandParentId ? "subReply" : "reply", identifier, replyId);
 
       // Log the reply event with Firestore reference
+      const userId = getOrCreateUserId();
+      console.log(userId);
       logComment(
         newReply.name,
         `Reply content: "${newReply.content}" | parentCommentId: ${parentId} | replyId: ${replyId}`,
         identifier,
-        'anonymous'
+        userId
       );
 
       setReplyContent("");

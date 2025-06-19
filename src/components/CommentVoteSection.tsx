@@ -4,6 +4,7 @@ import styles from "./Comments.module.css";
 import { createCookie, deleteCookie } from "./Comments";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import { useLogger } from '@/hooks/useLogger';
+import { getOrCreateUserId } from '@/lib/userId';
 
 /**
  * Props for the CommentVoteSection component.
@@ -83,6 +84,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
     });
 
     // Log the vote event
+    const userId = getOrCreateUserId();
     await log(
       'Vote',
       voteType === 'upvotes' ? 'Upvote' : 'Downvote',
@@ -90,7 +92,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
         (parentId ? `, parentId: ${parentId}` : '') +
         (grandParentId ? `, grandParentId: ${grandParentId}` : ''),
       identifier,
-      'anonymous'
+      userId
     );
   };
 

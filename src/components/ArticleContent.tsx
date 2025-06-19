@@ -15,6 +15,8 @@
  * @param {Comment[]} [props.comments=[]] - Array of comments for the article
  * @returns {JSX.Element} The article content layout
  */
+'use client';
+
 import { ArticleHeader } from "@/components/ArticleHeader";
 import { AuthorBio } from "@/components/AuthorBio";
 import BehindTheStory from "@/components/BehindTheStory";
@@ -28,6 +30,7 @@ import { ArticleSummary } from "./ArticleSummary";
 import { ArticleThemeList } from "./ArticleThemes";
 import { useLogger } from '@/hooks/useLogger';
 import { useEffect } from 'react';
+import { getOrCreateUserId } from '@/lib/userId';
 
 /**
  * Props interface for the ArticleContent component.
@@ -127,12 +130,13 @@ export function ArticleContent({
 
   // Log page view when component mounts
   useEffect(() => {
+    const userId = getOrCreateUserId();
     logPageView(
       article.title,
       article.id, // using article.id as identifier
-      'anonymous' // or you could pass userId as a prop if you have user authentication
+      userId
     );
-  }, [article.title, article.id, logPageView]);
+  }, [article.title, article.id]);
 
   // Handle link clicks within article content
   const handleArticleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -140,11 +144,12 @@ export function ArticleContent({
     if (target.tagName === 'A') {
       const linkText = target.textContent || '';
       const url = target.getAttribute('href') || '';
+      const userId = getOrCreateUserId();
       logClick(
         `Article Link: ${linkText}`,
         url,
         article.id,
-        'anonymous'
+        userId
       );
     }
   };
@@ -229,11 +234,12 @@ export function ArticleContent({
             anonymous={article.anonymous}
             identifier={article.id}
             onCommentSubmit={(name, content) => {
+              const userId = getOrCreateUserId();
               logComment(
                 name,
                 content,
                 article.id,
-                'anonymous'
+                userId
               );
             }}
           />
