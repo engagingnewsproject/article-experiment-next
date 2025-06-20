@@ -130,6 +130,7 @@ export function ArticleContent({
 
   // Log page view when component mounts
   useEffect(() => {
+    setTimeWhenPageOpened(Date.now());
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened;
       logPageViewTime(
