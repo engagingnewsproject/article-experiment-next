@@ -19,6 +19,8 @@ import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import { type Comment } from "@/lib/firestore";
 import Cookies from "js-cookie";
+import { analytics } from "@/lib/firebase";
+import { logEvent } from "firebase/analytics";
 
 /**
  * Props interface for the Comments component.
@@ -52,17 +54,13 @@ export const Comments: React.FC<CommentsProps> = ({
   anonymous,
   identifier,
 }) => {
-  // Keep default comments in state
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
-  // Track temporary user interactions
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
 
   const handleCommentSubmitted = async (newComment: Comment) => {
-    // Add the new comment to local state only
     setLocalComments((prev) => [...prev, newComment]);
   }
   
-  // Recursively remove a comment or reply by id
   const removeCommentById = (comments: Comment[], commentId: string): Comment[] => {
     return comments
       .filter(comment => comment.id !== commentId)
@@ -76,7 +74,6 @@ export const Comments: React.FC<CommentsProps> = ({
     setLocalComments(prevComments => removeCommentById(prevComments, commentId));
   }
 
-  // Recursively add a reply to the correct comment or reply
   const addReplyById = (comments: Comment[], commentId: string, reply: Comment): Comment[] => {
     return comments.map(comment => {
       if (comment.id === commentId) {
@@ -96,7 +93,6 @@ export const Comments: React.FC<CommentsProps> = ({
     setLocalComments(prev => addReplyById(prev, commentId, reply));
   }
 
-  // Reset to default comments when component mounts
   React.useEffect(() => {
     setLocalComments(defaultComments);
   }, [defaultComments]);

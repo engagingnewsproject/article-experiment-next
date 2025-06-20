@@ -19,6 +19,7 @@ import React, { useState } from "react";
 import styles from "./Comments.module.css";
 import { CommentVoteSection } from "./CommentVoteSection";
 import { createCookie, deleteCookie } from "./Comments";
+import DOMPurify from "dompurify";
 
 interface CommentListProps {
   /** Array of comments to display, including their replies and vote counts */
@@ -32,6 +33,8 @@ interface CommentListProps {
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
   onReply: (commentId: string, reply: Comment) => void;
 }
+
+const REPLIES_REVEAL_COUNT = 5;
 
 const CommentItem: React.FC<{
   /** The comment data to display, including content, author, and metadata */
@@ -51,25 +54,26 @@ const CommentItem: React.FC<{
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [maxReplies, setMaxReplies] = useState(REPLIES_REVEAL_COUNT);
+  const [maxSubReplies, setMaxSubReplies] = useState<{ [replyId: string]: number }>({});
+
   const handleReply = async (e: React.FormEvent, parentId?: string, grandParentId?: string) => {
     e.preventDefault();
     if (!replyContent.trim()) return;
 
     setIsSubmitting(true);
     try {
-      // Save to database
       const replyId = await saveComment(identifier, {
         content: replyContent,
         parentId: parentId,
         grandParentId: grandParentId
       });
 
-      // Create local reply for immediate display
       const newReply: Comment = {
         id: replyId,
         parentId: parentId,
         content: replyContent,
-        name: 'Anonymous', // or get from form if available
+        name: 'Anonymous',
         createdAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0
@@ -93,11 +97,9 @@ const CommentItem: React.FC<{
       setIsDeleting(true);
       try {
         await deleteComment(identifier, comment.id);
-        // Update parent component state after successful deletion
         onCommentRemoved(comment.id);
         cleanCookieData("comment", identifier, comment.id);
       } catch (err) {
-        // Log error and allow UI to recover from failed deletion
         console.error("Failed to delete comment:", err);
       } finally {
         setIsDeleting(false);
@@ -140,12 +142,14 @@ const CommentItem: React.FC<{
   return (
     <div className={styles.comment}>
       <div className={styles.commentHeader}>
-        <span className={styles.commentAuthor}>{comment.name}</span>
-        <span className={styles.commentDate}>
-          {comment.createdAt
-            ? new Date(comment.createdAt).toLocaleString()
-            : "Unknown date"}
-        </span>
+        <div className={styles.commentHeader__info}>
+          <span className={styles.commentAuthor}>{comment.name}</span>
+          <span className={styles.commentDate}>
+            {comment.createdAt
+              ? new Date(comment.createdAt).toLocaleString()
+              : "Unknown date"}
+          </span>
+        </div>
         {process.env.NODE_ENV === "development" && (
           <button
             onClick={handleDelete}
@@ -156,7 +160,10 @@ const CommentItem: React.FC<{
           </button>
         )}
       </div>
-      <p className={styles.commentContent}>{comment.content}</p>
+      <p 
+      className={styles.commentContent}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+      />
       <div className={styles.commentFooter}>
         <button
           className={styles.replyButton}
@@ -182,15 +189,19 @@ const CommentItem: React.FC<{
 
       {comment.replies && comment.replies.length > 0 && (
         <div className={styles.replies}>
-          {comment.replies.map((reply, replyIndex) => (
+          {comment.replies
+            .slice(0, maxReplies)
+            .map((reply, replyIndex) => (
             <div key={reply.id || replyIndex} className={styles.reply}>
               <div className={styles.commentHeader}>
-                <span className={styles.commentAuthor}>{reply.name}</span>
-                <span className={styles.commentDate}>
-                  {reply.createdAt
-                    ? new Date(reply.createdAt).toLocaleString()
-                    : "Unknown date"}
-                </span>
+                <div className={styles.commentHeader__info}>
+                  <span className={styles.commentAuthor}>{reply.name}</span>
+                  <span className={styles.commentDate}>
+                    {reply.createdAt
+                      ? new Date(reply.createdAt).toLocaleString()
+                      : "Unknown date"}
+                  </span>
+                </div>
                 {process.env.NODE_ENV === "development" && reply.id && (
                   <button
                     onClick={() => handleDeleteReply(reply.id!, comment.id!)}
@@ -200,7 +211,10 @@ const CommentItem: React.FC<{
                   </button>
                 )}
               </div>
-              <p className={styles.commentContent}>{reply.content}</p>
+              <p 
+                className={styles.commentContent}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reply.content) }}
+              />
               <div className={styles.commentFooter}>
                 { reply.parentId === comment.id && (
                   <button
@@ -229,16 +243,25 @@ const CommentItem: React.FC<{
 
               {reply.replies && reply.replies.length > 0 && (
                 <div className={styles.replies}>
-                  {reply.replies.map((subReply, subReplyIndex) => (
+                  {reply.replies
+                    .slice(
+                      0,
+                      maxSubReplies[reply.id!] !== undefined
+                        ? maxSubReplies[reply.id!]
+                        : REPLIES_REVEAL_COUNT
+                    )
+                    .map((subReply, subReplyIndex) => (
                     <div key={subReply.id || subReplyIndex} className={styles.reply}>
                       <div className={styles.commentHeader}>
-                        <span className={styles.commentAuthor}>{subReply.name}</span>
-                        <span className={styles.commentDate}>
-                          {subReply.createdAt
-                            ? new Date(subReply.createdAt).toLocaleString()
-                            : "Unknown date"
-                          }
-                        </span>
+                        <div className={styles.commentHeader__info}>
+                          <span className={styles.commentAuthor}>{subReply.name}</span>
+                          <span className={styles.commentDate}>
+                            {subReply.createdAt
+                              ? new Date(subReply.createdAt).toLocaleString()
+                              : "Unknown date"
+                            }
+                          </span>
+                        </div>
                         {process.env.NODE_ENV === "development" && reply.id && (
                           <button
                             onClick={() => handleDeleteReply(subReply.id!, reply.id!, comment.id!)}
@@ -248,7 +271,10 @@ const CommentItem: React.FC<{
                           </button>
                         )}
                       </div>
-                      <p className={styles.commentContent}>{subReply.content}</p>
+                      <p 
+                        className={styles.commentContent}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(subReply.content) }}
+                      />
                       <div className={styles.commentFooter}>
                         <CommentVoteSection 
                           commentId={subReply.id!}
@@ -260,10 +286,36 @@ const CommentItem: React.FC<{
                       </div>
                     </div>
                   ))}
+                  {reply.replies.length >
+                    (maxSubReplies[reply.id!] !== undefined
+                      ? maxSubReplies[reply.id!]
+                      : REPLIES_REVEAL_COUNT) && (
+                    <button
+                      className={styles.readMore}
+                      onClick={() =>
+                        setMaxSubReplies((prev) => ({
+                          ...prev,
+                          [reply.id!]:
+                            (prev[reply.id!] || REPLIES_REVEAL_COUNT) +
+                            REPLIES_REVEAL_COUNT,
+                        }))
+                      }
+                    >
+                      Read more replies...
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           ))}
+          {comment.replies.length > maxReplies && (
+            <button
+              className={styles.readMore}
+              onClick={() => setMaxReplies(maxReplies + REPLIES_REVEAL_COUNT)}
+            >
+              Read more replies...
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -308,7 +360,7 @@ export const CommentList: React.FC<CommentListProps> = ({
             setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT)
           }
         >
-          Read more...
+          Read more comments...
         </button>
       )}
     </div>
