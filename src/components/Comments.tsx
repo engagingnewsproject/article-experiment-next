@@ -29,11 +29,13 @@ import { logEvent } from "firebase/analytics";
  * @property {Comment[]} comments - Array of existing comments
  * @property {boolean} anonymous - Whether the article is anonymous
  * @property {string} identifier - Unique identifier for the article
+ * @property {(name: string, content: string) => void} [onCommentSubmit] - Callback for comment submission
  */
 interface CommentsProps {
   comments: Comment[];
   anonymous: boolean;
   identifier: string;
+  onCommentSubmit?: (name: string, content: string) => void;
 }
 
 /**
@@ -53,6 +55,7 @@ export const Comments: React.FC<CommentsProps> = ({
   comments = [],
   anonymous,
   identifier,
+  onCommentSubmit,
 }) => {
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
@@ -103,6 +106,7 @@ export const Comments: React.FC<CommentsProps> = ({
           anonymous={anonymous}
           identifier={identifier}
           onCommentSubmitted={handleCommentSubmitted}
+          onCommentSubmit={onCommentSubmit}
         />
       <div className={styles.commentsContainer}>
         <CommentList 
