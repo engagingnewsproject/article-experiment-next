@@ -20,6 +20,7 @@ interface CommentVoteSectionProps {
   grandParentId?: string;
   identifier: string;
   comment: Comment;
+  userId: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   grandParentId,
   identifier, 
   comment,
+  userId,
 }) => {
   const { log } = useLogger();
 
@@ -90,7 +92,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
         (parentId ? `, parentId: ${parentId}` : '') +
         (grandParentId ? `, grandParentId: ${grandParentId}` : ''),
       identifier,
-      'anonymous'
+      userId
     );
   };
 

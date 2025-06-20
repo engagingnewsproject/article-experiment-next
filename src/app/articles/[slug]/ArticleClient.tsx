@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { type Article, type Comment } from '@/lib/firestore';
 import { useAuthorVariations } from '@/lib/useAuthorVariations';
@@ -12,6 +12,7 @@ interface ArticleClientProps {
 }
 
 function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
+  const [userId, setUserId] = useState('anonymous')
   const searchParams = useSearchParams();
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
@@ -24,6 +25,24 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
     pubdate,
     siteName 
   } = useAuthorVariations();
+
+  function generateUUID(): string {
+  const prefix = "user";
+  const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
+  const randomString = Math.random().toString(36).substring(2, 10);
+  return `${prefix}_${timestamp}_${randomString}`;
+}
+
+  useEffect(() => {
+    const existingUserId = localStorage.getItem("userId");
+    if (existingUserId) {
+      setUserId(existingUserId);
+    } else {
+      const newUserId = generateUUID();
+      localStorage.setItem("userId", newUserId);
+      setUserId(newUserId);
+    }
+  }, [])
 
   if (authorLoading) return <div className="p-4">Loading...</div>;
 
@@ -76,6 +95,7 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
       showExplainBox={!!explain_box} 
       explainBoxValue={explain_box || ''}
       comments={formattedComments}
+      userId={userId || 'anonymous'}
     />
   );
 }

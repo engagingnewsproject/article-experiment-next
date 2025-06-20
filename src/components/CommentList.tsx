@@ -29,6 +29,8 @@ interface CommentListProps {
   anonymous: boolean;
   /** Unique identifier for the article, used for database operations and cookie management */
   identifier: string;
+  /** Unique identifier for the user */
+  userId: string;
     /** Callback function called when a new comment is removed, used to update parent component state */
   onCommentRemoved: (commentId: string) => void;
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
@@ -47,9 +49,11 @@ const CommentItem: React.FC<{
   anonymous?: boolean;
   /** Unique identifier for the article, used for database operations */
   identifier: string;
+  /** Unique identifier for the user */
+  userId: string;
   /** Callback function for handling replies to this comment */
   onReply: (commentId: string, reply: Comment) => void;
-}> = ({ comment, onCommentRemoved, identifier, onReply }) => {
+}> = ({ comment, onCommentRemoved, identifier, userId, onReply }) => {
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,7 +93,7 @@ const CommentItem: React.FC<{
         newReply.name,
         `Reply content: "${newReply.content}" | parentCommentId: ${parentId} | replyId: ${replyId}`,
         identifier,
-        'anonymous'
+        localStorage.getItem("userId") || "Anonymous"
       );
 
       setReplyContent("");
@@ -191,6 +195,7 @@ const CommentItem: React.FC<{
           commentId={comment.id!}
           identifier={identifier}
           comment={comment}
+          userId={userId}
         />
       </div>
 
@@ -245,6 +250,7 @@ const CommentItem: React.FC<{
                   parentId={reply.parentId!}
                   identifier={identifier}
                   comment={reply}
+                  userId={userId}
                 />
               </div>
               
@@ -298,6 +304,7 @@ const CommentItem: React.FC<{
                           grandParentId={comment.id}
                           identifier={identifier}
                           comment={subReply}
+                          userId={userId}
                         />
                       </div>
                     </div>
@@ -342,6 +349,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   comments,
   anonymous,
   identifier,
+  userId,
   onCommentRemoved,
   onReply
 }) => {
@@ -366,6 +374,7 @@ export const CommentList: React.FC<CommentListProps> = ({
           onCommentRemoved={onCommentRemoved}
           anonymous={anonymous}
           identifier={identifier}
+          userId={userId}
           onReply={onReply}
         />
       ))}
