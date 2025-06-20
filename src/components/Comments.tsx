@@ -19,8 +19,6 @@ import { CommentForm } from "./CommentForm";
 import { CommentList } from "./CommentList";
 import { type Comment } from "@/lib/firestore";
 import Cookies from "js-cookie";
-import { analytics } from "@/lib/firebase";
-import { logEvent } from "firebase/analytics";
 
 /**
  * Props interface for the Comments component.
