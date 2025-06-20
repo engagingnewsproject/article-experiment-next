@@ -27,12 +27,14 @@ import Cookies from "js-cookie";
  * @property {Comment[]} comments - Array of existing comments
  * @property {boolean} anonymous - Whether the article is anonymous
  * @property {string} identifier - Unique identifier for the article
+ * @property {string} userId - Unique identifier for the user
  * @property {(name: string, content: string) => void} [onCommentSubmit] - Callback for comment submission
  */
 interface CommentsProps {
   comments: Comment[];
   anonymous: boolean;
   identifier: string;
+  userId: string;
   onCommentSubmit?: (name: string, content: string) => void;
 }
 
@@ -53,6 +55,7 @@ export const Comments: React.FC<CommentsProps> = ({
   comments = [],
   anonymous,
   identifier,
+  userId,
   onCommentSubmit,
 }) => {
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
@@ -113,6 +116,7 @@ export const Comments: React.FC<CommentsProps> = ({
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
+          userId={userId}
         />
       </div>
     </section>

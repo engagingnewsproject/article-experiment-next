@@ -27,7 +27,7 @@ import styles from "./ArticleContent.module.css";
 import { ArticleSummary } from "./ArticleSummary";
 import { ArticleThemeList } from "./ArticleThemes";
 import { useLogger } from '@/hooks/useLogger';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Props interface for the ArticleContent component.
@@ -98,6 +98,7 @@ interface ArticleContentProps {
       }[];
     }[];
   }[];
+  userId: string;
 }
 
 /**
@@ -119,19 +120,38 @@ export function ArticleContent({
   showExplainBox = false,
   explainBoxValue,
   comments = [],
+  userId,
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
-  const { logPageView, logClick, logComment } = useLogger();
+  const { logPageView, logPageViewTime, logClick, logComment } = useLogger();
+  const [timeWhenPageOpened, setTimeWhenPageOpened] = useState<number>(Date.now());
 
   // Log page view when component mounts
   useEffect(() => {
+    setTimeWhenPageOpened(Date.now());
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened;
+      logPageViewTime(
+        article.title,
+        article.id,
+        totalTimeSpentOnPage,
+        userId,
+      );
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     logPageView(
       article.title,
       article.id, // using article.id as identifier
-      'anonymous' // or you could pass userId as a prop if you have user authentication
+      userId // or you could pass userId as a prop if you have user authentication
     );
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [article.title, article.id, logPageView]);
 
   // Handle link clicks within article content
@@ -144,7 +164,7 @@ export function ArticleContent({
         `Article Link: ${linkText}`,
         url,
         article.id,
-        'anonymous'
+        userId
       );
     }
   };
@@ -233,9 +253,10 @@ export function ArticleContent({
                 name,
                 content,
                 article.id,
-                'anonymous'
+                userId
               );
             }}
+            userId={userId}
           />
         )}
       </article>

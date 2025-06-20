@@ -39,6 +39,21 @@ export function useLogger() {
     await log('Page View', pageTitle, 'Loaded', identifier, userId);
   }, [log]);
 
+    const logPageViewTime = useCallback(async (
+    pageTitle: string,
+    identifier: string,
+    timeSpent: number,
+    userId: string
+  ) => {
+    const timeSpentToString = (ms: number) => { 
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSec = seconds % 60;
+        return `${minutes}m ${remainingSec}s`;
+    }
+    await log('Time Spent', pageTitle, timeSpentToString(timeSpent), identifier, userId);
+  }, [log]);
+
   const logComment = useCallback(async (
     name: string,
     comment: string,
@@ -52,6 +67,7 @@ export function useLogger() {
     log,
     logClick,
     logPageView,
+    logPageViewTime,
     logComment,
   };
 }
