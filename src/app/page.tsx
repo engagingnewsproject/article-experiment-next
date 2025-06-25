@@ -49,15 +49,26 @@ export default function Home() {
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Articles</h1>
+        <div className="flex space-x-2">
+        <Link
+          href="/admin"
+          className="bg-blue-300 px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+        >
+          <span className="text-white"
+          >
+            Admin Dashboard
+          </span>
+        </Link>
         <Link
           href="/admin/add-default-comments"
-          className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition-colors"
         >
           <span className="text-white"
           >
             Admin: Add Default Comments
           </span>
         </Link>
+        </div>
       </div>
       <AddArticleForm />
       <ul className="space-y-4">
