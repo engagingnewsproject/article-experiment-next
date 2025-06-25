@@ -5,18 +5,21 @@
 // CONFIGURATION - Update these values as needed
 // ============================================================================
 
-// Password for accessing the research dashboard
-const RESEARCH_DASHBOARD_PASSWORD = 'research2025!';
+// Password from environment variable or fallback
+const RESEARCH_DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_PASSWORD || 'research2025!';
 
 // List of email addresses that are allowed to access the research dashboard
-// Add or remove emails as needed for your research team
-const ALLOWED_EMAILS = [
-  'researcher@university.edu',
-  'professor@college.edu', 
-  'student@research.org',
-  'luke@lukecarlhartman.com',  // Replace with your actual email
-  // Add more emails as needed
+// In production, set this via environment variable RESEARCH_DASHBOARD_EMAILS (comma-separated)
+const getDefaultEmails = () => [
+  'arajades@austin.utexas.edu', 
+  'davlungu3@gmail.com',
+  'luke@lukecarlhartman.com',
 ];
+
+// Emails from environment variable or fallback
+const ALLOWED_EMAILS = process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_EMAILS 
+  ? process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_EMAILS.split(',').map(email => email.trim())
+  : getDefaultEmails();
 
 // ============================================================================
 // END CONFIGURATION

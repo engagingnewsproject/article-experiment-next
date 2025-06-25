@@ -48,12 +48,22 @@ export default function AdminPage() {
               <p className="text-gray-600">Manage your Article Experiment project</p>
               <p className="text-sm text-gray-500 mt-1">Logged in as: {userEmail}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Sign Out
-            </button>
+            <div className="flex space-x-2">
+              <a
+                href="https://console.firebase.google.com/u/0/project/article-experiment-next/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-sm text-orange-600 hover:text-orange-800 border border-orange-300 rounded-md hover:bg-orange-50"
+              >
+                Firebase Console
+              </a>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -75,7 +85,7 @@ export default function AdminPage() {
               </p>
               <Link 
                 href="/admin/research-dashboard"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 !text-white rounded-md hover:bg-blue-700"
               >
                 Open Dashboard
                 <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +112,7 @@ export default function AdminPage() {
               </p>
               <Link 
                 href="/admin/add-default-comments"
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="inline-flex items-center px-4 py-2 bg-green-600 !text-white rounded-md hover:bg-green-700"
               >
                 Manage Comments
                 <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

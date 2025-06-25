@@ -264,12 +264,20 @@ export default function ResearchDashboard() {
             <p className="text-gray-600">Interactive data exploration and analysis for researchers</p>
             <p className="text-sm text-gray-500 mt-1">Logged in as: {userEmail}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Sign Out
-          </button>
+          <div className="flex space-x-2">
+            <a
+              href="/admin"
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Admin
+            </a>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
