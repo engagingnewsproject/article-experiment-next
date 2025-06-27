@@ -13,12 +13,12 @@
  * @param {string} props.identifier - Unique identifier for the article
  * @returns {JSX.Element} The comments section
  */
-import React, { useState } from "react";
-import styles from "./Comments.module.css";
-import { CommentForm } from "./CommentForm";
-import { CommentList } from "./CommentList";
-import { type Comment } from "@/lib/firestore";
 import Cookies from "js-cookie";
+import React, { useState } from "react";
+import { type Comment } from "@/lib/firestore";
+import { CommentForm } from "@/components/CommentForm";
+import { CommentList } from "@/components/CommentList";
+import styles from "@/components/Comments.module.css";
 
 /**
  * Props interface for the Comments component.
@@ -27,6 +27,7 @@ import Cookies from "js-cookie";
  * @property {Comment[]} comments - Array of existing comments
  * @property {boolean} anonymous - Whether the article is anonymous
  * @property {string} identifier - Unique identifier for the article
+ * @property {string} articleTitle - Title for the article
  * @property {string} userId - Unique identifier for the user
  * @property {(name: string, content: string) => void} [onCommentSubmit] - Callback for comment submission
  */
@@ -34,6 +35,7 @@ interface CommentsProps {
   comments: Comment[];
   anonymous: boolean;
   identifier: string;
+  articleTitle: string;
   userId: string;
   onCommentSubmit?: (name: string, content: string) => void;
 }
@@ -55,6 +57,7 @@ export const Comments: React.FC<CommentsProps> = ({
   comments = [],
   anonymous,
   identifier,
+  articleTitle,
   userId,
   onCommentSubmit,
 }) => {
@@ -62,7 +65,7 @@ export const Comments: React.FC<CommentsProps> = ({
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
 
   const handleCommentSubmitted = async (newComment: Comment) => {
-    setLocalComments((prev) => [...prev, newComment]);
+    setLocalComments((prev) => [newComment, ...prev]);
   }
   
   const removeCommentById = (comments: Comment[], commentId: string): Comment[] => {
@@ -83,7 +86,7 @@ export const Comments: React.FC<CommentsProps> = ({
       if (comment.id === commentId) {
         return {
           ...comment,
-          replies: [...(comment.replies || []), reply]
+          replies: [reply, ...(comment.replies || [])]
         };
       }
       return {
@@ -116,6 +119,7 @@ export const Comments: React.FC<CommentsProps> = ({
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
+          articleTitle={articleTitle}
           userId={userId}
         />
       </div>

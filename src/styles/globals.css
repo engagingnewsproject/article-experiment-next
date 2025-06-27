@@ -166,7 +166,8 @@ a:hover .icon {
 .row,
 .clr,
 .group {
-  max-width: 840px;
+  min-width: 840px;
+  max-width: 70vw;
   margin: 0 auto;
   padding-left: 20px;
   padding-right: 20px;

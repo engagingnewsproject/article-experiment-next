@@ -209,13 +209,16 @@ export function ArticleContent({
           />
         )}
 
-        <TrustProjectCallout />
-        { article.summary && (version === '2' || version === '3') &&
-          <ArticleSummary articleSummary={article.summary}/>
-        }
+        {(version === '2' || version === '3' || version === '4') &&
+          <div className={styles.summaryThemesSection}>
+            { article.summary && (version === '2' || version === '3') &&
+              <ArticleSummary articleSummary={article.summary}/>
+            }
 
-        { article.themes && (version === '3' || version == '4') && 
-          <ArticleThemeList articleThemes={article.themes}/>
+            { article.themes && (version === '3' || version == '4') && 
+              <ArticleThemeList articleThemes={article.themes}/>
+            }
+          </div>
         }
 
         {article.comments_display && (
@@ -248,8 +251,10 @@ export function ArticleContent({
             }))}
             anonymous={article.anonymous}
             identifier={article.id}
+            articleTitle={article.title}
             onCommentSubmit={(name, content) => {
               logComment(
+                article.title,
                 name,
                 content,
                 article.id,
