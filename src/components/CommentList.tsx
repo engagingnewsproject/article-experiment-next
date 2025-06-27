@@ -40,7 +40,6 @@ interface CommentListProps {
   onReply: (commentId: string, reply: Comment) => void;
 }
 
-const INIT_REPLIES_REVEAL_COUNT = 20;
 const REPLIES_REVEAL_COUNT = 5;
 
 const CommentNode: React.FC<{
@@ -164,7 +163,7 @@ const CommentNode: React.FC<{
         {(depth < 3) && (
           <button
             className={styles.replyButton}
-            onClick={() => setReplying((v) => !v)}
+            onClick={() => setReplying((status) => !status)}
           >
             {replying ? "Cancel Reply" : "Reply"}
           </button>
@@ -228,9 +227,6 @@ export const CommentList: React.FC<CommentListProps> = ({
 }) => {
   const COMMENTS_REVEAL_COUNT = 20;
   const [maxRevealLength, setMaxRevealLength] = useState(COMMENTS_REVEAL_COUNT);
-  const [replyingToId, setReplyingToId] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [maxReplies, setMaxReplies] = useState(REPLIES_REVEAL_COUNT);
   const [maxSubReplies, setMaxSubReplies] = useState<{ [replyId: string]: number }>({});
 
