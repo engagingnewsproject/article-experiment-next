@@ -16,7 +16,7 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
   const searchParams = useSearchParams();
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
-  const version = searchParams?.get('version') || 'v1';
+  const version = searchParams?.get('version') || '1';
   const { 
     loading: authorLoading, 
     authorName, 

@@ -111,7 +111,7 @@ export type ArticleTheme = {
 export type Author = {
   id?: string;
   name: string;
-  email: string;
+  // email: string;
   bio?: {
     personal: string;
     basic: string;
@@ -225,7 +225,7 @@ export async function getAuthors(): Promise<Author[]> {
 export async function saveComment(articleId: string, commentData: {
   content: string;
   name?: string;
-  email?: string;
+  // email?: string;
   upvotes?: number;
   downvotes?: number;
   parentId?: string;
@@ -239,7 +239,7 @@ export async function saveComment(articleId: string, commentData: {
     const reply = {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
-      email: commentData.email || null,
+      // email: commentData.email || null,
       upvotes: commentData.upvotes || 0,
       downvotes: commentData.downvotes || 0,
       createdAt: serverTimestamp()
@@ -254,7 +254,7 @@ export async function saveComment(articleId: string, commentData: {
     const comment = {
       content: commentData.content,
       name: commentData.name || 'Anonymous',
-      email: commentData.email || null,
+      // email: commentData.email || null,
       upvotes: commentData.upvotes || 0,
       downvotes: commentData.downvotes || 0,
       createdAt: serverTimestamp()
@@ -425,6 +425,22 @@ export async function updateCommentVotes(
   await updateDoc(commentRef, {
     [field]: increment(value)
   });
+}
+
+/**
+ * Normalizes comment dates by converting Firestore Timestamp objects to ISO strings.
+ * 
+ * @param {Comment[]} comments - Array of comments to normalize
+ * @returns {Comment[]} - Array of comments with normalized dates
+ */
+export function normalizeCommentDates(comments: Comment[]): Comment[] {
+  return comments.map(comment => ({
+    ...comment,
+    createdAt: comment.createdAt && typeof comment.createdAt === 'object' && 'toDate' in comment.createdAt
+      ? (comment.createdAt as Timestamp).toDate().toLocaleString()
+      : (typeof comment.createdAt === 'string' ? new Date(comment.createdAt).toLocaleString() : undefined),
+    replies: comment.replies ? normalizeCommentDates(comment.replies) : [],
+  }));
 }
 
 // Example usage:

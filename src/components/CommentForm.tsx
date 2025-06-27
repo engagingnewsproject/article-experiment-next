@@ -104,13 +104,13 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             onChange={(e) => setName(e.target.value)}
             className={styles.input}
           />
-          <input
+          {/* <input
             type="email"
             placeholder="Your Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={styles.input}
-          />
+          /> */}
         </>
       )}
       <textarea
