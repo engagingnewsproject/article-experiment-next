@@ -1,3 +1,38 @@
+/**
+ * Research Data Dashboard Page
+ *
+ * This page provides an interactive dashboard for researchers to explore, filter, and export
+ * user activity logs, articles, and comments from Firestore. It includes authentication,
+ * data loading, statistics calculation, and tabbed views for logs, articles, and comments.
+ *
+ * Main Features:
+ * - Authenticated access for researchers
+ * - Loads logs, articles, and user comments from Firestore
+ * - Combines default and user-submitted comments for analysis
+ * - Calculates and displays key statistics (totals, date range, unique users, etc.)
+ * - Provides tabbed navigation for overview, logs, articles, and comments
+ * - Supports searching, filtering, and CSV/JSON export of data
+ * - Displays both default and user comment counts per article
+ * - Shows comment details, including type (default/user), upvotes/downvotes, and timestamps
+ *
+ * Key Logic:
+ * - Data is loaded on authentication and stored in React state
+ * - Comments are aggregated from both article default_comments and article subcollections
+ * - Filtering and searching is performed in-memory for fast UI updates
+ * - All data views are kept in sync with the loaded Firestore data
+ *
+ * File Structure:
+ * - Interfaces: LogEntry, Article, Comment, DashboardStats
+ * - Main component: ResearchDashboard (React function component)
+ * - useEffect: Handles authentication and triggers data loading
+ * - loadData: Loads and processes all Firestore data for the dashboard
+ * - Filtering/searching: Handled via React state and derived arrays
+ * - UI: Tabbed navigation, tables, and cards for each data type
+ *
+ * For more details on Firestore structure and comment aggregation, see the inline comments
+ * within the loadData function and the allComments calculation.
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,6 +45,7 @@ interface LogEntry {
   id: string;
   url: string;
   identifier: string;
+  articleTitle?: string;
   userId: string;
   ipAddress?: string;
   action: string;
@@ -34,6 +70,19 @@ interface Article {
   summary?: string;
 }
 
+interface Comment {
+  id: string;
+  name: string;
+  content: string;
+  createdAt: string;
+  upvotes: number;
+  downvotes: number;
+  identifier: string;
+  parentId?: string;
+  grandParentId?: string;
+  replies?: Comment[];
+}
+
 interface DashboardStats {
   totalLogs: number;
   totalArticles: number;
@@ -55,6 +104,7 @@ export default function ResearchDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
@@ -90,6 +140,7 @@ export default function ResearchDashboard() {
     setStats(null);
     setLogs([]);
     setArticles([]);
+    setComments([]);
   };
 
   const loadData = async () => {
@@ -114,8 +165,33 @@ export default function ResearchDashboard() {
         ...doc.data()
       })) as Article[];
 
+      // Load comments from each article's subcollection
+      const allUserComments: Comment[] = [];
+      for (const article of articlesData) {
+        try {
+          const commentsRef = collection(db, 'articles', article.id, 'comments');
+          const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
+          const commentsSnapshot = await getDocs(commentsQuery);
+          const articleComments = commentsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            identifier: article.id // Add the article ID for reference
+          })) as Comment[];
+          allUserComments.push(...articleComments);
+        } catch (error) {
+          console.log(`No comments collection for article ${article.id} or error loading:`, error);
+        }
+      }
+
+      console.log('Loaded user comments:', allUserComments.length, allUserComments);
+      console.log('Loaded articles:', articlesData.length);
+      console.log('Default comments count:', articlesData.reduce((sum, article) => 
+        sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
+      ));
+
       setLogs(logsData);
       setArticles(articlesData);
+      setComments(allUserComments);
 
       // Calculate stats
       const uniqueUsers = new Set(logsData.map(log => log.userId)).size;
@@ -140,7 +216,7 @@ export default function ResearchDashboard() {
 
       const totalComments = articlesData.reduce((sum, article) => 
         sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
-      );
+      ) + allUserComments.length;
 
       setStats({
         totalLogs: logsData.length,
@@ -215,15 +291,33 @@ export default function ResearchDashboard() {
     return true;
   });
 
-  const allComments = articles.flatMap(article => 
-    (article.default_comments || []).map(comment => ({
-      ...comment,
-      articleId: article.id,
-      articleTitle: article.title,
-      articleSlug: article.slug,
-      authorName: article.author?.name || 'Anonymous'
-    }))
-  );
+  const allComments = [
+    // Default comments from articles
+    ...articles.flatMap(article => 
+      (article.default_comments || []).map(comment => ({
+        ...comment,
+        articleId: article.id,
+        articleTitle: article.title,
+        articleSlug: article.slug,
+        authorName: article.author?.name || 'Anonymous',
+        isDefaultComment: true,
+        createdAt: comment.createdAt || comment.timestamp || new Date().toISOString()
+      }))
+    ),
+    // User-submitted comments
+    ...comments.map(comment => {
+      const article = articles.find(a => a.id === comment.identifier);
+      return {
+        ...comment,
+        articleId: comment.identifier,
+        articleTitle: article?.title || comment.identifier,
+        articleSlug: article?.slug || comment.identifier,
+        authorName: comment.name || 'Anonymous',
+        isDefaultComment: false,
+        createdAt: comment.createdAt || new Date().toISOString()
+      };
+    })
+  ];
 
   const filteredComments = allComments.filter(comment => {
     if (searchTerm) {
@@ -490,6 +584,7 @@ export default function ResearchDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Article</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page</th>
                   </tr>
@@ -510,6 +605,9 @@ export default function ResearchDashboard() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {log.action}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {log.articleTitle || log.identifier}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                         {log.label}
@@ -543,26 +641,32 @@ export default function ResearchDashboard() {
               </button>
             </div>
             <div className="p-6 space-y-6">
-              {filteredArticles.map((article) => (
-                <div key={article.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{article.title}</h3>
-                    <span className="text-sm text-gray-500">ID: {article.id}</span>
+              {filteredArticles.map((article) => {
+                const defaultCount = Array.isArray(article.default_comments) ? article.default_comments.length : 0;
+                const userCount = comments.filter(c => c.identifier === article.id).length;
+                return (
+                  <div key={article.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{article.title}</h3>
+                      <span className="text-sm text-gray-500">ID: {article.id}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Author:</span> {article.author?.name || 'Anonymous'}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      <span className="font-medium">Published:</span> {article.pubdate}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-3">
+                      <span className="font-medium">Comments:</span>
+                      <span className="ml-2 text-blue-700">{defaultCount} default</span>
+                      <span className="ml-2 text-green-700">{userCount} user</span>
+                    </div>
+                    <div className="text-sm text-gray-700 line-clamp-3">
+                      {article.content.substring(0, 200)}...
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Author:</span> {article.author?.name || 'Anonymous'}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Published:</span> {article.pubdate}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-3">
-                    <span className="font-medium">Comments:</span> {article.default_comments?.length || 0} default comments
-                  </div>
-                  <div className="text-sm text-gray-700 line-clamp-3">
-                    {article.content.substring(0, 200)}...
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -587,6 +691,13 @@ export default function ResearchDashboard() {
                   <div className="flex justify-between items-start mb-2">
                     <div className="text-sm text-gray-600">
                       <span className="font-medium">Article:</span> {comment.articleTitle}
+                      <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                        comment.isDefaultComment 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {comment.isDefaultComment ? 'Default' : 'User'}
+                      </span>
                     </div>
                     <div className="text-sm text-gray-500">
                       {comment.upvotes || 0} ↑ {comment.downvotes || 0} ↓
@@ -594,6 +705,11 @@ export default function ResearchDashboard() {
                   </div>
                   <div className="text-sm text-gray-600 mb-2">
                     <span className="font-medium">By:</span> {comment.name}
+                    {comment.createdAt && (
+                      <span className="ml-4 text-gray-500">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <div className="text-gray-900">
                     {comment.content}
