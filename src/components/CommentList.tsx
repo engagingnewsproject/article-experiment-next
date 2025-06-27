@@ -107,8 +107,7 @@ const CommentNode: React.FC<{
         newReply.name,
         newReply.content,
         identifier,
-        localStorage.getItem("userId") || "Anonymous",
-        true
+        localStorage.getItem("userId") || "Anonymous"
       );
     } catch (err) {
       console.error("Failed to submit reply:", err);

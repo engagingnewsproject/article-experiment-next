@@ -27,7 +27,7 @@ import styles from "./ArticleContent.module.css";
 import { ArticleSummary } from "./ArticleSummary";
 import { ArticleThemeList } from "./ArticleThemes";
 import { useLogger } from '@/hooks/useLogger';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 /**
  * Props interface for the ArticleContent component.
@@ -126,18 +126,19 @@ export function ArticleContent({
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger();
-  const [timeWhenPageOpened, setTimeWhenPageOpened] = useState<number>(Date.now());
+  const timeWhenPageOpened = useRef<number>(Date.now());
 
   // Log page view when component mounts
   useEffect(() => {
-    setTimeWhenPageOpened(Date.now());
+    timeWhenPageOpened.current = Date.now();
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened;
+      const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
       logPageViewTime(
         article.title,
         article.id,
         totalTimeSpentOnPage,
         userId,
+        article.title
       );
       e.preventDefault();
     };
@@ -145,14 +146,15 @@ export function ArticleContent({
 
     logPageView(
       article.title,
-      article.id, // using article.id as identifier
-      userId // or you could pass userId as a prop if you have user authentication
+      article.id,
+      userId,
+      article.title
     );
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [article.title, article.id, logPageView]);
+  }, [article.title, article.id, logPageView, logPageViewTime, userId]);
 
   // Handle link clicks within article content
   const handleArticleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -164,7 +166,8 @@ export function ArticleContent({
         `Article Link: ${linkText}`,
         url,
         article.id,
-        userId
+        userId,
+        article.title
       );
     }
   };

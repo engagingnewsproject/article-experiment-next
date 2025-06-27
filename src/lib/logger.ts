@@ -10,6 +10,8 @@ export interface LogEntry {
   url: string;
   /** A unique identifier for the context (e.g., article ID) */
   identifier: string;
+  /** The title of the article (optional) */
+  articleTitle?: string;
   /** The user's ID, or 'anonymous' if not logged in */
   userId: string;
   /** The user's public IP address, if available */

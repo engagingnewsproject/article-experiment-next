@@ -7,13 +7,15 @@ export function useLogger() {
     label: string,
     comment: string,
     identifier: string,
-    userId: string
+    userId: string,
+    articleTitle?: string
   ) => {
     const ipAddress = await getClientIP();
     
     await logEvent({
       url: window.location.href,
       identifier,
+      articleTitle,
       userId,
       ipAddress,
       action,
@@ -26,24 +28,27 @@ export function useLogger() {
     label: string,
     comment: string,
     identifier: string,
-    userId: string
+    userId: string,
+    articleTitle?: string
   ) => {
-    await log('click', label, comment, identifier, userId);
+    await log('click', label, comment, identifier, userId, articleTitle);
   }, [log]);
 
   const logPageView = useCallback(async (
     pageTitle: string,
     identifier: string,
-    userId: string
+    userId: string,
+    articleTitle?: string
   ) => {
-    await log('Page View', pageTitle, 'Loaded', identifier, userId);
+    await log('Page View', pageTitle, 'Loaded', identifier, userId, articleTitle);
   }, [log]);
 
     const logPageViewTime = useCallback(async (
     pageTitle: string,
     identifier: string,
     timeSpent: number,
-    userId: string
+    userId: string,
+    articleTitle?: string
   ) => {
     const timeSpentToString = (ms: number) => { 
         const seconds = Math.floor(ms / 1000);
@@ -51,16 +56,17 @@ export function useLogger() {
         const remainingSec = seconds % 60;
         return `${minutes}m ${remainingSec}s`;
     }
-    await log('Time Spent', pageTitle, timeSpentToString(timeSpent), identifier, userId);
+    await log('Time Spent', pageTitle, timeSpentToString(timeSpent), identifier, userId, articleTitle);
   }, [log]);
 
   const logComment = useCallback(async (
+    articleTitle: string,
     name: string,
     comment: string,
     identifier: string,
     userId: string
   ) => {
-    await log('Comment', 'Add Comment', `${name}: ${comment}`, identifier, userId);
+    await log('Comment', 'Add Comment', `${name}: ${comment}`, identifier, userId, articleTitle);
   }, [log]);
 
   return {
