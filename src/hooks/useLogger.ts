@@ -5,7 +5,7 @@ export function useLogger() {
   const log = useCallback(async (
     action: string,
     label: string,
-    comment: string,
+    details: string,
     identifier: string,
     userId: string
   ) => {
@@ -18,7 +18,7 @@ export function useLogger() {
       ipAddress,
       action,
       label,
-      comment,
+      details,
     });
   }, []);
 
@@ -55,12 +55,14 @@ export function useLogger() {
   }, [log]);
 
   const logComment = useCallback(async (
+    pageTitle: string,
     name: string,
     comment: string,
     identifier: string,
-    userId: string
+    userId: string,
+    isReply?: boolean,
   ) => {
-    await log('Comment', 'Add Comment', `${name}: ${comment}`, identifier, userId);
+    await log(isReply ? 'Reply' : 'Comment', pageTitle, `${name}: ${comment}`, identifier, userId);
   }, [log]);
 
   return {
