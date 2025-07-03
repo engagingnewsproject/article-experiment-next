@@ -9,15 +9,13 @@ import { useLogger } from '@/hooks/useLogger';
  * Props for the CommentVoteSection component.
  * 
  * @property commentId - The unique ID of the comment or reply being voted on.
- * @property parentId - (Optional) The parent comment's ID if this is a reply.
- * @property grandParentId - (Optional) The grandparent comment's ID if this is a sub-reply.
+ * @property parentId - (Optional) The IDs of the reply's ancestors
  * @property identifier - The article ID (used for database paths and cookies).
  * @property comment - The full comment object (for initial vote counts).
  */
 interface CommentVoteSectionProps {
   commentId: string;
-  parentId?: string;
-  grandParentId?: string;
+  ancestorIds: string[];
   identifier: string;
   comment: Comment;
   userId: string;
@@ -34,8 +32,7 @@ interface CommentVoteSectionProps {
  */
 export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({ 
   commentId, 
-  parentId,
-  grandParentId,
+  ancestorIds,
   identifier, 
   comment,
   userId,
@@ -70,6 +67,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
     // If the user already voted the other way, remove that vote
     if (voted[otherVoteType]) {
       // Decrement the other vote count
+      await updateCommentVotes(identifier, commentId, otherVoteType, -1, ancestorIds);
       if (otherVoteType === 'upvotes') setUpvotes((n) => n - 1);
       if (otherVoteType === 'downvotes') setDownvotes((n) => n - 1);
     }
@@ -84,13 +82,13 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
       downvotes: voteType === 'downvotes',
     });
 
+    await updateCommentVotes(identifier, commentId, voteType, 1, ancestorIds);
+
     // Log the vote event
     await log(
       'Vote',
       voteType === 'upvotes' ? 'Upvote' : 'Downvote',
-      `Voted on commentId: ${commentId}` +
-        (parentId ? `, parentId: ${parentId}` : '') +
-        (grandParentId ? `, grandParentId: ${grandParentId}` : ''),
+      `Voted on commentId: ${commentId}`,
       identifier,
       userId
     );

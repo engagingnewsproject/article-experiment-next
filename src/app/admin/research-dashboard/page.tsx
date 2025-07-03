@@ -135,6 +135,8 @@ export default function ResearchDashboard() {
             name: replyData.name || 'Anonymous',
             createdAt: replyData.createdAt,
             parentId: parentId,
+            upvotes: replyData.upvotes,
+            downvotes: replyData.downvotes,
             ...replyData
           };
           // Recursively fetch all nested replies
@@ -144,7 +146,7 @@ export default function ResearchDashboard() {
             replyDoc.id,
             parentId
           );
-          console.log(replyDoc.data);
+          console.log(subReplies)
           return { ...reply, replies: subReplies };
         }));
       }
@@ -153,6 +155,7 @@ export default function ResearchDashboard() {
         articlesSnapshot.docs.map(async doc => {
           const articleData = doc.data();
           const comments = await fetchRepliesRecursively(doc.id, ['articles', doc.id, 'comments']);
+          console.log(comments);
           return {
             ...(articleData as Article),
             id: doc.id,
@@ -163,7 +166,6 @@ export default function ResearchDashboard() {
 
       setLogs(logsData);
       setArticles(articlesData);
-      console.log(articlesData);
 
       const uniqueUsers = new Set(logsData.map(log => log.userId)).size;
       const actionsByType: Record<string, number> = {};
