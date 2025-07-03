@@ -47,7 +47,7 @@ export default function TrustProjectCallout() {
         </Link>
       </div>
       <div className={styles.trustProjectCallout__content}>
-        <p>The Trust Project is a collaboration among news organizations around the world. Its goal is to create strategies that fulfill journalism's basic pledge: to serve society with a truthful, intelligent and comprehensive account of ideas and events.</p>
+        <p>The Trust Project is a collaboration among news organizations around the world. Its goal is to create strategies that fulfill journalism&apos;s basic pledge: to serve society with a truthful, intelligent and comprehensive account of ideas and events.</p>
         <p>
           <Link href={`/about-the-trust-project/?referrer=${currentUrl}`}>
             Learn how the Trust Project evaluates the trustworthiness of a news organization.

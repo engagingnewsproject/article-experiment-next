@@ -1,3 +1,38 @@
+/**
+ * Research Data Dashboard Page
+ *
+ * This page provides an interactive dashboard for researchers to explore, filter, and export
+ * user activity logs, articles, and comments from Firestore. It includes authentication,
+ * data loading, statistics calculation, and tabbed views for logs, articles, and comments.
+ *
+ * Main Features:
+ * - Authenticated access for researchers
+ * - Loads logs, articles, and user comments from Firestore
+ * - Combines default and user-submitted comments for analysis
+ * - Calculates and displays key statistics (totals, date range, unique users, etc.)
+ * - Provides tabbed navigation for overview, logs, articles, and comments
+ * - Supports searching, filtering, and CSV/JSON export of data
+ * - Displays both default and user comment counts per article
+ * - Shows comment details, including type (default/user), upvotes/downvotes, and timestamps
+ *
+ * Key Logic:
+ * - Data is loaded on authentication and stored in React state
+ * - Comments are aggregated from both article default_comments and article subcollections
+ * - Filtering and searching is performed in-memory for fast UI updates
+ * - All data views are kept in sync with the loaded Firestore data
+ *
+ * File Structure:
+ * - Interfaces: LogEntry, Article, Comment, DashboardStats
+ * - Main component: ResearchDashboard (React function component)
+ * - useEffect: Handles authentication and triggers data loading
+ * - loadData: Loads and processes all Firestore data for the dashboard
+ * - Filtering/searching: Handled via React state and derived arrays
+ * - UI: Tabbed navigation, tables, and cards for each data type
+ *
+ * For more details on Firestore structure and comment aggregation, see the inline comments
+ * within the loadData function and the allComments calculation.
+ */
+
 'use client';
 
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
@@ -13,6 +48,7 @@ interface LogEntry {
   id: string;
   url: string;
   identifier: string;
+  articleTitle?: string;
   userId: string;
   ipAddress?: string;
   action: string;
@@ -38,6 +74,19 @@ interface Article {
   summary?: string;
 }
 
+interface Comment {
+  id: string;
+  name: string;
+  content: string;
+  createdAt: string;
+  upvotes: number;
+  downvotes: number;
+  identifier: string;
+  parentId?: string;
+  grandParentId?: string;
+  replies?: Comment[];
+}
+
 interface DashboardStats {
   totalLogs: number;
   totalArticles: number;
@@ -59,6 +108,7 @@ export default function ResearchDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
@@ -118,6 +168,7 @@ export default function ResearchDashboard() {
     setStats(null);
     setLogs([]);
     setArticles([]);
+    setComments([]);
   };
 
   const loadData = async () => {
@@ -175,8 +226,33 @@ export default function ResearchDashboard() {
         })
       );
 
+      // Load comments from each article's subcollection
+      const allUserComments: Comment[] = [];
+      for (const article of articlesData) {
+        try {
+          const commentsRef = collection(db, 'articles', article.id, 'comments');
+          const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
+          const commentsSnapshot = await getDocs(commentsQuery);
+          const articleComments = commentsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            identifier: article.id // Add the article ID for reference
+          })) as Comment[];
+          allUserComments.push(...articleComments);
+        } catch (error) {
+          console.log(`No comments collection for article ${article.id} or error loading:`, error);
+        }
+      }
+
+      console.log('Loaded user comments:', allUserComments.length, allUserComments);
+      console.log('Loaded articles:', articlesData.length);
+      console.log('Default comments count:', articlesData.reduce((sum, article) => 
+        sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
+      ));
+
       setLogs(logsData);
       setArticles(articlesData);
+      setComments(allUserComments);
 
       const uniqueUsers = new Set(logsData.map(log => log.userId)).size;
       const actionsByType: Record<string, number> = {};
@@ -200,7 +276,7 @@ export default function ResearchDashboard() {
 
       const totalComments = articlesData.reduce((sum, article) => 
         sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
-      );
+      ) + allUserComments.length;
 
       setStats({
         totalLogs: logsData.length,
@@ -966,7 +1042,6 @@ export default function ResearchDashboard() {
                   </div>
                 )}
               </div>
-              {/* Show More button below filtered comments */}
               {filteredComments.length > numShownComments && (
                 <div className="flex justify-center pb-8">
                   <button
@@ -975,9 +1050,9 @@ export default function ResearchDashboard() {
                   >
                     Show More
                   </button>
+
                 </div>
               )}
-              {/* Reset commentsToShow when filters/search change */}
             </div>
           </>
         )}
