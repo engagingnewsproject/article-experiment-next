@@ -77,7 +77,18 @@ export default function ResearchDashboard() {
   const [logUserFilter, setLogUserFilter] = useState('');
 
   // State for toggling default comments in comments tab
-  const [showDefaultComments, setShowDefaultComments] = useState(false);
+  const [showDefaultComments, setShowDefaultComments] = useState(true);
+
+  // Tooltip state for all comments (move to top-level of component)
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [tooltipComment, setTooltipComment] = useState<any | null>(null);
+  let tooltipTimeout: NodeJS.Timeout;
+
+  const [numShownComments, setNumShownComments] = useState(50);
+
+  // New state for sorting comments
+  const [commentSort, setCommentSort] = useState('date-desc');
 
   useEffect(() => {
     // Check authentication on component mount
@@ -345,6 +356,30 @@ export default function ResearchDashboard() {
       );
     }
     return true;
+  });
+
+  // Sort filteredComments based on commentSort
+  const sortedFilteredComments = [...filteredComments].sort((a, b) => {
+    if (commentSort === 'date-desc') {
+      // Newest first
+      const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return bDate - aDate;
+    } else if (commentSort === 'date-asc') {
+      // Oldest first
+      const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return aDate - bDate;
+    } else if (commentSort === 'upvotes-desc') {
+      return (b.upvotes || 0) - (a.upvotes || 0);
+    } else if (commentSort === 'upvotes-asc') {
+      return (a.upvotes || 0) - (b.upvotes || 0);
+    } else if (commentSort === 'downvotes-desc') {
+      return (b.downvotes || 0) - (a.downvotes || 0);
+    } else if (commentSort === 'downvotes-asc') {
+      return (a.downvotes || 0) - (b.downvotes || 0);
+    }
+    return 0;
   });
 
   const normalizedFilteredArticles = filteredArticles.map(article => {
@@ -819,6 +854,24 @@ export default function ResearchDashboard() {
                   </button>
                 </div>
               </div>
+              {/* Sorting Row */}
+              <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-5">
+                <div className="md:col-span-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Sort By</label>
+                  <select
+                    value={commentSort}
+                    onChange={e => setCommentSort(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="date-desc">Date Created (Newest First)</option>
+                    <option value="date-asc">Date Created (Oldest First)</option>
+                    <option value="upvotes-desc">Upvotes (Most First)</option>
+                    <option value="upvotes-asc">Upvotes (Least First)</option>
+                    <option value="downvotes-desc">Downvotes (Most First)</option>
+                    <option value="downvotes-asc">Downvotes (Least First)</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div className="bg-white rounded-lg shadow">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -842,26 +895,89 @@ export default function ResearchDashboard() {
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
-                {filteredComments.slice(0, 50).map((comment, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Article:</span> {typeof comment.articleTitle === 'string' ? comment.articleTitle : JSON.stringify(comment.articleTitle) || 'N/A'}
+              <div className="flex flex-wrap justify-center gap-4 p-6">
+                {sortedFilteredComments.slice(0, numShownComments).map((comment, index) => {
+                  return (
+                    <div
+                      key={index}
+                      className="relative flex-shrink p-4 transition-shadow duration-150 bg-white border border-gray-200 rounded-lg cursor-pointer grow w-3xl hover:shadow-lg focus-within:shadow-lg"
+                      style={{ margin: '0 0.5rem 0.5rem 0' }}
+                      onMouseEnter={e => {
+                        tooltipTimeout = setTimeout(() => {
+                          setShowTooltip(true);
+                          setTooltipComment(comment);
+                          setTooltipPos({ x: e.clientX, y: e.clientY });
+                        }, 350);
+                      }}
+                      onMouseLeave={() => {
+                        clearTimeout(tooltipTimeout);
+                        setShowTooltip(false);
+                        setTooltipComment(null);
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="text-[20px] text-gray-600">
+                          <span className="font-medium">Article:</span> {typeof comment.articleTitle === 'string' ? comment.articleTitle : JSON.stringify(comment.articleTitle) || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {/* Tag for Comment or Reply */}
+                          {comment.parentId ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">Reply</span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">Comment</span>
+                          )}
+                          <span className="text-[20px] text-gray-500">
+                            {comment.upvotes || 0} ↑ {comment.downvotes || 0} ↓
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {comment.upvotes || 0} ↑ {comment.downvotes || 0} ↓
+                      <div className="mb-2 text-[20px] text-gray-600">
+                        <span className="font-medium">By:</span> {typeof comment.name === 'string' ? comment.name : JSON.stringify(comment.name) || 'Anonymous'}
+                      </div>
+                      <div className="text-gray-900 break-all text-[18px]" dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(typeof comment.content === 'string' ? comment.content : JSON.stringify(comment.content) || 'No content')}}>
+                        
                       </div>
                     </div>
-                    <div className="mb-2 text-sm text-gray-600">
-                      <span className="font-medium">By:</span> {typeof comment.name === 'string' ? comment.name : JSON.stringify(comment.name) || 'Anonymous'}
-                    </div>
-                    <div className="text-gray-900">
-                      {typeof comment.content === 'string' ? comment.content : JSON.stringify(comment.content) || 'No content'}
-                    </div>
+                  );
+                })}
+                {/* Single tooltip for all comments */}
+                {showTooltip && tooltipComment && (
+                  <div
+                    className="z-50 fixed flex flex-col bg-white border border-gray-300 rounded shadow-lg p-3 text-xs text-gray-800 whitespace-pre-line min-w-[220px] max-w-xs"
+                    style={{ left: tooltipPos.x + 8, top: tooltipPos.y + 16, pointerEvents: 'none' }}
+                    role="tooltip"
+                  >
+                    <div className="mb-1 font-semibold underline">Details - <span className="font-mono text-gray-700">{tooltipComment.id}</span></div>
+                    <div><span className='font-semibold'>Author: </span>{`${typeof tooltipComment.name === 'string' ? tooltipComment.name : JSON.stringify(tooltipComment.name) || 'Anonymous'}`}</div>
+                    <div><span className='font-semibold'>Parent ID: </span>{`${tooltipComment.parentId || 'None'}`}</div>
+                    <div><span className='font-semibold'>Posted: </span>{(() => {
+                      const rawDate = tooltipComment.createdAt;
+                      if (rawDate) {
+                        if (typeof rawDate === 'object' && typeof rawDate.toDate === 'function') {
+                          return rawDate.toDate().toLocaleString();
+                        } else if (typeof rawDate === 'string' || typeof rawDate === 'number') {
+                          const d = new Date(rawDate);
+                          if (!isNaN(d.getTime())) return d.toLocaleString();
+                        }
+                      }
+                      return 'Unknown';
+                    })()}</div>
+                    <div className="break-words"><span className='font-semibold'>Content: </span>{`${typeof tooltipComment.content === 'string' ? tooltipComment.content : JSON.stringify(tooltipComment.content) || 'No content'}`}</div>
                   </div>
-                ))}
+                )}
               </div>
+              {/* Show More button below filtered comments */}
+              {filteredComments.length > numShownComments && (
+                <div className="flex justify-center pb-8">
+                  <button
+                    onClick={() => setNumShownComments(n => Math.min(n + 50, filteredComments.length))}
+                    className="px-6 py-2 text-white bg-blue-600 rounded-md shadow hover:bg-blue-700"
+                  >
+                    Show More
+                  </button>
+                </div>
+              )}
+              {/* Reset commentsToShow when filters/search change */}
             </div>
           </>
         )}
