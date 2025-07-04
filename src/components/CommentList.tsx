@@ -68,7 +68,7 @@ const CommentNode: React.FC<{
   setMaxSubReplies: React.Dispatch<React.SetStateAction<{ [replyId: string]: number }>>;
   /** Current depth in the comment tree, used to limit reply functionality for deeper levels */
   depth?: number;
-}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 0 }) => {
+}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1 }) => {
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,10 +81,13 @@ const CommentNode: React.FC<{
 
     setIsSubmitting(true);
     try {
+      // Always build the new ancestorIds for the reply
+      const ancestorIds = [...(comment.ancestorIds ?? []), comment.id].filter((id): id is string => typeof id === "string");
+      
       const replyId = await saveComment(identifier, {
         content: replyContent,
-        parentId: comment.id,
-        grandParentId: depth > 1 ? comment.parentId : undefined,
+        // name: replyName,
+        ancestorIds
       });
 
       const newReply: Comment = {
@@ -95,13 +98,13 @@ const CommentNode: React.FC<{
         createdAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0,
+        ancestorIds, // propagate ancestorIds to the new reply
       };
 
       onReply(comment.id!, newReply);
       setReplyContent("");
       setReplying(false);
 
-      // Log the reply event
       logComment(
         articleTitle || identifier,
         newReply.name,
@@ -159,7 +162,7 @@ const CommentNode: React.FC<{
         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
       />
       <div className={styles.commentFooter}>
-        {(depth < 3) && (
+        {(depth < 4) && (
           <button
             className={styles.replyButton}
             onClick={() => setReplying((status) => !status)}
@@ -169,7 +172,7 @@ const CommentNode: React.FC<{
         )}
         <CommentVoteSection
           commentId={comment.id!}
-          parentId={comment.parentId!}
+          ancestorIds={comment.ancestorIds!}
           identifier={identifier}
           comment={comment}
           userId={userId}
@@ -188,7 +191,7 @@ const CommentNode: React.FC<{
           {comment.replies.slice(0, maxReplies).map((reply) => (
             <CommentNode
               key={reply.id}
-              comment={reply}
+              comment={reply} // ancestorIds is already set on each reply
               identifier={identifier}
               articleTitle={articleTitle}
               userId={userId}

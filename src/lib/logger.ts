@@ -21,7 +21,7 @@ export interface LogEntry {
   /** A label describing the event in more detail */
   label: string;
   /** Any extra comments or details about the event */
-  comment: string;
+  details: string;
   /** The time the event was logged (set automatically) */
   timestamp: Date;
 }

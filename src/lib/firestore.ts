@@ -68,6 +68,7 @@ export type Article = {
  * @property {string} name - Name of the commenter
  * @property {string} [createdAt] - Comment creation timestamp
  * @property {string} [parentId] - ID of the parent comment (for replies)
+ * @property {string[]} [ancestorIds] - IDs of all ancestor comments (for replies)
  * @property {number} upvotes - Number of upvotes on comment
  * @property {number} downvotes - Number of downvotes on comment
  * @property {Comment[]} [replies] - Array of reply comments
@@ -78,6 +79,7 @@ export type Comment = {
   name: string;
   createdAt?: string;
   parentId?: string;
+  ancestorIds?: string[];
   upvotes?: number;
   downvotes?: number;
   replies?: Comment[];
@@ -228,41 +230,43 @@ export async function saveComment(articleId: string, commentData: {
   // email?: string;
   upvotes?: number;
   downvotes?: number;
-  parentId?: string;
-  grandParentId?: string;
+  ancestorIds?: string[];
 }): Promise<string> {
-  if (commentData.parentId) {
-    // Save as a reply in the parent comment's replies subcollection
-    const repliesRef = commentData.grandParentId 
-      ? collection(db, 'articles', articleId, 'comments', commentData.grandParentId, 'replies', commentData.parentId, 'replies') 
-      : collection(db, 'articles', articleId, 'comments', commentData.parentId, 'replies');
-    const reply = {
-      content: commentData.content,
-      name: commentData.name || 'Anonymous',
-      // email: commentData.email || null,
-      upvotes: commentData.upvotes || 0,
-      downvotes: commentData.downvotes || 0,
-      createdAt: serverTimestamp()
-    };
-    const docRef = await addDoc(repliesRef, reply);
-    // Debugging purposes
-    // await updateDoc(docRef, {parentId: commentData.parentId})
-    return docRef.id;
-  } else {
-    // Save as a top-level comment
-    const commentsRef = collection(db, 'articles', articleId, 'comments');
-    const comment = {
-      content: commentData.content,
-      name: commentData.name || 'Anonymous',
-      // email: commentData.email || null,
-      upvotes: commentData.upvotes || 0,
-      downvotes: commentData.downvotes || 0,
-      createdAt: serverTimestamp()
-    };
-    const docRef = await addDoc(commentsRef, comment);
-    // Debugging purposes
-    // await updateDoc(docRef, {id: docRef.id})
-    return docRef.id;
+  let commentsPath = ['articles', articleId, 'comments'];
+  if (commentData.ancestorIds && commentData.ancestorIds.length > 0) {
+      commentData.ancestorIds.forEach(id => {
+        commentsPath.push(id, 'replies');
+      });
+
+      const repliesRef = collection(db, ...commentsPath as [string, ...string[]]);
+
+      const reply = {
+        content: commentData.content,
+        name: commentData.name || 'Anonymous',
+        upvotes: commentData.upvotes || 0,
+        downvotes: commentData.downvotes || 0,
+        ancestorIds: commentData.ancestorIds,
+        createdAt: serverTimestamp()
+      };
+
+      const docRef = await addDoc(repliesRef, reply);
+      // Debugging purposes
+      // await updateDoc(docRef, {parentId: commentData.parentId})
+      return docRef.id;
+    } else {
+      // Save as a top-level comment
+      const commentsRef = collection(db, 'articles', articleId, 'comments');
+      const comment = {
+        content: commentData.content,
+        name: commentData.name || 'Anonymous',
+        upvotes: commentData.upvotes || 0,
+        downvotes: commentData.downvotes || 0,
+        createdAt: serverTimestamp()
+      };
+      const docRef = await addDoc(commentsRef, comment);
+      // Debugging purposes
+      // await updateDoc(docRef, {id: docRef.id})
+      return docRef.id;
   }
 }
 
@@ -404,20 +408,18 @@ export async function updateCommentVotes(
   commentId: string,
   field: 'upvotes' | 'downvotes',
   value: number,
-  parentId?: string,
-  grandParentId?: string,
+  ancestorIds?: string[]
 ): Promise<void> {
   if (commentId.startsWith("default_")) return;
 
-  const commentsPath = `articles/${articleId}/comments`;
-
-  let commentRef = doc(db, commentsPath, commentId);
-  if (grandParentId && parentId) {
-    commentRef = doc(db, commentsPath, grandParentId, 'replies', parentId, 'replies', commentId);
+  let commentsPath = ['articles', articleId, 'comments'];
+  
+  if (ancestorIds && ancestorIds.length > 0) {
+    ancestorIds.forEach(id => commentsPath.push(id, 'replies'));
   }
-  else if (parentId) {
-    commentRef = doc(db, commentsPath, parentId, 'replies', commentId);
-  }
+  commentsPath.push(commentId);
+  
+  const commentRef = doc(db, ...commentsPath as [string, ...string[]]);
 
   // Update vote count
   const commentSnap = await getDoc(commentRef);
@@ -425,6 +427,7 @@ export async function updateCommentVotes(
   await updateDoc(commentRef, {
     [field]: increment(value)
   });
+
 }
 
 /**

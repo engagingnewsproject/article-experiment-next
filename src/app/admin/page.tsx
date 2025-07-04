@@ -121,34 +121,6 @@ export default function AdminPage() {
               </Link>
             </div>
           </div>
-
-          {/* Quick Stats */}
-          <div className="mt-8 bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Access</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">📊</div>
-                <div className="text-sm text-gray-600 mt-2">Research Dashboard</div>
-                <Link href="/admin/research-dashboard" className="text-blue-600 hover:underline text-sm">
-                  View Data
-                </Link>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">💬</div>
-                <div className="text-sm text-gray-600 mt-2">Manage Comments</div>
-                <Link href="/admin/add-default-comments" className="text-green-600 hover:underline text-sm">
-                  Add Comments
-                </Link>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">📁</div>
-                <div className="text-sm text-gray-600 mt-2">Export Data</div>
-                <Link href="/admin/research-dashboard" className="text-purple-600 hover:underline text-sm">
-                  Download CSV
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </>

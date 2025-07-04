@@ -112,7 +112,6 @@ async function exportArticlesToSheet(doc) {
       anonymous: data.anonymous || false,
       pubdate: data.pubdate || '',
       authorName: data.author?.name || '',
-      authorEmail: data.author?.email || '',
       authorBioPersonal: data.author?.bio?.personal || '',
       authorBioBasic: data.author?.bio?.basic || '',
       authorImageSrc: data.author?.image?.src || '',
@@ -223,7 +222,6 @@ async function exportAuthorsToSheet(doc) {
     authors.push({
       id: doc.id,
       name: data.name || '',
-      email: data.email || '',
       bioPersonal: data.bio?.personal || '',
       bioBasic: data.bio?.basic || '',
       imageSrc: data.image?.src || '',

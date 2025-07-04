@@ -37,7 +37,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   onCommentSubmit,
 }) => {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +50,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     setError(null);
 
     try {
-      // Call onCommentSubmit if provided
       if (onCommentSubmit) {
         onCommentSubmit(name || 'Anonymous', content);
       }
@@ -59,7 +57,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       // Save to database
       const commentData = {
         name: name || "Anonymous",
-        email: email || "",
         content,
         upvotes: 0,
         downvotes: 0,
@@ -83,7 +80,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       createCookie("comment", identifier, commentId);
       setContent('');
       setName('');
-      setEmail('');
     } catch (err) {
       setError("Failed to submit comment. Please try again.");
       console.error(err);
@@ -104,13 +100,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
             onChange={(e) => setName(e.target.value)}
             className={styles.input}
           />
-          {/* <input
-            type="email"
-            placeholder="Your Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={styles.input}
-          /> */}
         </>
       )}
       <textarea
