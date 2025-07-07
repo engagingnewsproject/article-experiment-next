@@ -74,7 +74,7 @@ interface Article {
   summary?: string;
 }
 
-interface Comment {
+interface LocalComment {
   id: string;
   name: string;
   content: string;
@@ -84,7 +84,7 @@ interface Comment {
   identifier: string;
   parentId?: string;
   grandParentId?: string;
-  replies?: Comment[];
+  replies?: LocalComment[];
 }
 
 interface DashboardStats {
@@ -108,7 +108,7 @@ export default function ResearchDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<LocalComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
@@ -186,12 +186,12 @@ export default function ResearchDashboard() {
       const articlesQuery = query(articlesRef, orderBy('createdAt', 'desc'));
       const articlesSnapshot = await getDocs(articlesQuery);
 
-      async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<Comment[]> {
+      async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<LocalComment[]> {
         const repliesRef = collection(db, ...((parentPath as unknown) as [string, ...string[]]));
         const repliesSnapshot = await getDocs(repliesRef);
         return Promise.all(repliesSnapshot.docs.map(async replyDoc => {
           const replyData = replyDoc.data();
-          const reply: Comment = {
+          const reply: LocalComment = {
             id: replyDoc.id,
             content: replyData.content || '',
             name: replyData.name || 'Anonymous',
@@ -227,7 +227,7 @@ export default function ResearchDashboard() {
       );
 
       // Load comments from each article's subcollection
-      const allUserComments: Comment[] = [];
+      const allUserComments: LocalComment[] = [];
       for (const article of articlesData) {
         try {
           const commentsRef = collection(db, 'articles', article.id, 'comments');
@@ -237,7 +237,7 @@ export default function ResearchDashboard() {
             id: doc.id,
             ...doc.data(),
             identifier: article.id // Add the article ID for reference
-          })) as Comment[];
+          })) as LocalComment[];
           allUserComments.push(...articleComments);
         } catch (error) {
           console.log(`No comments collection for article ${article.id} or error loading:`, error);
