@@ -106,38 +106,6 @@ jobs:
           echo "🚀 Netlify deployment should now be triggered automatically."
           echo "📊 Check deployment status at: https://app.netlify.com/projects/article-experiment-next/overview"
       
-      - name: Comment on workflow run
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.runId
-            });
-            
-            const comment = `## 🚀 Production Deployment Triggered
-            
-            **Branch:** \`main\` → \`prod\`
-            **Triggered by:** @${context.actor}
-            **Timestamp:** ${new Date().toISOString()}
-            
-            ### Next Steps:
-            - ✅ Main branch merged into prod
-            - 🔄 Netlify deployment in progress
-            - 📊 [Monitor deployment](https://app.netlify.com/projects/article-experiment-next/overview)
-            - 🌐 [Live site](https://article-experiment-next.netlify.app/)
-            
-            ---
-            *This deployment was triggered by GitHub Actions workflow*`;
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.runId,
-              body: comment
-            });
-
       - name: Check if user is allowed
         run: |
           if [ "${{ github.actor }}" != "luukee" ]; then
