@@ -199,6 +199,7 @@ export default function ResearchDashboard() {
             parentId: parentId,
             upvotes: replyData.upvotes,
             downvotes: replyData.downvotes,
+            identifier: articleId,
             ...replyData
           };
           // Recursively fetch all nested replies
