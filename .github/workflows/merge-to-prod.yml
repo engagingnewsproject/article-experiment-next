@@ -1,0 +1,52 @@
+name: Merge Main to Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_merge:
+        description: 'Type "YES" to confirm merging main into prod'
+        required: true
+        type: string
+        default: 'NO'
+
+jobs:
+  merge-to-prod:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Verify confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_merge }}" != "YES" ]; then
+            echo "Error: You must type 'YES' to confirm the merge"
+            exit 1
+          fi
+          echo "Merge confirmed. Proceeding with merge from main to prod..."
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      
+      - name: Checkout prod branch
+        run: |
+          git checkout prod
+          git pull origin prod
+      
+      - name: Merge main into prod
+        run: |
+          git merge origin/main --no-edit
+      
+      - name: Push to prod branch
+        run: |
+          git push origin prod
+      
+      - name: Success message
+        run: |
+          echo "✅ Successfully merged main into prod branch!"
+          echo "🚀 Netlify deployment should now be triggered automatically." 
