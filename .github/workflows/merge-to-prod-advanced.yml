@@ -42,6 +42,11 @@ jobs:
             exit 1
           fi
       
+      - name: Configure Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      
       - name: Check for merge conflicts
         run: |
           echo "Checking for potential merge conflicts..."
