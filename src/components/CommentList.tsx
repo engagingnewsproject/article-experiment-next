@@ -68,9 +68,10 @@ const CommentNode: React.FC<{
   setMaxSubReplies: React.Dispatch<React.SetStateAction<{ [replyId: string]: number }>>;
   /** Current depth in the comment tree, used to limit reply functionality for deeper levels */
   depth?: number;
-}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1 }) => {
+}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [replyName, setReplyName] = useState(anonymous ? "Anonymous" : "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { logComment } = useLogger();
@@ -81,12 +82,11 @@ const CommentNode: React.FC<{
 
     setIsSubmitting(true);
     try {
-      // Always build the new ancestorIds for the reply
       const ancestorIds = [...(comment.ancestorIds ?? []), comment.id].filter((id): id is string => typeof id === "string");
       
       const replyId = await saveComment(identifier, {
         content: replyContent,
-        // name: replyName,
+        name: replyName,
         ancestorIds
       });
 
@@ -94,16 +94,17 @@ const CommentNode: React.FC<{
         id: replyId,
         parentId: comment.id,
         content: replyContent,
-        name: 'Anonymous',
+        name: replyName || 'Anonymous',
         createdAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0,
-        ancestorIds, // propagate ancestorIds to the new reply
+        ancestorIds,
       };
 
       onReply(comment.id!, newReply);
       setReplyContent("");
       setReplying(false);
+      setReplyName(anonymous ? "Anonymous" : "");
 
       logComment(
         articleTitle || identifier,
@@ -127,7 +128,6 @@ const CommentNode: React.FC<{
       try {
         await deleteComment(identifier, comment.id);
         onCommentRemoved(comment.id);
-        // Optionally clean cookies here if needed
       } catch (err) {
         console.error("Failed to delete comment:", err);
       } finally {
@@ -184,6 +184,8 @@ const CommentNode: React.FC<{
           setReplyContent={setReplyContent}
           replyContent={replyContent}
           isSubmitting={isSubmitting}
+          replyName={replyName}
+          setReplyName={setReplyName}
         />
       )}
       {comment.replies && comment.replies.length > 0 && (
@@ -191,7 +193,7 @@ const CommentNode: React.FC<{
           {comment.replies.slice(0, maxReplies).map((reply) => (
             <CommentNode
               key={reply.id}
-              comment={reply} // ancestorIds is already set on each reply
+              comment={reply}
               identifier={identifier}
               articleTitle={articleTitle}
               userId={userId}
@@ -256,6 +258,7 @@ export const CommentList: React.FC<CommentListProps> = ({
           setMaxReplies={setMaxReplies}
           maxSubReplies={maxSubReplies}
           setMaxSubReplies={setMaxSubReplies}
+          anonymous={anonymous}
         />
       ))}
       {allCommentsVisible ? null : (
