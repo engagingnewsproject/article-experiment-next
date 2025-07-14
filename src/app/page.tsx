@@ -79,18 +79,18 @@ export default function Home() {
                 ID: {article.id}
               </div>
               <Link
-                href={`/articles/${article.slug}?explain_box=none`}
+                href={`/articles/${article.slug}`}
                 className="text-blue-600 hover:underline"
               >
-                {article.title} — No explanation
+                {article.title}
               </Link>
               <br />
-              <Link
-                href={`/articles/${article.slug}?explain_box=${article.slug}`}
+              {/* <Link
+                href={`/articles/${article.slug}`}
                 className="text-blue-600 hover:underline"
               >
                 {article.title} — Explanation box
-              </Link>
+              </Link> */}
             </div>
           </li>
         ))}

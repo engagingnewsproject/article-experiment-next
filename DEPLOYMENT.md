@@ -69,9 +69,9 @@ For maximum security, consider implementing server-side authentication:
 
 - **Password**: `research2025!`
 - **Allowed Emails**: 
-  - `arajades@austin.utexas.edu`
   - `davlungu3@gmail.com`
   - `luke@lukecarlhartman.com`
+  - `researcher@research2025.com`
 
 ## Deployment Steps
 
