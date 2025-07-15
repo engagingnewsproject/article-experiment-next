@@ -38,7 +38,6 @@
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { clearSession, getSessionFromStorage } from '@/lib/auth';
 import { db } from '@/lib/firebase';
-import { Comment } from '@/lib/firestore';
 import DOMPurify from 'dompurify';
 import { collection, getDocs, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -209,7 +208,6 @@ export default function ResearchDashboard() {
             replyDoc.id,
             parentId
           );
-          console.log(subReplies)
           return { ...reply, replies: subReplies };
         }));
       }

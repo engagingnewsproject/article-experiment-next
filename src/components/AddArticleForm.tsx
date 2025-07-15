@@ -32,6 +32,7 @@ const AddArticleForm = () => {
   const [content, setContent] = useState('');
   const [summary, setSummary] = useState('');
   const [themes, setThemes] = useState<ArticleTheme[] | null>([]);
+  const [themeLabels, setThemeLabels] = useState<string[]>([]); // Custom theme labels
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -91,6 +92,7 @@ const AddArticleForm = () => {
 
   const handleAddTheme = () => {
     setThemes([...(themes || []), { content: '' }]);
+    setThemeLabels([...(themeLabels || []), '']);
   };
 
   const handleRemoveTheme = (index: number) => {
@@ -98,6 +100,9 @@ const AddArticleForm = () => {
     const updated = [...themes];
     updated.splice(index, 1);
     setThemes(updated);
+    const updatedLabels = [...themeLabels];
+    updatedLabels.splice(index, 1);
+    setThemeLabels(updatedLabels);
   };
 
   return (
@@ -145,11 +150,23 @@ const AddArticleForm = () => {
         <div className="flex flex-col gap-4 mt-1">
           {(themes || []).map((theme, idx) => (
             <div key={idx} className="relative flex flex-col items-center p-6 border rounded-md">
+              <input
+                type="text"
+                value={themeLabels[idx] || ''}
+                onChange={e => {
+                  const updated = [...themeLabels];
+                  updated[idx] = e.target.value;
+                  setThemeLabels(updated);
+                }}
+                placeholder={`Theme ${String.fromCharCode(65 + idx)}`}
+                className="w-full mb-2 text-lg font-semibold text-center bg-transparent border-b outline-none"
+                style={{textAlign: 'center'}}
+              />
               <textarea
                 value={theme.content}
                 onChange={e => handleThemeContentChange(idx, e.target.value)}
-                placeholder={`Theme ${String.fromCharCode(65 + idx)}`}
-                className="w-full mb-2 text-xl font-bold text-center bg-transparent border-none outline-none"
+                placeholder={`Theme content...`}
+                className="w-full mb-2 text-xl text-center bg-transparent border-none outline-none"
                 style={{textAlign: 'center'}}
                 required
               />

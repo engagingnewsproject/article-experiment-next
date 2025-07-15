@@ -11,9 +11,9 @@ const RESEARCH_DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_P
 // List of email addresses that are allowed to access the research dashboard
 // In production, set this via environment variable RESEARCH_DASHBOARD_EMAILS (comma-separated)
 const getDefaultEmails = () => [
-  'arajades@austin.utexas.edu', 
   'davlungu3@gmail.com',
   'luke@lukecarlhartman.com',
+  'researcher@research2025.com'
 ];
 
 // Emails from environment variable or fallback

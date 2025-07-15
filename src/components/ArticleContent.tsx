@@ -177,7 +177,7 @@ export function ArticleContent({
       <article className={styles.article}>
         <ArticleHeader article={article} />
 
-        <AuthorBio
+        {/* <AuthorBio
           author={{
             name: article.author.name,
             bio: {
@@ -189,28 +189,12 @@ export function ArticleContent({
               : undefined,
           }}
           bioType={author_bio as "personal" | "basic"}
-        />
-
-        {shouldShowExplainBox ? (
-          <div className={styles.articleWrapped}>
-            <div
-              className={styles.articleText}
-              dangerouslySetInnerHTML={{ __html: article.content }}
-              onClick={handleArticleLinkClick}
-            />
-            <div className={styles.articleExplanation}>
-              <BehindTheStory
-                explainBox={article.explain_box}
-                article={article.metadata || {}}
-              />
-            </div>
-          </div>
-        ) : (
-          <div 
+        /> */}
+        
+        <div 
             dangerouslySetInnerHTML={{ __html: article.content }}
             onClick={handleArticleLinkClick}
           />
-        )}
 
         {(version === '2' || version === '3' || version === '4') &&
           <div className={styles.summaryThemesSection}>
