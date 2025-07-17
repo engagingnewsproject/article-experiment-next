@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from "./Comments.module.css";
 
 interface CommentReplyFormProps {
@@ -6,6 +6,8 @@ interface CommentReplyFormProps {
   replyContent: string;
   setReplyContent: (value: string) => void;
   isSubmitting: boolean;
+  replyName: string;
+  setReplyName: (value: string) => void;
 }
 
 export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
@@ -13,18 +15,18 @@ export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
   setReplyContent,
   replyContent,
   isSubmitting,
+  replyName,
+  setReplyName,
 }) => {
-  const [name, setName] = useState("");
-
   return (
     <form onSubmit={handleReply} className={styles.inlineReplyForm}>
-      {/* <input
+      <input
         type="text"
         placeholder="Your Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={replyName}
+        onChange={(e) => setReplyName(e.target.value)}
         className={styles.input}
-      /> */}
+      />
       <textarea
         placeholder="Write your reply..."
         value={replyContent}

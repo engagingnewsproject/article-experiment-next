@@ -1,0 +1,114 @@
+name: Merge Main to Prod (Advanced)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_merge:
+        description: 'Type "YES" to confirm merging main into prod'
+        required: true
+        type: string
+        default: 'NO'
+      skip_checks:
+        description: 'Skip pre-merge checks (use with caution)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  pre-merge-checks:
+    if: ${{ github.event.inputs.skip_checks != 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check main branch status
+        run: |
+          echo "Checking main branch status..."
+          git checkout main
+          git pull origin main
+          
+          # Check if main is ahead of prod
+          PROD_COMMIT=$(git rev-parse origin/prod)
+          MAIN_COMMIT=$(git rev-parse HEAD)
+          
+          if git merge-base --is-ancestor $PROD_COMMIT $MAIN_COMMIT; then
+            echo "✅ Main branch is ahead of prod - ready to merge"
+          else
+            echo "❌ Main branch is not ahead of prod"
+            exit 1
+          fi
+      
+      - name: Configure Git user
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      
+      - name: Check for merge conflicts
+        run: |
+          echo "Checking for potential merge conflicts..."
+          git checkout prod
+          git pull origin prod
+          
+          # Test merge without committing
+          if git merge --no-commit --no-ff origin/main; then
+            echo "✅ No merge conflicts detected"
+            git merge --abort
+          else
+            echo "❌ Merge conflicts detected!"
+            git merge --abort
+            exit 1
+          fi
+
+  merge-to-prod:
+    needs: [pre-merge-checks]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Verify confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_merge }}" != "YES" ]; then
+            echo "Error: You must type 'YES' to confirm the merge"
+            exit 1
+          fi
+          echo "Merge confirmed. Proceeding with merge from main to prod..."
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      
+      - name: Checkout prod branch
+        run: |
+          git checkout prod
+          git pull origin prod
+      
+      - name: Merge main into prod
+        run: |
+          git merge origin/main --no-edit
+      
+      - name: Push to prod branch
+        run: |
+          git push origin prod
+      
+      - name: Create deployment notification
+        run: |
+          echo "✅ Successfully merged main into prod branch!"
+          echo "🚀 Netlify deployment should now be triggered automatically."
+          echo "📊 Check deployment status at: https://app.netlify.com/projects/article-experiment-next/overview"
+      
+      - name: Check if user is allowed
+        run: |
+          if [ "${{ github.actor }}" != "luukee" ]; then
+            echo "User ${{ github.actor }} is not allowed to run this workflow. Only 'luukee' can run it."
+            exit 1
+          fi 
