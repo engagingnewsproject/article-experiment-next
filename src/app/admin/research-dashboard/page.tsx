@@ -68,7 +68,7 @@ interface Article {
   author: any;
   comments_display: boolean;
   default_comments?: Comment[];
-  comments?: Comment[];
+  comments?: LocalComment[];
   themes?: any[];
   summary?: string;
 }
@@ -513,7 +513,8 @@ export default function ResearchDashboard() {
           <div className="flex space-x-2">
             <a
               href="/admin"
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50"
+              className="px-4 py-2 text-sm text-white bg-blue-600 border border-gray-300 rounded-md hover:bg-blue-700"
+              style={{ color: 'white' }}
             >
               Admin
             </a>

@@ -52,7 +52,7 @@ export default function Home() {
         <div className="flex space-x-2">
         <Link
           href="/admin"
-          className="bg-blue-300 px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+          className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           <span className="text-white"
           >
