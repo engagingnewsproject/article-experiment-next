@@ -12,6 +12,7 @@
  */
 import React from "react"
 import styles from "./Header.module.css"
+import { getSessionFromStorage } from "@/lib/auth"
 
 /**
  * Header component that renders the application's header section.
@@ -31,7 +32,7 @@ export const Header: React.FC = () => {
 			<div className={styles.siteTitle}>
 				The Gazette Star
 				<span>
-					{process.env.NODE_ENV === "development" && (
+					{(process.env.NODE_ENV === "development" || getSessionFromStorage()?.isAuthenticated) && (
 						<a href='http://localhost:3000' className={styles.homeLink}>
 							Home
 						</a>
