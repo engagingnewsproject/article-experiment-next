@@ -17,15 +17,22 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { getArticles, type Article } from '@/lib/firestore';
 import AddArticleForm from '@/components/AddArticleForm';
+import { getSessionFromStorage } from '@/lib/auth';
+import { getArticles, type Article } from '@/lib/firestore';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const session = getSessionFromStorage();
+    setIsAuthenticated(!!(session && session.isAuthenticated));
+  }, []);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -59,42 +66,48 @@ export default function Home() {
             Admin Dashboard
           </span>
         </Link>
-        <Link
-          href="/admin/add-default-comments"
-          className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition-colors"
-        >
-          <span className="text-white"
+        {isAuthenticated &&
+          <Link
+            href="/admin/add-default-comments"
+            className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition-colors"
           >
-            Admin: Add Default Comments
-          </span>
-        </Link>
+            <span className="text-white"
+            >
+              Admin: Add Default Comments
+            </span>
+          </Link>
+        }
         </div>
       </div>
-      <AddArticleForm />
+      {isAuthenticated &&
+        <AddArticleForm />
+      }
       <ul className="space-y-4">
         {articles.map((article) => (
           <li key={article.id} className="border-b pb-4">
-            <div className="space-y-2">
-              <div className="text-sm text-gray-500 mb-2">
-                ID: {article.id}
+            <div className="space-y-2 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500 mb-2">ID: {article.id}</div>
+                <Link
+                  href={`/articles/${article.slug}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {article.title} — No explanation
+                </Link>
               </div>
-              <Link
-                href={`/articles/${article.slug}`}
-                className="text-blue-600 hover:underline"
-              >
-                {article.title}
-              </Link>
-              <br />
-              {/* <Link
-                href={`/articles/${article.slug}`}
-                className="text-blue-600 hover:underline"
-              >
-                {article.title} — Explanation box
-              </Link> */}
+              {isAuthenticated && (
+                <Link
+                  href={`/admin/edit-article/${article.id}`}
+                  className="ml-4 px-3 py-1 text-sm text-white bg-yellow-500 rounded hover:bg-yellow-700"
+                  style={{color: 'white'}}
+                >
+                  Edit
+                </Link>
+              )}
             </div>
           </li>
         ))}
       </ul>
     </div>
   );
-} 
+}

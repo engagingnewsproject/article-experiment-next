@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Article page component that displays a single article with optional explanation box
  * and author variations.
@@ -15,12 +17,14 @@
  * @returns {JSX.Element} The article page layout with content and controls
  */
 
-import { Suspense } from 'react';
-import { getArticleBySlug, getArticle, getComments, getArticles, type Article, type Comment } from '@/lib/firestore';
-import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import ArticleClient from './ArticleClient';
+import { Header } from '@/components/Header';
+import { getSessionFromStorage } from '@/lib/auth';
+import { getArticle, getArticleBySlug, getArticles, getComments, type Article, type Comment } from '@/lib/firestore';
 import { Timestamp } from 'firebase/firestore';
+import Link from 'next/link';
+import { Suspense, useEffect, useState } from 'react';
+import ArticleClient from './ArticleClient';
 
 /**
  * Converts Firestore Timestamp to ISO string
@@ -67,44 +71,57 @@ function convertToPlainObject(data: any): any {
  * 
  * @returns {JSX.Element} The rendered article page with content and controls
  */
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
+export default function ArticlePage({ params }: { params: { slug: string } }) {
+  const [article, setArticle] = useState<Article | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!params.slug) return;
+
+      try {
+        let articleData = await getArticle(params.slug);
+        
+        if (!articleData) {
+          articleData = await getArticleBySlug(params.slug);
+        }
+
+        if (articleData) {
+          setArticle(convertToPlainObject(articleData));
+          const commentsData = await getComments(articleData.id || '');
+          setComments(commentsData?.map(convertToPlainObject) || []);
+        }
+      } catch (err) {
+        console.error('Error fetching article:', err);
+      }
+    };
+
+    fetchData();
+  }, [params.slug]);
+
+  useEffect(() => {
+    const session = getSessionFromStorage();
+    setIsAuthenticated(!!(session && session.isAuthenticated));
+  }, []);
+
   if (!params.slug) {
     return <div className="p-4">Slug is not available</div>;
   }
-
-  try {
-    let articleData = await getArticle(params.slug);
-    
-    if (!articleData) {
-      articleData = await getArticleBySlug(params.slug);
-    }
-
-    if (!articleData) {
-      return <div className="p-4">Article not found</div>;
-    }
-
-    const commentsData = await getComments(articleData.id || '');
-
-    // Convert Firestore data to plain objects
-    const plainArticle = convertToPlainObject(articleData);
-    const plainComments = commentsData?.map(convertToPlainObject) || [];
-
-    return (
-      <>
-        <Header />
-        <main>
-          <Suspense fallback={<div className="p-4">Loading article content...</div>}>
-            <ArticleClient 
-              article={plainArticle}
-              comments={plainComments}
-            />
-          </Suspense>
-        </main>
-        <Footer />
-      </>
-    );
-  } catch (err) {
-    console.error('Error fetching article:', err);
-    return <div className="p-4 text-red-500">Error: {err instanceof Error ? err.message : 'An error occurred'}</div>;
+  if (!article) {
+    return <div className="p-4">Article not found</div>;
   }
-} 
+
+  return (
+    <div className="max-w-4xl p-4 mx-auto">
+      <Header />
+      <Suspense fallback={<div className="p-4">Loading article content...</div>}>
+        <ArticleClient 
+          article={article}
+          comments={comments}
+          isAuthenticated={isAuthenticated}
+        />
+      </Suspense>
+    </div>
+  );
+}

@@ -10,9 +10,9 @@
  * @component
  * @returns {JSX.Element} The header section
  */
-import React from "react"
-import styles from "./Header.module.css"
-import { getSessionFromStorage } from "@/lib/auth"
+import { getSessionFromStorage } from "@/lib/auth";
+import React from "react";
+import styles from "./Header.module.css";
 
 /**
  * Header component that renders the application's header section.
@@ -27,12 +27,13 @@ import { getSessionFromStorage } from "@/lib/auth"
  * @returns {JSX.Element} The rendered header section
  */
 export const Header: React.FC = () => {
+	const isAuthenticated = getSessionFromStorage()?.isAuthenticated;
 	return (
 		<header className={`container container--wide ${styles.header}`} role='banner'>
 			<div className={styles.siteTitle}>
 				The Gazette Star
 				<span>
-					{(process.env.NODE_ENV === "development" || getSessionFromStorage()?.isAuthenticated) && (
+					{isAuthenticated && (
 						<a href='http://localhost:3000' className={styles.homeLink}>
 							Home
 						</a>

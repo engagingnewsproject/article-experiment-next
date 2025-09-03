@@ -11,7 +11,9 @@
  * @param {Article} props.article - The article data containing title and author information
  * @returns {JSX.Element} The article header layout
  */
+import { getSessionFromStorage } from '@/lib/auth';
 import { Article } from '@/types/article';
+import { useEffect, useState } from 'react';
 import styles from './ArticleHeader.module.css';
 
 /**
@@ -37,15 +39,27 @@ interface ArticleHeaderProps {
  * @returns {JSX.Element} The rendered article header
  */
 export function ArticleHeader({ article }: ArticleHeaderProps) {
+const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+useEffect(() => {
+  const session = getSessionFromStorage();
+  setIsAuthenticated(!!(session && session.isAuthenticated));
+}, []);
   return (
     <header className={styles.header}>
-      <h2 className={styles.title}>{article.title}</h2>
-      <div className={styles.extraHeaderInfo}>
-        <div className={styles.author}>
-          <p className={styles.author__name}>{article.author?.name || 'Staff Reports'}</p>
-          <p className={styles.author__job}>The Gazette Star</p>
-        </div>
+      <div className="flex items-center justify-center gap-4">
+        <h2 className={styles.title}>{article.title}</h2>
       </div>
+      <p className={styles.author__job}>The Gazette Star</p>
+      {isAuthenticated && article.id && (
+        <a
+          href={`/admin/edit-article/${article.id}`}
+          className="inline-block px-3 py-1 text-sm text-white transition-colors bg-yellow-500 border border-yellow-600 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          style={{ minWidth: '80px', textAlign: 'center', color: 'white' }}
+        >
+          Edit Article
+        </a>
+      )}
     </header>
   );
-} 
+}
