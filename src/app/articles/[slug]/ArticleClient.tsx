@@ -1,22 +1,23 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { ArticleContent } from '@/components/ArticleContent';
 import { type Article, type Comment } from '@/lib/firestore';
 import { useAuthorVariations } from '@/lib/useAuthorVariations';
-import { ArticleContent } from '@/components/ArticleContent';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 interface ArticleClientProps {
   article: Article;
   comments: Comment[];
+  isAuthenticated?: boolean;
 }
 
-function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
+function ArticleContentWithParams({ article, comments, isAuthenticated }: ArticleClientProps) {
   const [userId, setUserId] = useState('anonymous')
   const searchParams = useSearchParams();
+  let version = searchParams?.get('version') || '3';
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
-  const version = searchParams?.get('version') || '1';
   const { 
     loading: authorLoading, 
     authorName, 
@@ -74,29 +75,40 @@ function ArticleContentWithParams({ article, comments }: ArticleClientProps) {
     })) || []
   }));
 
+  // Helper to generate edit article link with version=3 if not present
+  function getEditArticleLink(articleId: string) {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    if (!params.has('version')) {
+      params.set('version', '3');
+    }
+    return `/admin/edit-article/${articleId}?${params.toString()}`;
+  }
+
   return (
-    <ArticleContent 
-      article={{ 
-        ...article, 
-        id: article.id || '',
-        author: {
-          name: authorName,
-          bio: authorBio,
-          photo: authorPhoto?.src
-        },
-        anonymous: article.anonymous || false,
-        createdAt: article.createdAt,
-        updatedAt: article.updatedAt,
-        comments_display: article.comments_display || true,
-        themes: article.themes || [],
-        summary: article.summary || ''
-      }} 
-      version={version}
-      showExplainBox={!!explain_box} 
-      explainBoxValue={explain_box || ''}
-      comments={formattedComments}
-      userId={userId || 'anonymous'}
-    />
+    <div>
+      <ArticleContent 
+        article={{ 
+          ...article, 
+          id: article.id || '',
+          author: {
+            name: authorName,
+            bio: authorBio,
+            photo: authorPhoto?.src
+          },
+          anonymous: article.anonymous || false,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
+          comments_display: article.comments_display || true,
+          themes: article.themes || [],
+          summary: article.summary || ''
+        }} 
+        version={version}
+        showExplainBox={!!explain_box} 
+        explainBoxValue={explain_box || ''}
+        comments={formattedComments}
+        userId={userId || 'anonymous'}
+      />
+    </div>
   );
 }
 
@@ -106,4 +118,4 @@ export default function ArticleClient(props: ArticleClientProps) {
       <ArticleContentWithParams {...props} />
     </Suspense>
   );
-} 
+}
