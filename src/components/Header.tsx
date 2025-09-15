@@ -34,7 +34,7 @@ export const Header: React.FC = () => {
 				The Gazette Star
 				<span>
 					{isAuthenticated && (
-						<a href='http://localhost:3000' className={styles.homeLink}>
+						<a href='/' className={styles.homeLink}>
 							Home
 						</a>
 					)}
