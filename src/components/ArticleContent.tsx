@@ -213,17 +213,20 @@ export function ArticleContent({
             onClick={handleArticleLinkClick}
           />
 
-        {(version === '2' || version === '3' || version === '4') &&
-          <div className={styles.summaryThemesSection}>
-            { article.summary && (version === '2' || version === '3') &&
-              <ArticleSummary articleSummary={article.summary}/>
-            }
+        {(version === '2' || version === '3' || version === '4') && (article.summary || (article.themes && article.themes.length > 0)) && (
+          <>
+            <h4 style={{marginTop: '2em', marginBottom: '0.5em', fontWeight: 600}}>Comment Highlights:</h4>
+            <div className={styles.summaryThemesSection}>
+              { article.summary && (version === '2' || version === '3') &&
+                <ArticleSummary articleSummary={article.summary}/>
+              }
 
-            { article.themes && (version === '3' || version == '4') && 
-              <ArticleThemeList articleThemes={article.themes}/>
-            }
-          </div>
-        }
+              { article.themes && (version === '3' || version == '4') && 
+                <ArticleThemeList articleThemes={article.themes}/>
+              }
+            </div>
+          </>
+        )}
 
         {article.comments_display && (
           <Comments
