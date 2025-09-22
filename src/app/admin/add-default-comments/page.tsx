@@ -56,6 +56,7 @@ export default function AddDefaultCommentsPage() {
               name: comment.name,
               upvotes: Number(comment.upvotes),
               downvotes: Number(comment.downvotes),
+              datePosted: "1 day ago",
               createdAt: new Date().toISOString(),
               replies: comment.replies.map(reply => ({
                 content: reply.content,
@@ -74,6 +75,7 @@ export default function AddDefaultCommentsPage() {
             name: comment.name,
             upvotes: Number(comment.upvotes),
             downvotes: Number(comment.downvotes),
+            datePosted: "1 day ago",
             createdAt: new Date().toISOString(),
             replies: comment.replies.map(reply => ({
               content: reply.content,

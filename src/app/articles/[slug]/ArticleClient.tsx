@@ -52,6 +52,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
     id: comment.id || '',
     name: comment.name || 'Anonymous',
     content: comment.content,
+    datePosted: comment.datePosted || "1 day ago",
     timestamp: comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Unknown date',
     upvotes: comment.upvotes || 0,
     downvotes: comment.downvotes || 0,
@@ -62,6 +63,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
       content: reply.content,
       upvotes: reply.upvotes || 0,
       downvotes: reply.downvotes || 0,
+      datePosted: reply.datePosted || "1 day ago",
       timestamp: reply.createdAt ? new Date(reply.createdAt).toLocaleString() : 'Unknown date',
       replies: reply.replies?.map(subReply => ({
         parentId: reply.id || '',
@@ -70,6 +72,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
         content: subReply.content,
         upvotes: subReply.upvotes || 0,
         downvotes: subReply.downvotes || 0,
+        datePosted: subReply.datePosted || "1 day ago",
         timestamp: subReply.createdAt ? new Date(subReply.createdAt).toLocaleString() : 'Unknown date',
       })) || []
     })) || []

@@ -66,8 +66,9 @@ export type Article = {
  * @property {string} [id] - Unique identifier for the comment
  * @property {string} content - Comment content
  * @property {string} name - Name of the commenter
+ * @property {string} [datePosted] - Comment date posted
  * @property {string} [createdAt] - Comment creation timestamp
- * @property {string} [parentId] - ID of the parent comment (for replies)
+* @property {string} [parentId] - ID of the parent comment (for replies)
  * @property {string[]} [ancestorIds] - IDs of all ancestor comments (for replies)
  * @property {number} upvotes - Number of upvotes on comment
  * @property {number} downvotes - Number of downvotes on comment
@@ -77,6 +78,7 @@ export type Comment = {
   id?: string;
   content: string;
   name: string;
+  datePosted?: string;
   createdAt?: string;
   parentId?: string;
   ancestorIds?: string[];
@@ -246,6 +248,7 @@ export async function saveComment(articleId: string, commentData: {
         upvotes: commentData.upvotes || 0,
         downvotes: commentData.downvotes || 0,
         ancestorIds: commentData.ancestorIds,
+        datePosted: "Just now",
         createdAt: serverTimestamp()
       };
 
@@ -261,6 +264,7 @@ export async function saveComment(articleId: string, commentData: {
         name: commentData.name || 'Anonymous',
         upvotes: commentData.upvotes || 0,
         downvotes: commentData.downvotes || 0,
+        datePosted: "Just now",
         createdAt: serverTimestamp()
       };
       const docRef = await addDoc(commentsRef, comment);
@@ -341,8 +345,10 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
   const commentsWithTimestamps = defaultComments.map((comment, commentIndex) => ({
     ...comment,
     id: `default_${commentIndex}`,
+    name: comment.name,
     upvotes: comment.upvotes || 0,
     downvotes: comment.downvotes || 0,
+    datePosted: comment.datePosted || "1 day ago",
     createdAt: Timestamp.fromDate(new Date(comment.createdAt || Date.now())),
     replies: comment.replies?.map((reply, replyIndex) => ({
       ...reply,

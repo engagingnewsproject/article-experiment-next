@@ -70,9 +70,10 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         id: commentId,
         content,
         name: name || 'Anonymous',
+        datePosted: "Just now",
         createdAt: new Date().toISOString(),
         upvotes: 0,
-        downvotes: 0
+        downvotes: 0,
       };
 
       // Update parent component with new comment and reset form fields

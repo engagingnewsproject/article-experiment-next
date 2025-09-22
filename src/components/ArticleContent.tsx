@@ -77,6 +77,7 @@ interface ArticleContentProps {
     id: string;
     name: string;
     content: string;
+    datePosted: string;
     timestamp: string;
     upvotes: number;
     downvotes: number;
@@ -87,6 +88,7 @@ interface ArticleContentProps {
       content: string;
       upvotes: number;
       downvotes: number;
+      datePosted: string;
       timestamp: string;
       replies: {
         parentId: string;
@@ -95,6 +97,7 @@ interface ArticleContentProps {
         content: string;
         upvotes: number;
         downvotes: number;
+        datePosted: string;
         timestamp: string;
       }[];
     }[];
@@ -228,6 +231,7 @@ export function ArticleContent({
               id: comment.id,
               name: comment.name,
               content: comment.content,
+              datePosted: comment.datePosted,
               createdAt: comment.timestamp,
               upvotes: comment.upvotes,
               downvotes: comment.downvotes,
