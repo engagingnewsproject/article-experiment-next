@@ -13,7 +13,7 @@ html {
 body {
   color: #333;
   font-family: "adobe-text-pro", georgia, times, serif;
-  font-size: 1.2rem;
+  font-size: 1rem;
   line-height: 1.6;
   font-weight: 400;
   background: #fff;
@@ -21,7 +21,7 @@ body {
 
 @media (min-width: 768px) {
   body {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
 }
 
@@ -167,7 +167,7 @@ a:hover .icon {
 .clr,
 .group {
   min-width: 840px;
-  max-width: 70vw;
+  max-width: 60vw;
   margin: 0 auto;
   padding-left: 20px;
   padding-right: 20px;

@@ -95,6 +95,7 @@ const CommentNode: React.FC<{
         parentId: comment.id,
         content: replyContent,
         name: replyName || 'Anonymous',
+        datePosted: "Just now",
         createdAt: new Date().toISOString(),
         upvotes: 0,
         downvotes: 0,
@@ -142,9 +143,9 @@ const CommentNode: React.FC<{
         <div className={styles.commentHeader__info}>
           <span className={styles.commentAuthor}>{comment.name}</span>
           <span className={styles.commentDate}>
-            {comment.createdAt
-              ? new Date(comment.createdAt).toLocaleString()
-              : "Unknown date"}
+            {comment.datePosted
+              ? comment.datePosted
+              : "1 day ago"}
           </span>
         </div>
         {process.env.NODE_ENV === "development" && comment.id && (

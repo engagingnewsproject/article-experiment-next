@@ -9,6 +9,39 @@ interface AdminImportButtonProps {
   isImportComplete?: boolean;
 }
 
+function parseDatePosted(datePosted: string): string {
+  const now = new Date();
+
+  if (!datePosted || datePosted.toLowerCase() === "today") {
+    return now.toISOString();
+  }
+
+  // Match patterns like "2 days ago", "1 hour ago"
+  const match = datePosted.match(/^(\d+)\s+(hour|hours|day|days)\b/i);
+  if (match) {
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+
+    let msAgo = 0;
+    if (unit === "day" || unit === "days") {
+      msAgo = value * 24 * 60 * 60 * 1000;
+    } else if (unit === "hour" || unit === "hours") {
+      msAgo = value * 60 * 60 * 1000;
+    }
+    const date = new Date(now.getTime() - msAgo);
+    return date.toISOString();
+  }
+
+  // fallback: try to parse as date string
+  const parsed = new Date(datePosted);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+
+  console.log(now.toISOString())
+  return now.toISOString();
+}
+
 export function AdminImportButton({ articleId, onImport, isImportComplete }: AdminImportButtonProps) {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -38,15 +71,21 @@ export function AdminImportButton({ articleId, onImport, isImportComplete }: Adm
     const text = await file.text();
     const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
 
+    // Filter out empty rows (all fields empty or whitespace)
+    const filteredData = data.filter((row: any) => {
+      if (!row) return false;
+      return Object.values(row).some(val => String(val).trim() !== '');
+    });
+
     const rowMap: Record<string, any> = {};
-    data.forEach((row: any) => {
+    filteredData.forEach((row: any) => {
       rowMap[row.id] = row;
     });
 
     // Build a tree structure for comments and replies (up to 3 levels)
     const topLevel: any[] = [];
     const replyMap: Record<string, any[]> = {};
-    data.forEach((row: any) => {
+    filteredData.forEach((row: any) => {
       if (!row.parent_id) {
         topLevel.push(row);
       } else {
@@ -65,8 +104,9 @@ export function AdminImportButton({ articleId, onImport, isImportComplete }: Adm
         const comment: Comment = {
           id: newId,
           content: row.comment || row.content || '',
-          name: 'Anonymous',
-          createdAt: row.written_at || row.createdAt || new Date().toISOString(),
+          name: row.user_id || 'Anonymous',
+          datePosted: row.written_at || "1 day ago",
+          createdAt: `{${new Date(parseDatePosted(row.written_at))}`,
           upvotes: row.ranks_up || 0,
           downvotes: row.ranks_down || 0,
           replies: [],
@@ -79,7 +119,24 @@ export function AdminImportButton({ articleId, onImport, isImportComplete }: Adm
       }).filter(Boolean);
     };
 
-    const comments: Comment[] = buildTree(topLevel);
+    // Sort comments by latest (descending createdAt)
+    function sortByLatest(a: any, b: any) {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    }
+
+    function sortCommentsRecursively(comments: Comment[]): Comment[] {
+      return comments
+        .slice()
+        .sort(sortByLatest)
+        .map(comment => ({
+          ...comment,
+          replies: comment.replies ? sortCommentsRecursively(comment.replies) : []
+        }));
+    }
+
+    const comments: Comment[] = sortCommentsRecursively(buildTree(topLevel));
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (onImport) onImport(comments);
