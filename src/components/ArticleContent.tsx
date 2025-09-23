@@ -20,14 +20,15 @@ import { AuthorBio } from "@/components/AuthorBio";
 import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
+import { useLogger } from '@/hooks/useLogger';
 import { type ArticleTheme } from "@/lib/firestore";
 import { Article } from "@/types/article";
+import DOMPurify from 'dompurify';
 import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from 'react';
 import styles from "./ArticleContent.module.css";
 import { ArticleSummary } from "./ArticleSummary";
 import { ArticleThemeList } from "./ArticleThemes";
-import { useLogger } from '@/hooks/useLogger';
-import { useEffect, useState, useRef } from 'react';
 
 /**
  * Props interface for the ArticleContent component.
@@ -172,6 +173,19 @@ export function ArticleContent({
     }
   };
 
+  // Helper to convert [img src="..." caption="..."] to <figure><img ... /><figcaption style="...">...</figcaption></figure>
+  function processImagesWithCaptions(content: string) {
+    return content.replace(
+      /\[img\s+src="([^"]+)"\s+caption="((?:[^\[]|\[(?!img\s+src=))*?)"\s*\]/g,
+      (_match, src, caption) =>
+        `<figure style="text-align:start;"><img src="${src}" alt="${caption}" style="max-width:100%;margin:auto;" /><figcaption style=\"display:block;margin-top:0.5em;font-size:0.75rem;color:#666;text-align:center;font-style:italic;line-height:1.4;\">${caption}</figcaption></figure>`
+    );
+  }
+
+  const processedContent = processImagesWithCaptions(
+    article.content.replace(/\n/g, '<br />')
+  );
+
   return (
     <main id="content" className="container" role="main">
       <article className={styles.article}>
@@ -192,7 +206,7 @@ export function ArticleContent({
         /> */}
         
         <div 
-            dangerouslySetInnerHTML={{ __html: article.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedContent) }}
             onClick={handleArticleLinkClick}
           />
 

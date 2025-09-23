@@ -50,7 +50,9 @@ useEffect(() => {
       <div className="flex items-center justify-center gap-4">
         <h2 className={styles.title}>{article.title}</h2>
       </div>
-      <p className={styles.author__job}>The Gazette Star</p>
+      <p className={styles.author__job}>Posted 1 day ago</p>
+      <p className={styles.author__job}>By Jim Phelps</p>
+      <p className={styles.author__job}>The Gazette Star Staff Reporter</p>
       {isAuthenticated && article.id && (
         <a
           href={`/admin/edit-article/${article.id}`}

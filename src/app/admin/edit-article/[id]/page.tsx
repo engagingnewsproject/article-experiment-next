@@ -169,7 +169,31 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
         </div>
         <div>
           <label className="block mb-2 font-bold">Content</label>
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              type="button"
+              className="px-2 py-1 text-xs font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none"
+              title="Insert image template at cursor"
+              onClick={() => {
+                const textarea = document.getElementById('article-content-textarea') as HTMLTextAreaElement;
+                if (textarea) {
+                  const template = '[img src="" caption=""]';
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  const value = textarea.value;
+                  textarea.value = value.slice(0, start) + template + value.slice(end);
+                  textarea.selectionStart = textarea.selectionEnd = start + template.length;
+                  textarea.focus();
+                  handleChange('content', textarea.value);
+                }
+              }}
+            >
+              + Insert Image
+            </button>
+            <span className="text-xs text-gray-500">Tip: Use the button to insert an image template at the cursor.</span>
+          </div>
           <textarea
+            id="article-content-textarea"
             ref={el => {
               if (el) {
                 el.style.height = 'auto';
