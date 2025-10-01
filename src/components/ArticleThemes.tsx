@@ -13,10 +13,12 @@ const ArticleThemeItem: React.FC<{
   articleTheme,
   label
 }) => {
-  const displayLabel = label && label.trim() ? label : `Theme ${String.fromCharCode(65 + index)}`;
+  const displayLabel = label && label.trim() ? label : null;
   return (
     <div className={styles.theme}>
-      <h3 className={styles["theme-title"]}>{displayLabel}</h3>
+      {displayLabel &&
+        <h3 className={styles["theme-title"]}>{displayLabel}</h3>
+      }
       <p>{articleTheme.content}</p>
     </div>
   );
@@ -27,7 +29,6 @@ export const ArticleThemeList: React.FC<{
   themeLabels?: string[]
 }> = ({
   articleThemes,
-  themeLabels
 }) => {
   return (
     <div className={styles.themes_section}>
@@ -36,7 +37,7 @@ export const ArticleThemeList: React.FC<{
           key={index}
           index={index}
           articleTheme={theme}
-          label={themeLabels && themeLabels[index]}
+          label={theme.label}
         />
       ))}
     </div>

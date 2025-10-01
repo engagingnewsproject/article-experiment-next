@@ -94,6 +94,7 @@ export type Comment = {
  * @property {string} content - Article's theme content
  */
 export type ArticleTheme = {
+  label: string;
   content: string;
 }
 

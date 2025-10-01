@@ -14,7 +14,6 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   const [success, setSuccess] = useState<string | null>(null);
   const [article, setArticle] = useState<any | null>(null);
   const [themes, setThemes] = useState<ArticleTheme[]>([]);
-  const [themeLabels, setThemeLabels] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -27,7 +26,6 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           const data = docSnap.data();
           setArticle(data);
           setThemes(data.themes || []);
-          setThemeLabels((data.themeLabels || []).map((l: string) => l || ''));
         } else {
           setError('Article not found');
         }
@@ -46,28 +44,24 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
 
   const handleThemeContentChange = (index: number, value: string) => {
     const updated = [...themes];
-    updated[index] = { content: value };
+    updated[index] = { ...updated[index], content: value };
     setThemes(updated);
   };
 
   const handleThemeLabelChange = (index: number, value: string) => {
-    const updated = [...themeLabels];
-    updated[index] = value;
-    setThemeLabels(updated);
+    const updated = [...themes];
+    updated[index] = { ...updated[index], label: value };
+    setThemes(updated);
   };
 
   const handleAddTheme = () => {
-    setThemes([...(themes || []), { content: '' }]);
-    setThemeLabels([...(themeLabels || []), '']);
+    setThemes([...(themes || []), { label: '', content: '' }]);
   };
 
   const handleRemoveTheme = (index: number) => {
     const updatedThemes = [...themes];
     updatedThemes.splice(index, 1);
     setThemes(updatedThemes);
-    const updatedLabels = [...themeLabels];
-    updatedLabels.splice(index, 1);
-    setThemeLabels(updatedLabels);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,10 +71,13 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     setSuccess(null);
     try {
       const docRef = doc(db, 'articles', String(id));
+      const mappedThemes = themes.map((theme, idx) => ({
+        label: theme.label || '',
+        content: theme.content
+      }));
       await updateDoc(docRef, {
         ...article,
-        themes,
-        themeLabels,
+        themes: mappedThemes,
       });
       setSuccess('Article updated successfully!');
     } catch (err) {
@@ -136,7 +133,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
               <div key={idx} className="relative flex flex-col items-center p-4 border rounded">
                 <input
                   type="text"
-                  value={themeLabels[idx] || ''}
+                  value={theme.label || ''}
                   onChange={e => handleThemeLabelChange(idx, e.target.value)}
                   placeholder={`Theme ${String.fromCharCode(65 + idx)}`}
                   className="w-full mb-2 text-lg font-semibold text-center bg-transparent border-b outline-none"
