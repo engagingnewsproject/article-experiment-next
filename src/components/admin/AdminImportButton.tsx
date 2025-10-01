@@ -120,23 +120,23 @@ export function AdminImportButton({ articleId, onImport, isImportComplete }: Adm
     };
 
     // Sort comments by latest (descending createdAt)
-    function sortByLatest(a: any, b: any) {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime();
-    }
+    // function sortByLatest(a: any, b: any) {
+    //   const dateA = new Date(a.createdAt);
+    //   const dateB = new Date(b.createdAt);
+    //   return dateB.getTime() - dateA.getTime();
+    // }
 
-    function sortCommentsRecursively(comments: Comment[]): Comment[] {
-      return comments
-        .slice()
-        .sort(sortByLatest)
-        .map(comment => ({
-          ...comment,
-          replies: comment.replies ? sortCommentsRecursively(comment.replies) : []
-        }));
-    }
+    // function sortCommentsRecursively(comments: Comment[]): Comment[] {
+    //   return comments
+    //     .slice()
+    //     .sort(sortByLatest)
+    //     .map(comment => ({
+    //       ...comment,
+    //       replies: comment.replies ? sortCommentsRecursively(comment.replies) : []
+    //     }));
+    // }
 
-    const comments: Comment[] = sortCommentsRecursively(buildTree(topLevel));
+    const comments: Comment[] = buildTree(topLevel);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (onImport) onImport(comments);
