@@ -86,12 +86,12 @@ const AddArticleForm = () => {
   const handleThemeContentChange = (index: number, value: string) => {
     if (!themes) return;
     const updated = [...themes];
-    updated[index] = { content: value };
+    updated[index] = { label: themeLabels[index] || '', content: value };
     setThemes(updated);
   };
 
   const handleAddTheme = () => {
-    setThemes([...(themes || []), { content: '' }]);
+    setThemes([...(themes || []), { label: '', content: '' }]);
     setThemeLabels([...(themeLabels || []), '']);
   };
 
