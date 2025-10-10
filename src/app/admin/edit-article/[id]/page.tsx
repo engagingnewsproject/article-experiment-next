@@ -88,7 +88,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   };
 
   if (loading) return <div className="p-8">Loading...</div>;
-  if (error) return <div className="p-8 text-red-500">{error}</div>;
+  if (!loading && error) return <div className="p-8 text-red-500">{error}</div>;
   if (!article) return null;
 
   return (
