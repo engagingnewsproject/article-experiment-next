@@ -109,19 +109,23 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     return <div className="p-4">Slug is not available</div>;
   }
   if (!article) {
-    return <div className="p-4">Article not found</div>;
+    return <div className="p-4"></div>;
   }
 
   return (
     <div className="max-w-4xl p-4 mx-auto">
-      <Header />
-      <Suspense fallback={<div className="p-4">Loading article content...</div>}>
-        <ArticleClient 
-          article={article}
-          comments={comments}
-          isAuthenticated={isAuthenticated}
-        />
-      </Suspense>
+      { article && 
+        <>
+          <Header />
+          <Suspense fallback={<div className="p-4">Loading article content...</div>}>
+            <ArticleClient 
+              article={article}
+              comments={comments}
+              isAuthenticated={isAuthenticated}
+            />
+          </Suspense>
+        </>
+        }
     </div>
   );
 }
