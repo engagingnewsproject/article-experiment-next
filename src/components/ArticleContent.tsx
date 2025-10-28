@@ -21,6 +21,7 @@ import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
 import { useLogger } from '@/hooks/useLogger';
+import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
 import { type ArticleTheme } from "@/lib/firestore";
 import { Article } from "@/types/article";
 import DOMPurify from 'dompurify';
@@ -103,6 +104,7 @@ interface ArticleContentProps {
     }[];
   }[];
   userId: string;
+  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
 }
 
 /**
@@ -125,11 +127,12 @@ export function ArticleContent({
   explainBoxValue,
   comments = [],
   userId,
+  qualtricsData, // ✅ Added Qualtrics data parameter
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
-  const { logPageView, logPageViewTime, logClick, logComment } = useLogger();
+  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
   const timeWhenPageOpened = useRef<number>(Date.now());
 
   // Log page view when component mounts
@@ -190,7 +193,7 @@ export function ArticleContent({
   );
 
   return (
-    <main id="content" className="container" role="main">
+    <main id="content" className="container" role="main" data-article-id={article.id}>
       <article className={styles.article}>
         <ArticleHeader article={article} />
 
@@ -272,6 +275,7 @@ export function ArticleContent({
               );
             }}
             userId={userId}
+            qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to Comments
           />
         )}
       </article>

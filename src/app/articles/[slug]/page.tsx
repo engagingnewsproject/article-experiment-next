@@ -88,6 +88,11 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         }
 
         if (articleData) {
+          console.log('Article ID:', articleData.id); // ✅ Added article ID logging
+          // Expose article ID to parent window for Qualtrics
+          if (typeof window !== 'undefined') {
+            (window as any).articleId = articleData.id;
+          }
           setArticle(convertToPlainObject(articleData));
           const commentsData = await getComments(articleData.id || '');
           setComments(commentsData?.map(convertToPlainObject) || []);
@@ -113,7 +118,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   }
 
   return (
-    <div className="max-w-4xl p-4 mx-auto">
+    <div className="max-w-4xl p-4 mx-auto" data-article-id={article?.id}>
       { article && 
         <>
           <Header />

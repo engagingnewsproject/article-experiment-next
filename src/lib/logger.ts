@@ -24,6 +24,12 @@ export interface LogEntry {
   details: string;
   /** The time the event was logged (set automatically) */
   timestamp: Date;
+  /** Qualtrics survey response ID */
+  qualtricsResponseId?: string;
+  /** Qualtrics survey ID */
+  qualtricsSurveyId?: string;
+  /** Additional Qualtrics embedded data */
+  qualtricsEmbeddedData?: Record<string, any>;
 }
 
 /**
@@ -41,8 +47,12 @@ export async function logEvent(entry: Omit<LogEntry, 'timestamp'>) {
   try {
     // console.log('Attempting to log event:', entry);
     const logsCollection = collection(db, 'logs');
+    // Remove undefined values to avoid Firestore errors
+    const cleanEntry = Object.fromEntries(
+      Object.entries(entry).filter(([_, value]) => value !== undefined)
+    );
     const docRef = await addDoc(logsCollection, {
-      ...entry,
+      ...cleanEntry,
       timestamp: serverTimestamp(),
     });
     // console.log('Successfully logged event with ID:', docRef.id);

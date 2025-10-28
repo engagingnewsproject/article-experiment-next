@@ -18,6 +18,7 @@ import React, { useState } from "react";
 import { type Comment } from "@/lib/firestore";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentList } from "@/components/CommentList";
+import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
 import styles from "@/components/Comments.module.css";
 
 /**
@@ -37,6 +38,7 @@ interface CommentsProps {
   identifier: string;
   articleTitle: string;
   userId: string;
+  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
   onCommentSubmit?: (name: string, content: string) => void;
 }
 
@@ -59,6 +61,7 @@ export const Comments: React.FC<CommentsProps> = ({
   identifier,
   articleTitle,
   userId,
+  qualtricsData, // ✅ Added Qualtrics data parameter
   onCommentSubmit,
 }) => {
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
@@ -121,6 +124,7 @@ export const Comments: React.FC<CommentsProps> = ({
           identifier={identifier}
           articleTitle={articleTitle}
           userId={userId}
+          qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentList
         />
       </div>
     </section>
