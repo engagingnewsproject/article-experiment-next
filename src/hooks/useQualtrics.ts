@@ -28,20 +28,32 @@ export interface QualtricsData {
 export function useQualtrics() {
   const [qualtricsData, setQualtricsData] = useState<QualtricsData>({});
 
+  // Debug: Log when qualtricsData changes
+  useEffect(() => {
+    console.log('🔵 Qualtrics data state updated:', qualtricsData);
+  }, [qualtricsData]);
+
   useEffect(() => {
     // Listen for postMessage from Qualtrics
     const handleMessage = (event: MessageEvent) => {
+      // Debug: Log all messages to see what's being received
+      console.log('📨 Received postMessage:', {
+        origin: event.origin,
+        data: event.data,
+        type: typeof event.data
+      });
+      
       // Optional: Add origin validation for security
       // if (event.origin !== 'https://your-qualtrics-domain.com') return;
       
       // Handle the new structured format
       if (event.data && event.data.type === 'QUALTRICS_DATA') {
-        console.log('Received Qualtrics data:', event.data.payload);
+        console.log('✅ Received Qualtrics data:', event.data.payload);
         setQualtricsData(event.data.payload);
       }
       // Handle the legacy format they've been using
       else if (event.data && event.data.qualtricsResponseId) {
-        console.log('Received Qualtrics data (legacy format):', event.data);
+        console.log('✅ Received Qualtrics data (legacy format):', event.data);
         setQualtricsData({
           responseId: event.data.qualtricsResponseId,
           surveyId: event.data.qualtricsSurveyId,
@@ -50,6 +62,7 @@ export function useQualtrics() {
       }
     };
 
+    console.log('🔍 Setting up postMessage listener for Qualtrics data');
     window.addEventListener('message', handleMessage);
 
     // Also expose a way for Qualtrics to directly set data (fallback method)
