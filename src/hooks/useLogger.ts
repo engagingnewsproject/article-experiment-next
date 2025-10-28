@@ -13,6 +13,14 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
   ) => {
     const ipAddress = await getClientIP();
     
+    // Debug logging for Qualtrics data
+    if (action === 'Vote' && qualtricsData.responseId) {
+      console.log('Logging vote with Qualtrics data:', {
+        responseId: qualtricsData.responseId,
+        surveyId: qualtricsData.surveyId
+      });
+    }
+    
     await logEvent({
       url: window.location.href,
       identifier,
@@ -69,9 +77,10 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
     comment: string,
     identifier: string,
     userId: string,
+    articleTitle?: string,
     isReply?: boolean,
   ) => {
-    await log(isReply ? 'Reply' : 'Comment', pageTitle, `${name}: ${comment}`, identifier, userId);
+    await log(isReply ? 'Reply' : 'Comment', pageTitle, `${name}: ${comment}`, identifier, userId, articleTitle);
   }, [log]);
 
   return {

@@ -271,7 +271,8 @@ export function ArticleContent({
                 name,
                 content,
                 article.id,
-                userId
+                userId,
+                article.title
               );
             }}
             userId={userId}
