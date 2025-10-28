@@ -4,6 +4,7 @@ import styles from "./Comments.module.css";
 import { createCookie, deleteCookie } from "./Comments";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import { useLogger } from '@/hooks/useLogger';
+import { type QualtricsData } from '@/hooks/useQualtrics';
 
 /**
  * Props for the CommentVoteSection component.
@@ -20,6 +21,7 @@ interface CommentVoteSectionProps {
   comment: Comment;
   userId: string;
   articleTitle?: string;
+  qualtricsData?: QualtricsData;
 }
 
 /**
@@ -38,8 +40,9 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   comment,
   userId,
   articleTitle,
+  qualtricsData,
 }) => {
-  const { log } = useLogger();
+  const { log } = useLogger(qualtricsData || {});
 
   // Local state for this user's vote and the displayed counts
   const [voted, setVoted] = useState<{ upvotes: boolean; downvotes: boolean }>({

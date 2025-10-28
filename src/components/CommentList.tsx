@@ -117,7 +117,8 @@ const CommentNode: React.FC<{
         newReply.name,
         newReply.content,
         identifier,
-        localStorage.getItem("userId") || "Anonymous"
+        localStorage.getItem("userId") || "Anonymous",
+        articleTitle
       );
     } catch (err) {
       console.error("Failed to submit reply:", err);
@@ -183,6 +184,7 @@ const CommentNode: React.FC<{
           comment={comment}
           userId={userId}
           articleTitle={articleTitle}
+          qualtricsData={qualtricsData}
         />
       </div>
       {replying && (
