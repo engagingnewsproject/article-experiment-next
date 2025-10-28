@@ -5,6 +5,7 @@ import { type Article, type Comment } from '@/lib/firestore';
 import { useAuthorVariations } from '@/lib/useAuthorVariations';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { useQualtrics } from '@/hooks/useQualtrics';
 
 interface ArticleClientProps {
   article: Article;
@@ -18,6 +19,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
   let version = searchParams?.get('version') || '3';
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
+  const { qualtricsData } = useQualtrics(); // ✅ Added Qualtrics data hook
   const { 
     loading: authorLoading, 
     authorName, 
@@ -110,6 +112,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
         explainBoxValue={explain_box || ''}
         comments={formattedComments}
         userId={userId || 'anonymous'}
+        qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to ArticleContent
       />
     </div>
   );

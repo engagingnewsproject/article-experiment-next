@@ -62,7 +62,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
  */
 export const db = getFirestore(app);
 
-// Connect to emulator in development
-if (process.env.NODE_ENV === 'development') {
+// Connect to emulator in development (unless USE_LIVE_FIRESTORE is set)
+if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE) {
   connectFirestoreEmulator(db, 'localhost', 8080);
 } 

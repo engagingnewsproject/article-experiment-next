@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { logEvent, getClientIP } from '@/lib/logger';
+import type { QualtricsData } from './useQualtrics';
 
-export function useLogger() {
+export function useLogger(qualtricsData: QualtricsData = {}) {
   const log = useCallback(async (
     action: string,
     label: string,
@@ -21,8 +22,11 @@ export function useLogger() {
       action,
       label,
       details,
+      qualtricsResponseId: qualtricsData.responseId,
+      qualtricsSurveyId: qualtricsData.surveyId,
+      qualtricsEmbeddedData: qualtricsData.embeddedData,
     });
-  }, []);
+  }, [qualtricsData]);
 
   const logClick = useCallback(async (
     label: string,

@@ -18,6 +18,7 @@ import { CommentReplyForm } from "@/components/CommentReplyForm";
 import { createCookie, deleteCookie } from "@/components/Comments";
 import { CommentVoteSection } from "@/components/CommentVoteSection";
 import { useLogger } from '@/hooks/useLogger';
+import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
 import { deleteComment, saveComment, type Comment } from "@/lib/firestore";
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
@@ -34,6 +35,8 @@ interface CommentListProps {
   articleTitle: string;
   /** Unique identifier for the user */
   userId: string;
+  /** Qualtrics survey data */
+  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
     /** Callback function called when a new comment is removed, used to update parent component state */
   onCommentRemoved: (commentId: string) => void;
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
@@ -56,6 +59,8 @@ const CommentNode: React.FC<{
   articleTitle: string;
   /** Unique identifier for the user */
   userId: string;
+  /** Qualtrics survey data */
+  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
   /** Callback function for handling replies to this comment */
   onReply: (commentId: string, reply: Comment) => void;
   /** Maximum number of replies to show at once */
@@ -68,13 +73,13 @@ const CommentNode: React.FC<{
   setMaxSubReplies: React.Dispatch<React.SetStateAction<{ [replyId: string]: number }>>;
   /** Current depth in the comment tree, used to limit reply functionality for deeper levels */
   depth?: number;
-}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
+}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, qualtricsData, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyName, setReplyName] = useState(anonymous ? "Anonymous" : "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { logComment } = useLogger();
+  const { logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +182,7 @@ const CommentNode: React.FC<{
           identifier={identifier}
           comment={comment}
           userId={userId}
+          articleTitle={articleTitle}
         />
       </div>
       {replying && (
@@ -198,6 +204,7 @@ const CommentNode: React.FC<{
               identifier={identifier}
               articleTitle={articleTitle}
               userId={userId}
+              qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
               onCommentRemoved={onCommentRemoved}
               onReply={onReply}
               maxReplies={maxReplies}
@@ -205,6 +212,7 @@ const CommentNode: React.FC<{
               maxSubReplies={maxSubReplies}
               setMaxSubReplies={setMaxSubReplies}
               depth={depth + 1}
+              anonymous={anonymous}
             />
           ))}
           {comment.replies.length > maxReplies && (
@@ -227,6 +235,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   identifier,
   articleTitle,
   userId,
+  qualtricsData, // ✅ Added Qualtrics data parameter
   onCommentRemoved,
   onReply,
 }) => {
@@ -253,6 +262,7 @@ export const CommentList: React.FC<CommentListProps> = ({
           identifier={identifier}
           articleTitle={articleTitle}
           userId={userId}
+          qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
           onCommentRemoved={onCommentRemoved}
           onReply={onReply}
           maxReplies={maxReplies}

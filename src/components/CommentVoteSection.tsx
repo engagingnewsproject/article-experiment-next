@@ -19,6 +19,7 @@ interface CommentVoteSectionProps {
   identifier: string;
   comment: Comment;
   userId: string;
+  articleTitle?: string;
 }
 
 /**
@@ -36,6 +37,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   identifier, 
   comment,
   userId,
+  articleTitle,
 }) => {
   const { log } = useLogger();
 
@@ -90,7 +92,8 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
       voteType === 'upvotes' ? 'Upvote' : 'Downvote',
       `Voted on commentId: ${commentId}`,
       identifier,
-      userId
+      userId,
+      articleTitle
     );
   };
 
