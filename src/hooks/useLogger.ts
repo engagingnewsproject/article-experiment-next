@@ -13,14 +13,6 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
   ) => {
     const ipAddress = await getClientIP();
     
-    // Debug logging for Qualtrics data
-    if (action === 'Vote' && qualtricsData.responseId) {
-      console.log('Logging vote with Qualtrics data:', {
-        responseId: qualtricsData.responseId,
-        surveyId: qualtricsData.surveyId
-      });
-    }
-    
     await logEvent({
       url: window.location.href,
       identifier,

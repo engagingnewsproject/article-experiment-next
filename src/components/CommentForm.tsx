@@ -28,6 +28,8 @@ interface CommentFormProps {
   onCommentSubmitted: (comment: Comment) => void;
   /** Optional callback function that is called when a comment is submitted, passing the name and content of the comment to the parent component */
   onCommentSubmit?: (name: string, content: string) => void;
+  /** Optional Qualtrics response ID to associate with the comment */
+  qualtricsResponseId?: string;
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
@@ -35,6 +37,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   identifier,
   onCommentSubmitted,
   onCommentSubmit,
+  qualtricsResponseId,
 }) => {
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
@@ -60,6 +63,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         content,
         upvotes: 0,
         downvotes: 0,
+        ...(qualtricsResponseId && { qualtricsResponseId })
       };
 
       // Save the comment and get the returned string (e.g., comment ID)

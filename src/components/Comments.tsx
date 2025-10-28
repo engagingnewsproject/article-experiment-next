@@ -114,6 +114,7 @@ export const Comments: React.FC<CommentsProps> = ({
           identifier={identifier}
           onCommentSubmitted={handleCommentSubmitted}
           onCommentSubmit={onCommentSubmit}
+          qualtricsResponseId={qualtricsData?.responseId}
         />
       <div className={styles.commentsContainer}>
         <CommentList 

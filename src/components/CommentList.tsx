@@ -92,7 +92,8 @@ const CommentNode: React.FC<{
       const replyId = await saveComment(identifier, {
         content: replyContent,
         name: replyName,
-        ancestorIds
+        ancestorIds,
+        ...(qualtricsData?.responseId && { qualtricsResponseId: qualtricsData.responseId })
       });
 
       const newReply: Comment = {

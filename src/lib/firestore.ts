@@ -85,6 +85,7 @@ export type Comment = {
   upvotes?: number;
   downvotes?: number;
   replies?: Comment[];
+  qualtricsResponseId?: string;
 };
 
 /**
@@ -234,6 +235,7 @@ export async function saveComment(articleId: string, commentData: {
   upvotes?: number;
   downvotes?: number;
   ancestorIds?: string[];
+  qualtricsResponseId?: string;
 }): Promise<string> {
   let commentsPath = ['articles', articleId, 'comments'];
   if (commentData.ancestorIds && commentData.ancestorIds.length > 0) {
@@ -250,7 +252,8 @@ export async function saveComment(articleId: string, commentData: {
         downvotes: commentData.downvotes || 0,
         ancestorIds: commentData.ancestorIds,
         datePosted: "Just now",
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        ...(commentData.qualtricsResponseId && { qualtricsResponseId: commentData.qualtricsResponseId })
       };
 
       const docRef = await addDoc(repliesRef, reply);
@@ -266,7 +269,8 @@ export async function saveComment(articleId: string, commentData: {
         upvotes: commentData.upvotes || 0,
         downvotes: commentData.downvotes || 0,
         datePosted: "Just now",
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        ...(commentData.qualtricsResponseId && { qualtricsResponseId: commentData.qualtricsResponseId })
       };
       const docRef = await addDoc(commentsRef, comment);
       // Debugging purposes

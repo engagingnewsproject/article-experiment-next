@@ -44,3 +44,4 @@ firestore-debug.log
 firebase-debug.log
 research-exports/
 pglite-debug.log
+LOCAL/console/*
