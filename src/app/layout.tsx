@@ -13,8 +13,8 @@
  * @returns {JSX.Element} The root layout structure
  */
 
-import '@/styles/variables.css';
 import '@/styles/globals.css';
+import '@/styles/variables.css';
 import type { Metadata } from 'next';
 import Script from 'next/script';
 
@@ -50,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         {/* Google Analytics Global Site Tag */}
         <Script
           strategy="afterInteractive"
