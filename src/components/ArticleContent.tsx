@@ -134,10 +134,17 @@ export function ArticleContent({
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
   const timeWhenPageOpened = useRef<number>(Date.now());
+  const lastLoggedArticleId = useRef<string | null>(null); // ✅ Track which article we logged for
 
-  // Log page view when component mounts
+  // Log page view when component mounts (only once per article)
   useEffect(() => {
+    // Only log once per article to prevent duplicates (e.g., when Qualtrics data arrives)
+    // If article changes, we want to log again
+    if (lastLoggedArticleId.current === article.id) return;
+    
     timeWhenPageOpened.current = Date.now();
+    lastLoggedArticleId.current = article.id;
+    
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
       logPageViewTime(
@@ -161,7 +168,9 @@ export function ArticleContent({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [article.title, article.id, logPageView, logPageViewTime, userId]);
+    // Only depend on article and userId, not on the logger callbacks (they change when Qualtrics data arrives)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.title, article.id, userId]);
 
   // Handle link clicks within article content
   const handleArticleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
