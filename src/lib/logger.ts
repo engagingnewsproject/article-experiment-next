@@ -28,8 +28,6 @@ export interface LogEntry {
   qualtricsResponseId?: string;
   /** Qualtrics survey ID */
   qualtricsSurveyId?: string;
-  /** Additional Qualtrics embedded data */
-  qualtricsEmbeddedData?: Record<string, any>;
 }
 
 /**

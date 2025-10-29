@@ -24,7 +24,6 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
       details,
       qualtricsResponseId: qualtricsData.responseId,
       qualtricsSurveyId: qualtricsData.surveyId,
-      qualtricsEmbeddedData: qualtricsData.embeddedData,
     });
   }, [qualtricsData]);
 

@@ -54,6 +54,8 @@ interface LogEntry {
   label: string;
   details: string;
   timestamp: any;
+  qualtricsResponseId?: string; // ✅ Added Qualtrics responseId
+  qualtricsSurveyId?: string; // ✅ Added Qualtrics surveyId
 }
 
 interface Article {
@@ -312,7 +314,10 @@ export default function ResearchDashboard() {
               if (!isNaN(d.getTime())) value = d.toISOString();
             }
           }
-          if (typeof value === 'object' && value !== null) return '';
+          // For objects, convert to JSON string if they exist
+          else if (typeof value === 'object' && value !== null && header !== 'timestamp' && header !== 'createdAt') {
+            value = JSON.stringify(value);
+          }
           return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : (value ?? '');
         }).join(',')
       )
@@ -343,7 +348,8 @@ export default function ResearchDashboard() {
       return (
         (log.label && log.label.toLowerCase().includes(searchLower)) ||
         (typeof log.details === 'string' && log.details.toLowerCase().includes(searchLower)) ||
-        (log.url && log.url.toLowerCase().includes(searchLower))
+        (log.url && log.url.toLowerCase().includes(searchLower)) ||
+        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower)) // ✅ Added Qualtrics responseId to search
       );
     }
     return true;
@@ -749,6 +755,7 @@ export default function ResearchDashboard() {
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Details</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Article</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">QT Response ID</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -780,6 +787,9 @@ export default function ResearchDashboard() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                           {log.label || log.url}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {log.qualtricsResponseId || '-'}
                         </td>
                       </tr>
                     ))}
