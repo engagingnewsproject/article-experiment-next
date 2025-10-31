@@ -107,6 +107,14 @@ export const Comments: React.FC<CommentsProps> = ({
     setLocalComments(defaultComments);
   }, [defaultComments]);
 
+  // Helper function to count all comments including nested replies
+  const countAllComments = (comments: Comment[]): number => {
+    return comments.reduce((total, comment) => {
+      const replyCount = comment.replies ? countAllComments(comment.replies) : 0;
+      return total + 1 + replyCount;
+    }, 0);
+  };
+
   return (
     <section className={styles.commentsSection}>
         <CommentForm 
@@ -119,7 +127,7 @@ export const Comments: React.FC<CommentsProps> = ({
       <div className={styles.commentsContainer}>
         {/* Comment count */}
         <div className={styles.commentCount}>
-          <p>Comment({localComments.length})</p>
+          <p>Comment({countAllComments(localComments)})</p>
         </div>
         <CommentList 
           comments={localComments} 
