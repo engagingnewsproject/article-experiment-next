@@ -7,6 +7,14 @@
   margin: 0 auto;
 }
 
+.commentCount {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
 .commentList {
   margin-top: 2rem;
 }

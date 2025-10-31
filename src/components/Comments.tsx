@@ -117,6 +117,10 @@ export const Comments: React.FC<CommentsProps> = ({
           qualtricsResponseId={qualtricsData?.responseId}
         />
       <div className={styles.commentsContainer}>
+        {/* Comment count */}
+        <div className={styles.commentCount}>
+          <p>Comment({localComments.length})</p>
+        </div>
         <CommentList 
           comments={localComments} 
           onCommentRemoved={handleCommentRemoved}
