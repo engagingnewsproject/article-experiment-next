@@ -162,15 +162,15 @@ a:hover .icon {
 }
 
 /* Container and Clearfix */
-.container,
 .row,
 .clr,
 .group {
-  min-width: 840px;
-  max-width: 60vw;
+  /* Mobile-first: full width with padding, constrained by max-width at larger breakpoints */
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 @media (min-width: 768px) {
@@ -209,30 +209,37 @@ header[role="banner"] {
   }
 }
 
+/* Make images responsive by default */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 /* Mobile Only */
 @media (max-width: 33.99rem) {
   .mobile-only {
-    /* Add mobile-only styles here */
+    display: block;
   }
 }
 
 /* Tablet Only */
 @media (min-width: 34rem) and (max-width: 47.99rem) {
   .tablet-only {
-    /* Add tablet-only styles here */
+    display: block;
   }
 }
 
 /* Everything but Desktop */
 @media (max-width: 47.99rem) {
   .everything-but-desktop {
-    /* Add non-desktop styles here */
+    display: block;
   }
 }
 
 /* Desktop */
 @media (min-width: 48rem) {
   .desktop {
-    /* Add desktop styles here */
+    display: block;
   }
 } 
