@@ -234,7 +234,7 @@ export function ArticleContent({
 
               { article.themes && article.themes.length > 0 && (version === '3' || version == '4') && 
                 <>
-                  <h4 style={{marginTop: '2em', marginBottom: '-1em', fontWeight: 600}}>Comment Highlights:</h4>
+                  <h4 style={{marginTop: '2rem', marginBottom: '1rem', fontWeight: 600}}>Comment Highlights:</h4>
                   <ArticleThemeList articleThemes={article.themes}/>
                 </>
               }
