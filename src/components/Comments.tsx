@@ -127,7 +127,7 @@ export const Comments: React.FC<CommentsProps> = ({
       <div className={styles.commentsContainer}>
         {/* Comment count */}
         <div className={styles.commentCount}>
-          <p>Comment({countAllComments(localComments)})</p>
+          Comments ({countAllComments(localComments)}):        
         </div>
         <CommentList 
           comments={localComments} 
