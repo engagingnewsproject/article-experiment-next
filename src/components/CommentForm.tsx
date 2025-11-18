@@ -100,7 +100,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         <>
           <input
             type="text"
-            placeholder="Your Name"
+            placeholder="Your Name (e.g. John Doe)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={styles.input}
