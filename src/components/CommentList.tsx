@@ -247,6 +247,8 @@ export const CommentList: React.FC<CommentListProps> = ({
   const [maxReplies, setMaxReplies] = useState(REPLIES_REVEAL_COUNT);
   const [maxSubReplies, setMaxSubReplies] = useState<{ [replyId: string]: number }>({});
 
+  const { logClick } = useLogger(qualtricsData || {}); // log when users expand comments
+
   if (comments.length === 0) {
     return null;
   }
@@ -278,9 +280,17 @@ export const CommentList: React.FC<CommentListProps> = ({
       {allCommentsVisible ? null : (
         <button
           className={styles.readMore}
-          onClick={() =>
-            setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT)
-          }
+          onClick={() => {
+            setMaxRevealLength(maxRevealLength + COMMENTS_REVEAL_COUNT);
+            // fire-and-forget logging; include identifier/user/articleTitle for context
+            logClick(
+              articleTitle,
+              `Revealed comments`,
+              identifier,
+              userId,
+              articleTitle
+            ).catch((err) => console.error('Logging failed:', err));
+          }}
         >
           Read more comments...
         </button>

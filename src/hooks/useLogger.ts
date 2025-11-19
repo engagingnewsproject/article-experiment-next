@@ -1,5 +1,5 @@
+import { getClientIP, logEvent } from '@/lib/logger';
 import { useCallback } from 'react';
-import { logEvent, getClientIP } from '@/lib/logger';
 import type { QualtricsData } from './useQualtrics';
 
 export function useLogger(qualtricsData: QualtricsData = {}) {
@@ -34,7 +34,7 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
     userId: string,
     articleTitle?: string
   ) => {
-    await log('click', label, comment, identifier, userId, articleTitle);
+    await log('Click', label, comment, identifier, userId, articleTitle);
   }, [log]);
 
   const logPageView = useCallback(async (
@@ -44,7 +44,7 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
     articleTitle?: string
   ) => {
     await log('Page View', pageTitle, 'Loaded', identifier, userId, articleTitle);
-  }, [log]);
+      }, [log]);
 
     const logPageViewTime = useCallback(async (
     pageTitle: string,
