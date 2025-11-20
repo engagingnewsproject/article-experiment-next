@@ -91,7 +91,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
 
     // Log the vote event
     await log(
-      'Vote',
+      voteType === 'upvotes' ? 'Upvote ' : 'Downvote ',
       voteType === 'upvotes' ? 'Upvote' : 'Downvote',
       `Voted on commentId: ${commentId}`,
       identifier,

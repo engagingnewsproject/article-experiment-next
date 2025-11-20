@@ -332,6 +332,38 @@ export default function ResearchDashboard() {
     window.URL.revokeObjectURL(url);
   };
 
+    // Prepare export rows for logs: ensure articleId and Qualtrics fields are present.
+    // For qualtricsResponseId, if a row is missing it, try to attach the user's known response id
+    // from any other log for that user (so all of a user's logs get the same qualtricsResponseId when available).
+    const prepareLogExportRows = (rows: any[]) => {
+      const userToQualtrics: Record<string, string> = {};
+      // build mapping from full logs state so filtered exports can inherit values
+      logs.forEach((l: any) => {
+        if (l.userId && l.qualtricsResponseId) userToQualtrics[l.userId] = l.qualtricsResponseId;
+      });
+
+      return rows.map((row: any) => {
+        // construct an ordered, minimal export row
+        return {
+          qualtricsResponseId: row.qualtricsResponseId ?? userToQualtrics[row.userId] ?? '',
+          // keep id first
+          id: row.id ?? '',
+          // user and action
+          userId: row.userId ?? '',
+          ipAddress: row.ipAddress ?? '',
+          action: row.action ?? '',
+          // move details immediately after action
+          details: row.details ?? '',
+          // timestamp next
+          timestamp: row.timestamp ?? '',
+          url: row.url ?? '',
+          // normalized article id
+          articleId: row.articleId ?? row.identifier ?? '',
+          articleTitle: row.articleTitle ?? row.label ?? '',
+        };
+      });
+    };
+
   const filteredLogs = logs.filter(log => {
     if (selectedAction !== 'all' && log.action !== selectedAction) return false;
     if (selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
@@ -595,68 +627,18 @@ export default function ResearchDashboard() {
               </div>
             )}
 
-            {/* Action Types Chart */}
-            {stats && (
-              <div className="p-6 mb-8 bg-white rounded-lg shadow">
-                <h2 className="mb-4 text-xl font-semibold">User Actions by Type</h2>
-                <div className="space-y-3">
-                  {Object.entries(stats.actionsByType).map(([action, count]) => (
-                    <div key={action} className="flex items-center">
-                      <div className="w-32 text-sm font-medium text-gray-700">{action}</div>
-                      <div className="flex-1 h-2 mx-4 bg-gray-200 rounded-full">
-                        <div 
-                          className="h-2 bg-blue-600 rounded-full" 
-                          style={{ width: `${(count / stats.totalActions) * 100}%` }}
-                        ></div>
-                      </div>
-                      <div className="w-16 text-sm text-gray-600">{count}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Export Section */}
-            <div className="p-6 bg-white rounded-lg shadow">
-              <h2 className="mb-4 text-xl font-semibold">Export Data</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="flex flex-col p-6 bg-white rounded-lg shadow">
+              <h2 className="mb-4 text-xl font-semibold text-center">Export Data</h2>
+              <div className="flex justify-center">
                 <button
-                  onClick={() => exportToCSV(logs, `user_activity_${new Date().toISOString().split('T')[0]}.csv`)}
-                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  onClick={() => exportToCSV(
+                    prepareLogExportRows(logs),
+                    `user_activity_${new Date().toISOString().split('T')[0]}.csv`
+                  )}
+                  className="px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   Export User Activity (CSV)
-                </button>
-                <button
-                  onClick={() => exportToCSV(articles, `articles_${new Date().toISOString().split('T')[0]}.csv`)}
-                  className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
-                >
-                  Export Articles (CSV)
-                </button>
-                <button
-                  onClick={() => exportToCSV(allComments, `comments_${new Date().toISOString().split('T')[0]}.csv`)}
-                />
-                <button
-                  onClick={() => {
-                    const data = {
-                      exportDate: new Date().toISOString(),
-                      stats: stats,
-                      filters: {
-                        dateRange: selectedDateRange,
-                        actionFilter: selectedAction,
-                        searchTerm: searchTerm
-                      }
-                    };
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `research_summary_${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 text-white bg-orange-600 rounded-md hover:bg-orange-700"
-                >
-                  Export Summary (JSON)
                 </button>
               </div>
             </div>
@@ -740,7 +722,10 @@ export default function ResearchDashboard() {
                   <p className="text-gray-600">Showing {filteredLogs.length} of {logs.length} entries</p>
                 </div>
                 <button
-                  onClick={() => exportToCSV(filteredLogs, `filtered_logs_${new Date().toISOString().split('T')[0]}.csv`)}
+                  onClick={() => exportToCSV(
+                    prepareLogExportRows(filteredLogs),
+                    `filtered_logs_${new Date().toISOString().split('T')[0]}.csv`
+                  )}
                   className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   Export Filtered Data
@@ -828,12 +813,7 @@ export default function ResearchDashboard() {
                   <h2 className="text-xl font-semibold">Articles</h2>
                   <p className="text-gray-600">Showing {normalizedFilteredArticles.length} of {articles.length} articles</p>
                 </div>
-                <button
-                  onClick={() => exportToCSV(normalizedFilteredArticles, `filtered_articles_${new Date().toISOString().split('T')[0]}.csv`)}
-                  className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
-                >
-                  Export Filtered Data
-                </button>
+                {/* Export filtered articles button removed per request */}
               </div>
               <div className="p-6 space-y-6">
                 {normalizedFilteredArticles.map((article, idx) => {
