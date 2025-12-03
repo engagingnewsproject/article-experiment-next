@@ -22,7 +22,7 @@ export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
     <form onSubmit={handleReply} className={styles.inlineReplyForm}>
       <input
         type="text"
-        placeholder="Your Name (e.g. John Doe)"
+        placeholder="Your Name (e.g. John D)"
         value={replyName}
         onChange={(e) => setReplyName(e.target.value)}
         className={styles.input}
