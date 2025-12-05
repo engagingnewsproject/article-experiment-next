@@ -10,8 +10,10 @@
  * @component
  * @returns {JSX.Element} The header section
  */
+"use client";
+
 import { getSessionFromStorage } from "@/lib/auth";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./Header.module.css";
 
 /**
@@ -24,21 +26,34 @@ import styles from "./Header.module.css";
  * - Maintains accessibility standards
  * - Adapts to different environments (development/production)
  * 
+ * @param {Object} props - Component props
+ * @param {string} [props.siteName] - The site name to display (from project config)
  * @returns {JSX.Element} The rendered header section
  */
-export const Header: React.FC = () => {
-	const isAuthenticated = getSessionFromStorage()?.isAuthenticated;
+interface HeaderProps {
+	siteName?: string;
+}
+
+export const Header: React.FC<HeaderProps> = ({ siteName = 'The Gazette Star' }) => {
+	const [isAuthenticated, setIsAuthenticated] = useState(false);
+	
+	// Check authentication after component mounts to avoid hydration mismatch
+	useEffect(() => {
+		const session = getSessionFromStorage();
+		setIsAuthenticated(session?.isAuthenticated || false);
+	}, []);
+	
 	return (
 		<header className={`container container--wide ${styles.header}`} role='banner'>
 			<div className={styles.siteTitle}>
-				The Gazette Star
-				<span>
-					{isAuthenticated && (
+				{siteName}
+				{isAuthenticated && (
+					<span>
 						<a href='/' className={styles.homeLink}>
 							Home
 						</a>
-					)}
-				</span>
+					</span>
+				)}
 			</div>
 			{/* would like to add a link to the base url here that is only visible on local development */}
 		</header>

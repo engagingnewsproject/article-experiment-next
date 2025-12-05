@@ -37,6 +37,10 @@ interface CommentListProps {
   userId: string;
   /** Qualtrics survey data */
   qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  /** Article's studyId */
+  studyId?: string;
+  /** Whether the user is authenticated (for showing delete buttons) */
+  isAuthenticated?: boolean;
     /** Callback function called when a new comment is removed, used to update parent component state */
   onCommentRemoved: (commentId: string) => void;
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
@@ -61,6 +65,10 @@ const CommentNode: React.FC<{
   userId: string;
   /** Qualtrics survey data */
   qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  /** Article's studyId */
+  studyId?: string;
+  /** Whether the user is authenticated (for showing delete buttons) */
+  isAuthenticated?: boolean;
   /** Callback function for handling replies to this comment */
   onReply: (commentId: string, reply: Comment) => void;
   /** Maximum number of replies to show at once */
@@ -73,13 +81,13 @@ const CommentNode: React.FC<{
   setMaxSubReplies: React.Dispatch<React.SetStateAction<{ [replyId: string]: number }>>;
   /** Current depth in the comment tree, used to limit reply functionality for deeper levels */
   depth?: number;
-}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, qualtricsData, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
+}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, qualtricsData, studyId, isAuthenticated = false, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyName, setReplyName] = useState(anonymous ? "Anonymous" : "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
+  const { logComment } = useLogger(qualtricsData || {}, studyId); // ✅ Pass article's studyId to logger
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,7 +163,7 @@ const CommentNode: React.FC<{
               : "1 day ago"}
           </span>
         </div>
-        {process.env.NODE_ENV === "development" && comment.id && (
+        {isAuthenticated && comment.id && (
           <button
             onClick={handleDelete}
             disabled={isDeleting}
@@ -184,6 +192,7 @@ const CommentNode: React.FC<{
           identifier={identifier}
           comment={comment}
           userId={userId}
+          studyId={studyId}
           articleTitle={articleTitle}
           qualtricsData={qualtricsData}
         />
@@ -208,6 +217,8 @@ const CommentNode: React.FC<{
               articleTitle={articleTitle}
               userId={userId}
               qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
+              studyId={studyId}
+              isAuthenticated={isAuthenticated}
               onCommentRemoved={onCommentRemoved}
               onReply={onReply}
               maxReplies={maxReplies}
@@ -239,6 +250,8 @@ export const CommentList: React.FC<CommentListProps> = ({
   articleTitle,
   userId,
   qualtricsData, // ✅ Added Qualtrics data parameter
+  studyId, // Article's studyId
+  isAuthenticated = false, // ✅ Added authentication status parameter
   onCommentRemoved,
   onReply,
 }) => {
@@ -247,7 +260,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   const [maxReplies, setMaxReplies] = useState(REPLIES_REVEAL_COUNT);
   const [maxSubReplies, setMaxSubReplies] = useState<{ [replyId: string]: number }>({});
 
-  const { logClick } = useLogger(qualtricsData || {}); // log when users expand comments
+  const { logClick } = useLogger(qualtricsData || {}, studyId); // log when users expand comments
 
   if (comments.length === 0) {
     return null;
@@ -268,6 +281,8 @@ export const CommentList: React.FC<CommentListProps> = ({
           articleTitle={articleTitle}
           userId={userId}
           qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
+          studyId={studyId}
+          isAuthenticated={isAuthenticated}
           onCommentRemoved={onCommentRemoved}
           onReply={onReply}
           maxReplies={maxReplies}

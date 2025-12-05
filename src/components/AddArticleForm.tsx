@@ -11,9 +11,13 @@
  * @returns {JSX.Element} The article creation form
  */
 import { ArticleTheme } from '@/lib/firestore';
-import { addDoc, collection } from 'firebase/firestore';
-import { useState } from 'react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useState, Suspense, useEffect } from 'react';
 import { db } from '../lib/firebase';
+import { useStudyId } from '@/hooks/useStudyId';
+import { getProjectConfig, getProjectConfigAsync } from '@/lib/projectConfig';
+import { getStudyName } from '@/lib/studies';
+import { InsertImageButton } from '@/components/admin/InsertImageButton';
 
 /**
  * AddArticleForm component that manages article creation.
@@ -23,17 +27,31 @@ import { db } from '../lib/firebase';
  * - Handles form submission and validation
  * - Manages error states
  * - Provides user feedback
+ * - Automatically assigns studyId based on URL parameter
  * 
  * @returns {JSX.Element} The rendered article creation form
  */
-const AddArticleForm = () => {
+function AddArticleFormContent() {
+  const { studyId } = useStudyId();
+  const [projectConfig, setProjectConfig] = useState(getProjectConfig(studyId));
+  const [studyName, setStudyName] = useState(getStudyName(studyId));
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [summary, setSummary] = useState('');
   const [themes, setThemes] = useState<ArticleTheme[] | null>([]);
   const [themeLabels, setThemeLabels] = useState<string[]>([]); // Custom theme labels
+  const [explainBoxItems, setExplainBoxItems] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Load project config asynchronously to ensure we get Firestore configs if available
+  useEffect(() => {
+    async function loadConfig() {
+      const config = await getProjectConfigAsync(studyId);
+      setProjectConfig(config);
+    }
+    loadConfig();
+  }, [studyId]);
 
   /**
    * Adds a new article to the Firestore database.
@@ -41,18 +59,46 @@ const AddArticleForm = () => {
    * @param {string} title - The title of the article
    * @param {string} slug - The URL-friendly slug for the article
    * @param {string} content - The content of the article
+   * @param {string} summary - The article summary
+   * @param {ArticleTheme[] | null} themes - Article themes
+   * @param {string[]} explainBoxItems - Explanation box items
+   * @param {string} studyId - The study ID to assign to this article
    * @returns {Promise<void>} A promise that resolves when the article is added
    */
-  const addArticle = async (title: string, slug: string, content: string, summary: string, themes: ArticleTheme[] | null) => {
+  const addArticle = async (title: string, slug: string, content: string, summary: string, themes: ArticleTheme[] | null, explainBoxItems: string[], studyId: string) => {
     const articlesCollection = collection(db, 'articles');
-    await addDoc(articlesCollection, {
+    const articleData = {
       title,
       slug,
       content,
       summary,
       themes,
-      createdAt: new Date(),
-    });
+      explain_box: explainBoxItems.filter(item => item.trim().length > 0),
+      studyId, // Assign the study ID
+      comments_display: true,
+      anonymous: false,
+      pubdate: projectConfig.articleConfig.pubdate,
+      author: projectConfig.articleConfig.author,
+      siteName: projectConfig.siteName, // Store site name from project config
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    
+    // Safety check: prevent writing to production in development
+    if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE) {
+      const dbSettings = (db as any)._delegate?._settings;
+      const host = dbSettings?.host || 'unknown';
+      const isEmulator = host.includes('localhost') || host.includes('127.0.0.1') || host.includes(':8080');
+      
+      if (!isEmulator) {
+        console.error('❌ BLOCKED: Attempted to write to PRODUCTION Firestore in development!');
+        console.error('   This is a safety measure to prevent accidental production writes.');
+        throw new Error('SAFETY BLOCK: Cannot write to production database in development mode. Please ensure the emulator is running.');
+      }
+    }
+    
+    const docRef = await addDoc(articlesCollection, articleData);
+    return docRef.id;
   };
 
   /**
@@ -71,14 +117,23 @@ const AddArticleForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addArticle(title, slug, content, summary, themes);
+      const articleId = await addArticle(title, slug, content, summary, themes, explainBoxItems, studyId);
       setTitle('');
       setSlug('');
       setContent('');
       setSummary('');
       setThemes(null);
-      alert('Article added successfully!');
+      setThemeLabels([]);
+      setExplainBoxItems([]);
+      
+      // Trigger article list refresh
+      if (typeof window !== 'undefined' && (window as any).refreshArticleList) {
+        (window as any).refreshArticleList();
+      }
+      
+      alert(`Article added successfully to ${projectConfig.name}!\nArticle ID: ${articleId}`);
     } catch (err) {
+      console.error('❌ Error adding article:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
@@ -105,15 +160,39 @@ const AddArticleForm = () => {
     setThemeLabels(updatedLabels);
   };
 
+  const handleExplainBoxChange = (index: number, value: string) => {
+    const updated = [...explainBoxItems];
+    updated[index] = value;
+    setExplainBoxItems(updated);
+  };
+
+  const handleAddExplainBoxItem = () => {
+    setExplainBoxItems([...explainBoxItems, '']);
+  };
+
+  const handleRemoveExplainBoxItem = (index: number) => {
+    const updated = [...explainBoxItems];
+    updated.splice(index, 1);
+    setExplainBoxItems(updated);
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="mb-6">
+    <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded-lg bg-gray-50">
+      <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded">
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">Creating article for:</span> {studyName} (Study ID: <code className="bg-white px-1 rounded">{studyId}</code>)
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          <span className="text-gray-400">Current URL: <code className="bg-white px-1 rounded">{typeof window !== 'undefined' ? window.location.href : ''}</code></span>
+        </p>
+      </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Title*</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm"
+          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm px-2 py-1"
           required
         />
       </div>
@@ -123,16 +202,21 @@ const AddArticleForm = () => {
           type="text"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
-          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm"
+          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm px-2 py-1"
           required
         />
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Content*</label>
+        <InsertImageButton
+          textareaId="add-article-content-textarea"
+          onInsert={(newValue) => setContent(newValue)}
+        />
         <textarea
+          id="add-article-content-textarea"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm"
+          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm px-2 py-1"
           required
         />
       </div>
@@ -142,8 +226,42 @@ const AddArticleForm = () => {
         <textarea
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm"
+          className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm px-2 py-1"
         />
+      </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700">Explanation Box (Why we wrote this)</label>
+        <p className="mb-2 text-xs text-gray-600">
+          Add items that will appear in the "Behind the Story" section when <code className="px-1 bg-gray-100 rounded">?explain_box=show</code> is in the URL.
+        </p>
+        <div className="flex flex-col gap-2">
+          {explainBoxItems.map((item, idx) => (
+            <div key={idx} className="relative flex items-center gap-2">
+              <textarea
+                value={item}
+                onChange={e => handleExplainBoxChange(idx, e.target.value)}
+                placeholder="Enter explanation item..."
+                className="flex-1 px-2 py-1 border border-gray-300 rounded-md shadow-sm"
+                rows={2}
+              />
+              <button
+                type="button"
+                className="px-2 py-1 text-gray-400 hover:text-red-500"
+                onClick={() => handleRemoveExplainBoxItem(idx)}
+                aria-label="Remove explanation item"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="self-start px-3 py-1 text-sm text-blue-700 bg-blue-100 rounded hover:bg-blue-200"
+            onClick={handleAddExplainBoxItem}
+          >
+            + Add Explanation Item
+          </button>
+        </div>
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Themes</label>
@@ -197,6 +315,14 @@ const AddArticleForm = () => {
       </button>
       {error && <div className="mt-2 text-red-500">{error}</div>}
     </form>
+  );
+}
+
+const AddArticleForm = () => {
+  return (
+    <Suspense fallback={<div className="p-4">Loading form...</div>}>
+      <AddArticleFormContent />
+    </Suspense>
   );
 };
 

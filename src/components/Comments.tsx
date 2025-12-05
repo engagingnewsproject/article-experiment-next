@@ -39,6 +39,8 @@ interface CommentsProps {
   articleTitle: string;
   userId: string;
   qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  studyId?: string; // Article's studyId
+  isAuthenticated?: boolean; // ✅ Added authentication status prop
   onCommentSubmit?: (name: string, content: string) => void;
 }
 
@@ -62,10 +64,18 @@ export const Comments: React.FC<CommentsProps> = ({
   articleTitle,
   userId,
   qualtricsData, // ✅ Added Qualtrics data parameter
+  studyId, // Article's studyId
+  isAuthenticated = false, // ✅ Added authentication status parameter
   onCommentSubmit,
 }) => {
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
+
+  // Update defaultComments and localComments when comments prop changes
+  React.useEffect(() => {
+    setDefaultComments(comments);
+    setLocalComments(comments);
+  }, [comments]);
 
   const handleCommentSubmitted = async (newComment: Comment) => {
     setLocalComments((prev) => [newComment, ...prev]);
@@ -103,10 +113,6 @@ export const Comments: React.FC<CommentsProps> = ({
     setLocalComments(prev => addReplyById(prev, commentId, reply));
   }
 
-  React.useEffect(() => {
-    setLocalComments(defaultComments);
-  }, [defaultComments]);
-
   // Helper function to count all comments including nested replies
   const countAllComments = (comments: Comment[]): number => {
     return comments.reduce((total, comment) => {
@@ -130,14 +136,16 @@ export const Comments: React.FC<CommentsProps> = ({
           Comments ({countAllComments(localComments)}):        
         </div>
         <CommentList 
-          comments={localComments} 
+          comments={localComments}
           onCommentRemoved={handleCommentRemoved}
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
+          studyId={studyId}
           articleTitle={articleTitle}
           userId={userId}
           qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentList
+          isAuthenticated={isAuthenticated} // ✅ Pass authentication status to CommentList
         />
       </div>
     </section>

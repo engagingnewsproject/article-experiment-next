@@ -22,6 +22,7 @@ interface CommentVoteSectionProps {
   userId: string;
   articleTitle?: string;
   qualtricsData?: QualtricsData;
+  studyId?: string; // Article's studyId
 }
 
 /**
@@ -41,8 +42,9 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   userId,
   articleTitle,
   qualtricsData,
+  studyId,
 }) => {
-  const { log } = useLogger(qualtricsData || {});
+  const { log } = useLogger(qualtricsData || {}, studyId);
 
   // Local state for this user's vote and the displayed counts
   const [voted, setVoted] = useState<{ upvotes: boolean; downvotes: boolean }>({

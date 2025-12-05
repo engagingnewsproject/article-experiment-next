@@ -105,6 +105,7 @@ interface ArticleContentProps {
   }[];
   userId: string;
   qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  isAuthenticated?: boolean; // ✅ Added authentication status prop
 }
 
 /**
@@ -128,11 +129,14 @@ export function ArticleContent({
   comments = [],
   userId,
   qualtricsData, // ✅ Added Qualtrics data parameter
+  isAuthenticated = false, // ✅ Added authentication status parameter
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
-  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
+  // Get studyId from article if available, otherwise it will use URL-based studyId
+  const articleStudyId = (article as any).studyId;
+  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId); // ✅ Pass article's studyId to logger
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null); // ✅ Track which article we logged for
 
@@ -225,6 +229,19 @@ export function ArticleContent({
             onClick={handleArticleLinkClick}
           />
 
+        {shouldShowExplainBox && (
+          <BehindTheStory 
+            explainBox={article.explain_box}
+            article={{
+              who_spoke_to: article.metadata?.who_spoke_to,
+              where_written: article.metadata?.where_written,
+              editor: article.metadata?.editor,
+              corrections: article.metadata?.corrections,
+              version_history: article.metadata?.version_history,
+            }}
+          />
+        )}
+
         {(version === '2' || version === '3' || version === '4')&& (
           <>
             <div className={styles.summaryThemesSection}>
@@ -244,7 +261,7 @@ export function ArticleContent({
 
         {article.comments_display && (
           <Comments
-            comments={comments.map((comment) => ({
+            comments={comments.length > 0 ? comments.map((comment) => ({
               id: comment.id,
               name: comment.name,
               content: comment.content,
@@ -252,7 +269,7 @@ export function ArticleContent({
               createdAt: comment.timestamp,
               upvotes: comment.upvotes,
               downvotes: comment.downvotes,
-              replies: comment.replies.map((reply) => ({
+              replies: (comment.replies || []).map((reply) => ({
                 parentId: comment.id,
                 id: reply.id,
                 name: reply.name,
@@ -260,7 +277,7 @@ export function ArticleContent({
                 upvotes: reply.upvotes,
                 downvotes: reply.downvotes,
                 createdAt: reply.timestamp,
-                replies: reply.replies.map((subReply) => ({
+                replies: (reply.replies || []).map((subReply) => ({
                   parentId: reply.id,
                   id: subReply.id,
                   name: subReply.name,
@@ -270,7 +287,7 @@ export function ArticleContent({
                   createdAt: subReply.timestamp,
                 })),
               })),
-            }))}
+            })) : []}
             anonymous={article.anonymous}
             identifier={article.id}
             articleTitle={article.title}
@@ -286,6 +303,8 @@ export function ArticleContent({
             }}
             userId={userId}
             qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to Comments
+            studyId={articleStudyId} // ✅ Pass article's studyId to Comments
+            isAuthenticated={isAuthenticated} // ✅ Pass authentication status to Comments
           />
         )}
       </article>
