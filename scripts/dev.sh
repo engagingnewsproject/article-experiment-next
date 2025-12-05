@@ -27,11 +27,16 @@ done
 echo "Sleeping for 2 seconds to ensure emulator is fully ready..."
 sleep 2
 
-echo "Importing Firestore data..."
+# Import production data to emulator for testing
+# This ensures we test against real production data structure
+echo "Importing Firestore data from firestore-data/..."
 npm run import-data || {
-    echo "Failed to import data"
-    exit 1
+    echo "⚠ Warning: Failed to import data (this is OK if firestore-data/ doesn't exist yet)"
+    echo "  To export production data, run: npm run export-production-data"
 }
 
 echo "Starting Next.js dev server..."
+# Set Firestore emulator host for Next.js to use
+export FIRESTORE_EMULATOR_HOST=localhost:8080
+export NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST=localhost:8080
 npx next dev

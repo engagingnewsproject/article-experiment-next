@@ -10,6 +10,7 @@
     "lint": "next lint",
     "emulator": "firebase emulators:start",
     "export-data": "node scripts/exportFirestoreData.js",
+    "export-production-data": "node scripts/exportProductionData.js",
     "export-research": "node scripts/exportResearchData.js",
     "export-google-sheets": "node scripts/exportToGoogleSheets.js",
     "import-data": "node scripts/importFirestoreData.js",
