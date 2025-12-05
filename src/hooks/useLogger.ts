@@ -1,8 +1,13 @@
 import { getClientIP, logEvent } from '@/lib/logger';
 import { useCallback } from 'react';
 import type { QualtricsData } from './useQualtrics';
+import { useStudyId } from './useStudyId';
 
-export function useLogger(qualtricsData: QualtricsData = {}) {
+export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: string) {
+  const { studyId: urlStudyId } = useStudyId();
+  // Use article's studyId if provided, otherwise fall back to URL studyId
+  const effectiveStudyId = articleStudyId || urlStudyId;
+  
   const log = useCallback(async (
     action: string,
     label: string,
@@ -24,8 +29,9 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
       details,
       qualtricsResponseId: qualtricsData.responseId,
       qualtricsSurveyId: qualtricsData.surveyId,
+      studyId: effectiveStudyId,
     });
-  }, [qualtricsData]);
+  }, [qualtricsData, effectiveStudyId]);
 
   const logClick = useCallback(async (
     label: string,

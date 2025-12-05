@@ -28,6 +28,8 @@ export interface LogEntry {
   qualtricsResponseId?: string;
   /** Qualtrics survey ID */
   qualtricsSurveyId?: string;
+  /** Study/Project identifier (e.g., 'ashwin', 'gazette') */
+  studyId?: string;
 }
 
 /**
