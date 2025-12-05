@@ -24,7 +24,9 @@ import { getArticle, getArticleBySlug, getArticles, getComments, type Article, t
 import { Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ArticleClient from './ArticleClient';
+import { useStudyId } from '@/hooks/useStudyId';
 
 /**
  * Converts Firestore Timestamp to ISO string
@@ -71,31 +73,44 @@ function convertToPlainObject(data: any): any {
  * 
  * @returns {JSX.Element} The rendered article page with content and controls
  */
-export default function ArticlePage({ params }: { params: { slug: string } }) {
+function ArticlePageContent({ params }: { params: { slug: string } }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const searchParams = useSearchParams();
+  const studyParam = searchParams?.get('study');
+  // Only use studyId if explicitly provided in URL, otherwise treat as "no filter" (undefined)
+  // This ensures backward compatibility - articles without studyId will be found when no URL param
+  const { studyId: defaultStudyId } = useStudyId();
+  const studyId = studyParam ? defaultStudyId : undefined;
 
   useEffect(() => {
     const fetchData = async () => {
       if (!params.slug) return;
 
       try {
-        let articleData = await getArticle(params.slug);
-        
-        if (!articleData) {
-          articleData = await getArticleBySlug(params.slug);
-        }
+        // If studyId is provided, use it; otherwise fetch without filter (for backward compatibility)
+        let articleData = await getArticleBySlug(params.slug, studyId);
 
         if (articleData) {
-          console.log('Article ID:', articleData.id); // ✅ Added article ID logging
           // Expose article ID to parent window for Qualtrics
           if (typeof window !== 'undefined') {
             (window as any).articleId = articleData.id;
           }
           setArticle(convertToPlainObject(articleData));
           const commentsData = await getComments(articleData.id || '');
-          setComments(commentsData?.map(convertToPlainObject) || []);
+          // Convert comments, handling nested replies recursively
+          const convertComment = (comment: any): any => {
+            const converted = convertToPlainObject(comment);
+            if (converted.replies && Array.isArray(converted.replies)) {
+              converted.replies = converted.replies.map(convertComment);
+            }
+            return converted;
+          };
+          const convertedComments = commentsData?.map(convertComment) || [];
+          setComments(convertedComments);
+        } else {
+          console.warn(`Article not found: slug="${params.slug}", studyId="${studyId || 'none'}"`);
         }
       } catch (err) {
         console.error('Error fetching article:', err);
@@ -103,7 +118,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     };
 
     fetchData();
-  }, [params.slug]);
+  }, [params.slug, studyId]);
 
   useEffect(() => {
     const session = getSessionFromStorage();
@@ -117,11 +132,14 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     return <div className="p-4"></div>;
   }
 
+  // Get siteName from article (stored from project config at creation) or fallback
+  const siteName = (article as any)?.siteName || 'The Gazette Star';
+
   return (
     <div className="max-w-4xl p-4 mx-auto" data-article-id={article?.id}>
       { article && 
         <>
-          <Header />
+          <Header siteName={siteName} />
           <Suspense fallback={<div className="p-4">Loading article content...</div>}>
             <ArticleClient 
               article={article}
@@ -132,5 +150,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         </>
         }
     </div>
+  );
+}
+
+export default function ArticlePage({ params }: { params: { slug: string } }) {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <ArticlePageContent params={params} />
+    </Suspense>
   );
 }

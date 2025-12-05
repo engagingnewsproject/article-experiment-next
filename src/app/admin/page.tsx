@@ -3,12 +3,15 @@
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { Header } from '@/components/Header';
 import { clearSession, getSessionFromStorage } from '@/lib/auth';
+import { loadStudies, StudyDefinition } from '@/lib/studies';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  const [studies, setStudies] = useState<StudyDefinition[]>([]);
+  const [studiesLoading, setStudiesLoading] = useState(true);
 
   useEffect(() => {
     // Check authentication on component mount
@@ -18,6 +21,26 @@ export default function AdminPage() {
       setUserEmail(session.email);
     }
   }, []);
+
+  useEffect(() => {
+    // Load studies from Firestore when component mounts or when authenticated
+    if (isAuthenticated) {
+      const fetchStudies = async () => {
+        try {
+          setStudiesLoading(true);
+          const loadedStudies = await loadStudies();
+          setStudies(loadedStudies);
+        } catch (error) {
+          console.error('Error loading studies:', error);
+          // Fallback to empty array or code-defined studies
+          setStudies([]);
+        } finally {
+          setStudiesLoading(false);
+        }
+      };
+      fetchStudies();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     const session = getSessionFromStorage();
@@ -122,7 +145,7 @@ export default function AdminPage() {
             </div>
 
             {/* Articles Card */}
-            <div className="p-6 bg-white rounded-lg shadow">
+            <div className="p-6 bg-white rounded-lg shadow md:col-span-2">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
                   <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,17 +154,94 @@ export default function AdminPage() {
                 </div>
                 <div className="ml-4">
                   <h2 className="text-xl font-semibold text-gray-900">Articles</h2>
-                  <p className="text-sm text-gray-600">View, search, and manage all articles in the system.</p>
+                  <p className="text-sm text-gray-600">View, search, and manage articles by study.</p>
                 </div>
               </div>
               <p className="mb-4 text-gray-700">
-                Access and manage the complete list of articles. Edit, delete, or add new articles as needed.
+                Access and manage articles for each study. Edit, delete, or add new articles as needed.
+              </p>
+              {studiesLoading ? (
+                <div className="py-4 text-center text-gray-500">
+                  Loading studies...
+                </div>
+              ) : studies.length === 0 ? (
+                <div className="py-4 text-center text-gray-500">
+                  No studies found. Add a study first.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {studies.map((study, index) => {
+                    // Alternate colors for visual distinction
+                    const colorClasses = index % 2 === 0 
+                      ? 'bg-purple-600 hover:bg-purple-700' 
+                      : 'bg-indigo-600 hover:bg-indigo-700';
+                    
+                    return (
+                      <Link 
+                        key={study.id}
+                        href={`/?study=${study.id}`}
+                        className={`w-full inline-flex items-center justify-center px-4 py-2 ${colorClasses} !text-white rounded-md`}
+                      >
+                        Manage {study.name} Articles
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Manage Studies Card */}
+            <div className="p-6 bg-white rounded-lg shadow md:col-span-2">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Manage Studies</h2>
+                  <p className="text-sm text-gray-600">Add and manage research studies</p>
+                </div>
+              </div>
+              <p className="mb-4 text-gray-700">
+                Create new studies, view existing ones, and manage study configurations. Studies separate research projects and their data.
               </p>
               <Link 
-                href="/"
-                className="inline-flex items-center px-4 py-2 bg-purple-600 !text-white rounded-md hover:bg-purple-700"
+                href="/admin/manage-studies"
+                className="inline-flex items-center px-4 py-2 bg-orange-600 !text-white rounded-md hover:bg-orange-700"
               >
-                Manage Articles
+                Manage Studies
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+
+            {/* Manage Study Configs Card */}
+            <div className="p-6 bg-white rounded-lg shadow md:col-span-2">
+              <div className="flex items-center mb-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-teal-100 rounded-lg">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Manage Study Configs</h2>
+                  <p className="text-sm text-gray-600">Configure project-specific settings</p>
+                </div>
+              </div>
+              <p className="mb-4 text-gray-700">
+                Set default author information, publication dates, site names, and feature flags for each study. Code-defined configs (like 'eonc') cannot be edited here.
+              </p>
+              <Link 
+                href="/admin/manage-project-configs"
+                className="inline-flex items-center px-4 py-2 bg-teal-600 !text-white rounded-md hover:bg-teal-700"
+              >
+                Manage Configs
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
