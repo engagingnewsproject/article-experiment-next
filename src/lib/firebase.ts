@@ -62,7 +62,64 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
  */
 export const db = getFirestore(app);
 
-// Connect to emulator in development (unless USE_LIVE_FIRESTORE is set)
-if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE) {
-  connectFirestoreEmulator(db, 'localhost', 8080);
+// Connect to emulator in development
+// CRITICAL: This must happen BEFORE any Firestore operations
+// In Next.js, check both NODE_ENV and hostname to detect development
+const isDevelopmentEnv = process.env.NODE_ENV === 'development';
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isDevelopment = isDevelopmentEnv || isLocalhost;
+const useLiveFirestore = process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE === 'true';
+const shouldUseEmulator = isDevelopment && !useLiveFirestore;
+
+// Use a global flag to prevent multiple connection attempts (works across hot reloads)
+const globalKey = '__firestoreEmulatorConnected';
+const windowKey = '__firestoreEmulatorConnected';
+
+// Check if already connected (server-side)
+const isConnectedServer = typeof global !== 'undefined' && (global as any)[globalKey];
+// Check if already connected (client-side)
+const isConnectedClient = typeof window !== 'undefined' && (window as any)[windowKey];
+const isAlreadyConnected = isConnectedServer || isConnectedClient;
+
+// Connect to emulator - must happen on both server and client in Next.js
+if (shouldUseEmulator && !isAlreadyConnected) {
+  try {
+    // CRITICAL: connectFirestoreEmulator must be called immediately after getFirestore
+    // and before any database operations
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    
+    // Mark as connected on both server and client
+    if (typeof global !== 'undefined') {
+      (global as any)[globalKey] = true;
+    }
+    if (typeof window !== 'undefined') {
+      (window as any)[windowKey] = true;
+    }
+    
+    // Log connection status (only in browser to avoid duplicate logs)
+    if (typeof window !== 'undefined') {
+      console.log('✅ Connected to Firestore emulator at localhost:8080');
+    }
+  } catch (error) {
+    // Ignore if already connected (can happen with Next.js SSR/hot reload)
+    const errorMessage = (error as Error).message || '';
+    if (errorMessage.includes('already been called') || errorMessage.includes('already connected')) {
+      // Mark as connected even if error says already connected
+      if (typeof global !== 'undefined') {
+        (global as any)[globalKey] = true;
+      }
+      if (typeof window !== 'undefined') {
+        (window as any)[windowKey] = true;
+      }
+      if (typeof window !== 'undefined') {
+        console.log('✅ Firestore emulator already connected (from previous load)');
+      }
+    } else {
+      // Log actual errors
+      console.error('❌ Failed to connect to Firestore emulator:', error);
+      console.error('   Make sure the emulator is running on localhost:8080');
+      console.error('   Check: npm run emulator');
+    }
+  }
 } 
