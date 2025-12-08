@@ -8,6 +8,22 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
   // Use article's studyId if provided, otherwise fall back to URL studyId
   const effectiveStudyId = articleStudyId || urlStudyId;
   
+  // Debug logging in development to verify studyId and Qualtrics data
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const logKey = 'logger_init';
+    if (!(window as any)[logKey]) {
+      console.log('[Logger] Initialized with:', {
+        articleStudyId,
+        urlStudyId,
+        effectiveStudyId,
+        qualtricsResponseId: qualtricsData?.responseId,
+        qualtricsSurveyId: qualtricsData?.surveyId,
+        isEmbedded: window.parent !== window,
+      });
+      (window as any)[logKey] = true;
+    }
+  }
+  
   const log = useCallback(async (
     action: string,
     label: string,
@@ -18,7 +34,8 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
   ) => {
     const ipAddress = await getClientIP();
     
-    await logEvent({
+    // Log entry that will be saved to Firestore
+    const logEntry = {
       url: window.location.href,
       identifier,
       articleTitle,
@@ -30,7 +47,20 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
       qualtricsResponseId: qualtricsData.responseId,
       qualtricsSurveyId: qualtricsData.surveyId,
       studyId: effectiveStudyId,
-    });
+    };
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Logger] Logging event:', {
+        action,
+        label,
+        studyId: effectiveStudyId,
+        qualtricsResponseId: qualtricsData.responseId,
+        identifier,
+      });
+    }
+    
+    await logEvent(logEntry);
   }, [qualtricsData, effectiveStudyId]);
 
   const logClick = useCallback(async (

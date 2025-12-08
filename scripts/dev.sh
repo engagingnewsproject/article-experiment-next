@@ -39,4 +39,5 @@ echo "Starting Next.js dev server..."
 # Set Firestore emulator host for Next.js to use
 export FIRESTORE_EMULATOR_HOST=localhost:8080
 export NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST=localhost:8080
+export NEXT_PUBLIC_USE_LIVE_FIRESTORE=false
 npx next dev

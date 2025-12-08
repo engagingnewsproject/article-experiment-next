@@ -69,7 +69,9 @@ interface ArticleContentProps {
       tags?: string[];
     };
     themes: ArticleTheme[],
-    summary: string
+    summary: string;
+    studyId?: string; // Study ID from article document (for logging)
+    siteName?: string; // Site name from project config
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -135,7 +137,7 @@ export function ArticleContent({
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   // Get studyId from article if available, otherwise it will use URL-based studyId
-  const articleStudyId = (article as any).studyId;
+  const articleStudyId = article.studyId;
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId); // ✅ Pass article's studyId to logger
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null); // ✅ Track which article we logged for

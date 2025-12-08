@@ -72,6 +72,20 @@ const isDevelopment = isDevelopmentEnv || isLocalhost;
 const useLiveFirestore = process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE === 'true';
 const shouldUseEmulator = isDevelopment && !useLiveFirestore;
 
+// Debug logging in development
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('[Firebase Config]', {
+    NODE_ENV: process.env.NODE_ENV,
+    isDevelopmentEnv,
+    isLocalhost,
+    isDevelopment,
+    NEXT_PUBLIC_USE_LIVE_FIRESTORE: process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE,
+    useLiveFirestore,
+    shouldUseEmulator,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  });
+}
+
 // Use a global flag to prevent multiple connection attempts (works across hot reloads)
 const globalKey = '__firestoreEmulatorConnected';
 const windowKey = '__firestoreEmulatorConnected';
@@ -81,6 +95,12 @@ const isConnectedServer = typeof global !== 'undefined' && (global as any)[globa
 // Check if already connected (client-side)
 const isConnectedClient = typeof window !== 'undefined' && (window as any)[windowKey];
 const isAlreadyConnected = isConnectedServer || isConnectedClient;
+
+// Log when using live Firestore (not emulator)
+if (!shouldUseEmulator && typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('✅ Using LIVE Firestore (not emulator)');
+  console.log(`   Project: ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'unknown'}`);
+}
 
 // Connect to emulator - must happen on both server and client in Next.js
 if (shouldUseEmulator && !isAlreadyConnected) {

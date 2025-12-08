@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Articles: Public read, restricted write (admin only via Firebase Admin SDK or authenticated users)
+    match /articles/{articleId} {
+      // Anyone can read articles
+      allow read: if true;
+      
+      // Only authenticated admins can write articles
+      // If you don't have Firebase Auth set up, you can temporarily allow writes
+      // but this should be restricted in production
+      allow write: if request.auth != null;
+      
+      // Comments subcollection: Public read and write (users need to comment)
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasAll(['content', 'name', 'upvotes', 'downvotes', 'createdAt'])
+                   && request.resource.data.content is string
+                   && request.resource.data.content.size() > 0
+                   && request.resource.data.content.size() <= 5000
+                   && request.resource.data.name is string
+                   && request.resource.data.name.size() <= 100;
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes']);
+        allow delete: if false; // Comments cannot be deleted by users (only admins)
+        
+        // Replies subcollection: Public read and write
+        match /replies/{replyId} {
+          allow read: if true;
+          allow create: if request.resource.data.keys().hasAll(['content', 'name', 'upvotes', 'downvotes', 'createdAt'])
+                     && request.resource.data.content is string
+                     && request.resource.data.content.size() > 0
+                     && request.resource.data.content.size() <= 5000
+                     && request.resource.data.name is string
+                     && request.resource.data.name.size() <= 100;
+          allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes']);
+          allow delete: if false; // Replies cannot be deleted by users (only admins)
+        }
+      }
+    }
+    
+    // Logs: Public write (for logging user interactions), restricted read
+    match /logs/{logId} {
+      allow read: if request.auth != null; // Only authenticated users can read logs
+      allow create: if request.resource.data.keys().hasAll(['url', 'identifier', 'userId', 'action', 'label', 'details', 'timestamp'])
+                  && request.resource.data.url is string
+                  && request.resource.data.identifier is string
+                  && request.resource.data.userId is string
+                  && request.resource.data.action is string
+                  && request.resource.data.label is string
+                  && request.resource.data.details is string;
+      allow update, delete: if false; // Logs are append-only
+    }
+    
+    // Studies: Admin only (for managing research studies)
+    match /studies/{studyId} {
+      allow read: if true; // Public read (studies are used for filtering)
+      allow write: if request.auth != null; // Only authenticated admins
+    }
+    
+    // Project Configs: Admin only
+    match /projectConfigs/{configId} {
+      allow read: if true; // Public read (configs are used for rendering)
+      allow write: if request.auth != null; // Only authenticated admins
+    }
+    
+    // Authors: Admin only
+    match /authors/{authorId} {
+      allow read: if true; // Public read (author info is displayed)
+      allow write: if request.auth != null; // Only authenticated admins
+    }
+  }
+}

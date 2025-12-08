@@ -4,7 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "sh scripts/dev.sh",
+    "dev": "NODE_ENV=development next dev",
+    "dev:emulator": "sh scripts/dev.sh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -14,8 +15,8 @@
     "export-research": "node scripts/exportResearchData.js",
     "export-google-sheets": "node scripts/exportToGoogleSheets.js",
     "import-data": "node scripts/importFirestoreData.js",
+    "import-data:dev": "node scripts/importFirestoreDataToDev.js",
     "delete-logs-by-ip": "node scripts/deleteLogsByIP.js",
-    "dev:emulator": "concurrently -k -s first -n emulator,import,dev \"npm run emulator\" \"npm run import-data:wait\" \"next dev\"",
     "import-data:wait": "wait-on http://localhost:8080 && sleep 2 && npm run import-data",
     "prod": "next build && next start",
     "import-and-dev": "wait-on http://localhost:8080 && npm run import-data && next dev"

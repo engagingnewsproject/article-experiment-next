@@ -34,7 +34,12 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
     personal: article.author?.bio?.personal || projectConfig.articleConfig.author.bio.personal || '',
     basic: article.author?.bio?.basic || projectConfig.articleConfig.author.bio.basic || ''
   };
-  const authorPhoto = article.author?.photo ? { src: article.author.photo, alt: authorName } : projectConfig.articleConfig.author.image;
+  // Handle both photo (string) and image (object) formats
+  const authorPhoto = (article.author as any)?.photo 
+    ? { src: (article.author as any).photo, alt: authorName } 
+    : (article.author as any)?.image 
+    ? (article.author as any).image 
+    : projectConfig.articleConfig.author.image;
   // Use article's pubdate, or fall back to project config's default pubdate
   const pubdate = article.pubdate || projectConfig.articleConfig.pubdate || '';
   const siteName = (article as any).siteName || projectConfig.siteName || 'The Gazette Star';
@@ -151,7 +156,8 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
           themes: article.themes || [],
           summary: article.summary || '',
           explain_box: article.explain_box || [],
-          metadata: article.metadata
+          metadata: article.metadata,
+          studyId: (article as any).studyId, // ✅ Explicitly preserve studyId for logging
         }} 
         version={version}
         showExplainBox={!!explain_box} 
