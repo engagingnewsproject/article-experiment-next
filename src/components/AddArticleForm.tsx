@@ -232,7 +232,7 @@ function AddArticleFormContent() {
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Explanation Box (Why we wrote this)</label>
         <p className="mb-2 text-xs text-gray-600">
-          Add items that will appear in the "Behind the Story" section when <code className="px-1 bg-gray-100 rounded">?explain_box=show</code> is in the URL.
+          Add items that will appear in the &ldquo;Behind the Story&rdquo; section when <code className="px-1 bg-gray-100 rounded">?explain_box=show</code> is in the URL.
         </p>
         <div className="flex flex-col gap-2">
           {explainBoxItems.map((item, idx) => (

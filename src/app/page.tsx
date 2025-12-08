@@ -23,7 +23,7 @@ import { getSessionFromStorage } from '@/lib/auth';
 import { getArticles, type Article } from '@/lib/firestore';
 import { useStudyId } from '@/hooks/useStudyId';
 import Link from 'next/link';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useCallback } from 'react';
 
 function HomeContent() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -38,7 +38,7 @@ function HomeContent() {
     setIsAuthenticated(!!(session && session.isAuthenticated));
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchArticles = useCallback(async () => {
     try {
       setLoading(true);
       const articlesData = await getArticles(studyId);
@@ -49,11 +49,11 @@ function HomeContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [studyId]);
 
   useEffect(() => {
     fetchArticles();
-  }, [studyId, refreshKey]);
+  }, [fetchArticles, refreshKey]);
 
   // Expose refresh function globally so AddArticleForm can trigger it
   useEffect(() => {

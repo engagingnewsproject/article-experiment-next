@@ -235,7 +235,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <p className="mb-4 text-gray-700">
-                Set default author information, publication dates, site names, and feature flags for each study. Code-defined configs (like 'eonc') cannot be edited here.
+                Set default author information, publication dates, site names, and feature flags for each study. Code-defined configs (like &apos;eonc&apos;) cannot be edited here.
               </p>
               <Link 
                 href="/admin/manage-project-configs"

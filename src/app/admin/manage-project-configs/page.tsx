@@ -171,7 +171,7 @@ export default function ManageProjectConfigsPage() {
 
       <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
         <p className="text-sm text-gray-700">
-          <strong>Note:</strong> Code-defined configs (like 'eonc') cannot be edited or deleted here.
+          <strong>Note:</strong> Code-defined configs (like &apos;eonc&apos;) cannot be edited or deleted here.
           They must be modified in the codebase. Firestore-based configs can be fully managed here.
         </p>
       </div>

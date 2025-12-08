@@ -384,7 +384,7 @@ export default function ManageStudiesPage() {
               <li>Each study has a unique ID used in URLs (e.g., <code className="px-1 bg-blue-100 rounded">?study=eonc</code>)</li>
               <li>Code-defined studies (shown with blue badge) cannot be deleted through this UI</li>
               <li>Config status shows which configuration each study uses: Code-defined, Firestore, or Default</li>
-              <li>To create or edit a study's configuration, go to <a href="/admin/manage-project-configs" className="underline">Manage Study Configs</a></li>
+              <li>To create or edit a study&apos;s configuration, go to <a href="/admin/manage-project-configs" className="underline">Manage Study Configs</a></li>
             </ul>
           </div>
         </div>

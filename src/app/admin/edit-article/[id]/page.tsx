@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { ArticleTheme } from '@/lib/firestore';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function EditArticlePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -120,7 +120,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   };
 
   // Check if there are unsaved changes
-  const hasUnsavedChanges = () => {
+  const hasUnsavedChanges = useCallback(() => {
     if (!article || !originalArticle) return false;
     
     // Compare article fields
@@ -137,7 +137,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     const explainBoxChanged = JSON.stringify(explainBoxItems) !== JSON.stringify(originalExplainBoxItems);
     
     return articleChanged || themesChanged || explainBoxChanged;
-  };
+  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems]);
 
   const handleBackToArticle = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (hasUnsavedChanges()) {
@@ -171,7 +171,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems]);
+  }, [hasUnsavedChanges]);
 
   if (loading) return <div className="p-8">Loading...</div>;
   if (!loading && error) return <div className="p-8 text-red-500">{error}</div>;
@@ -215,7 +215,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
         <div>
           <label className="block mb-2 font-bold">Explanation Box (Why we wrote this)</label>
           <p className="mb-2 text-sm text-gray-600">
-            Add items that will appear in the "Behind the Story" section when <code className="px-1 bg-gray-100 rounded">?explain_box=show</code> is in the URL.
+            Add items that will appear in the &ldquo;Behind the Story&rdquo; section when <code className="px-1 bg-gray-100 rounded">?explain_box=show</code> is in the URL.
           </p>
           <div className="flex flex-col gap-2">
             {explainBoxItems.map((item, idx) => (
