@@ -1,7 +1,5 @@
 # Netlify Dev Environment Setup
 
-Yes! You can set up a dev environment in the same Netlify project using **branch deploys**. This gives you separate URLs for dev and production.
-
 ## How It Works
 
 Netlify can deploy different branches to different URLs:

@@ -1,6 +1,6 @@
 # Dev Firebase Project - Quick Guide
 
-Hey! We've set up a separate Firebase project for development so we can test stuff without messing with production data.
+We've set up a separate Firebase project for development so we can test stuff without messing with production data.
 
 ## What is it?
 
