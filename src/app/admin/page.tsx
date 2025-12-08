@@ -13,6 +13,23 @@ export default function AdminPage() {
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [studiesLoading, setStudiesLoading] = useState(true);
 
+  // Determine Firebase project based on current domain
+  const getFirebaseConsoleUrl = () => {
+    if (typeof window === 'undefined') {
+      // Default to prod on server-side
+      return 'https://console.firebase.google.com/u/0/project/article-experiment-next/firestore/databases/-default-/data/~2Farticles~2F0jwWfOt1afXnhaiYYgnQ';
+    }
+    
+    const hostname = window.location.hostname;
+    const isDev = hostname.includes('dev--') || hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    if (isDev) {
+      return 'https://console.firebase.google.com/u/0/project/article-experiment-next-dev/firestore/databases/-default-/data/~2Farticles';
+    }
+    
+    return 'https://console.firebase.google.com/u/0/project/article-experiment-next/overview';
+  };
+
   useEffect(() => {
     // Check authentication on component mount
     const session = getSessionFromStorage();
@@ -73,7 +90,7 @@ export default function AdminPage() {
             </div>
             <div className="flex space-x-2">
               <a
-                href="https://console.firebase.google.com/u/0/project/article-experiment-next/overview"
+                href={getFirebaseConsoleUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 text-sm text-orange-600 border border-orange-300 rounded-md hover:text-orange-800 hover:bg-orange-50"
