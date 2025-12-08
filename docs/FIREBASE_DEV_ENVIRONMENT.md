@@ -246,8 +246,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Allow read/write for testing (adjust as needed)
+    // Note: For dev environments, you can use permissive rules
+    // For production, use more restrictive rules (see production rules below)
     match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 12, 31);
+      allow read, write: if true;
     }
   }
 }
