@@ -265,6 +265,12 @@ export async function getArticleBySlug(slug: string, studyId?: string): Promise<
   // Get all aliases for this study ID (for backward compatibility)
   const idsToCheck = getStudyIdAliases(studyId);
   
+  // Always include the raw studyId in the check (even if not in validated list)
+  // This handles cases where studyId might exist in database but isn't validated yet
+  if (!idsToCheck.includes(studyId.toLowerCase())) {
+    idsToCheck.push(studyId.toLowerCase());
+  }
+  
   // Check if we're querying for the default study (for backward compatibility with old articles)
   const isDefaultStudy = studyId === DEFAULT_STUDY_ID || idsToCheck.includes(DEFAULT_STUDY_ID);
   
@@ -283,9 +289,9 @@ export async function getArticleBySlug(slug: string, studyId?: string): Promise<
     const articleStudyId = data.studyId;
     
     // Match if:
-    // 1. studyId matches any of the aliases, OR
+    // 1. studyId matches any of the aliases (case-insensitive), OR
     // 2. article has no studyId AND we're querying for the default study (backward compatibility)
-    if (articleStudyId && idsToCheck.includes(articleStudyId)) {
+    if (articleStudyId && idsToCheck.includes(articleStudyId.toLowerCase())) {
       return { id: doc.id, ...data } as Article;
     }
     if (!articleStudyId && isDefaultStudy) {
@@ -297,14 +303,14 @@ export async function getArticleBySlug(slug: string, studyId?: string): Promise<
 }
 
 /**
- * Retrieves comments for a specific article.
+ * Retrieves default comments for a specific article.
  * 
- * Fetches comments from both:
- * 1. The article's default_comments field (for default/pre-seeded comments)
- * 2. The comments subcollection (for user-submitted comments)
+ * Only fetches default comments from the article's default_comments field.
+ * User-submitted comments are not included - they are handled separately
+ * in client-side state for session-only display.
  * 
  * @param {string} articleId - ID of the article
- * @returns {Promise<Comment[]>} Array of comments
+ * @returns {Promise<Comment[]>} Array of default comments only
  * @throws {Error} If database operation fails
  */
 export async function getComments(articleId: string): Promise<Comment[]> {
@@ -314,7 +320,7 @@ export async function getComments(articleId: string): Promise<Comment[]> {
     return [];
   }
   
-  // 1. Get default comments from the article document
+  // Get default comments from the article document only
   const articleRef = doc(db, 'articles', articleId);
   const articleSnap = await getDoc(articleRef);
   
@@ -356,49 +362,9 @@ export async function getComments(articleId: string): Promise<Comment[]> {
     }
   }
   
-  // 2. Get user-submitted comments from the subcollection
-  try {
-    const commentsRef = collection(db, 'articles', articleId, 'comments');
-    const commentsSnapshot = await getDocs(commentsRef);
-    
-    // Process top-level comments and their replies recursively
-    const processComment = async (commentDoc: any, parentId?: string): Promise<Comment> => {
-      const commentData = commentDoc.data();
-      const commentId = commentDoc.id;
-      
-      // Get replies for this comment
-      const repliesRef = collection(db, 'articles', articleId, 'comments', commentId, 'replies');
-      const repliesSnapshot = await getDocs(repliesRef);
-      
-      const replies: Comment[] = [];
-      for (const replyDoc of repliesSnapshot.docs) {
-        const reply = await processComment(replyDoc, commentId);
-        replies.push(reply);
-      }
-      
-      return {
-        id: commentId,
-        content: commentData.content || '',
-        name: commentData.name || 'Anonymous',
-        datePosted: commentData.datePosted || 'Recently',
-        createdAt: commentData.createdAt ? (commentData.createdAt.toDate ? commentData.createdAt.toDate().toISOString() : commentData.createdAt) : undefined,
-        parentId: parentId,
-        upvotes: commentData.upvotes || 0,
-        downvotes: commentData.downvotes || 0,
-        replies: replies.length > 0 ? replies : undefined,
-        qualtricsResponseId: commentData.qualtricsResponseId,
-      } as Comment;
-    };
-    
-    // Process all top-level comments
-    for (const commentDoc of commentsSnapshot.docs) {
-      const comment = await processComment(commentDoc);
-      comments.push(comment);
-    }
-  } catch (error) {
-    console.error('Error fetching comments from subcollection:', error);
-    // Continue with default comments even if subcollection fetch fails
-  }
+  // NOTE: User-submitted comments from subcollection are NOT fetched here.
+  // They are saved to Firebase for research data but only shown in the current
+  // session via client-side state management. Each page load resets to defaults.
   
   return comments;
 }
@@ -618,6 +584,21 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
  * @param {number} value - The value to increment by (positive or negative).
  * @returns {Promise<void>}
  */ 
+/**
+ * Updates vote counts for a comment in Firestore.
+ * 
+ * Note: Votes on default comments (ID starts with "default_") are not saved to the comment document,
+ * but vote actions are still logged to Firebase for research purposes via the logger.
+ * 
+ * This function saves vote data to Firebase for research, but votes on default comments
+ * won't affect the displayed vote counts on future page loads (which always show defaults).
+ * 
+ * @param articleId - The article ID
+ * @param commentId - The comment ID (default comments are skipped)
+ * @param field - 'upvotes' or 'downvotes'
+ * @param value - The increment value (typically 1 or -1)
+ * @param ancestorIds - Optional array of ancestor comment IDs for nested replies
+ */
 export async function updateCommentVotes(
   articleId: string,
   commentId: string,
@@ -625,18 +606,21 @@ export async function updateCommentVotes(
   value: number,
   ancestorIds?: string[]
 ): Promise<void> {
+  // Skip updating default comments (they are immutable baselines)
+  // Vote actions are still logged for research via the logger in CommentVoteSection
   if (commentId.startsWith("default_")) return;
 
   let commentsPath = ['articles', articleId, 'comments'];
-  
+
   if (ancestorIds && ancestorIds.length > 0) {
     ancestorIds.forEach(id => commentsPath.push(id, 'replies'));
   }
   commentsPath.push(commentId);
-  
+
   const commentRef = doc(db, ...commentsPath as [string, ...string[]]);
 
-  // Update vote count
+  // Update vote count in user-submitted comment (for data collection)
+  // Note: These votes won't be displayed on future page loads since we only load defaults
   const commentSnap = await getDoc(commentRef);
   if (!commentSnap.exists()) return;
   await updateDoc(commentRef, {

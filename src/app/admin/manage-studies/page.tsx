@@ -7,15 +7,13 @@
 
 'use client';
 
-import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { Header } from '@/components/Header';
-import { clearSession, getSessionFromStorage } from '@/lib/auth';
+import { signOut, getCurrentUser, onAuthChange, type User } from '@/lib/auth';
 import { deleteStudy, getStudies, saveStudy, Study, getProjectConfigFirestore } from '@/lib/firestore';
 import { CODE_STUDIES, clearStudiesCache } from '@/lib/studies';
 import { useEffect, useState } from 'react';
 
 export default function ManageStudiesPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [studies, setStudies] = useState<Study[]>([]);
   const [configStatuses, setConfigStatuses] = useState<Record<string, 'code-defined' | 'firestore' | 'default'>>({});
@@ -32,12 +30,24 @@ export default function ManageStudiesPage() {
   });
 
   useEffect(() => {
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
+    // Subscribe to Firebase Auth state changes
+    const unsubscribe = onAuthChange((user: User | null) => {
+      if (user && user.email) {
+        setUserEmail(user.email);
+        loadStudies();
+      } else {
+        setUserEmail('');
+      }
+    });
+
+    // Check initial auth state
+    const user = getCurrentUser();
+    if (user && user.email) {
+      setUserEmail(user.email);
       loadStudies();
     }
+
+    return () => unsubscribe();
   }, []);
 
   const loadStudies = async () => {
@@ -82,19 +92,13 @@ export default function ManageStudiesPage() {
     }
   };
 
-  const handleLogin = () => {
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
-      loadStudies();
-    }
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
     setUserEmail('');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,10 +173,6 @@ export default function ManageStudiesPage() {
       setError(err instanceof Error ? err.message : 'Failed to delete study');
     }
   };
-
-  if (!isAuthenticated) {
-    return <ResearchDashboardLogin onLogin={handleLogin} />;
-  }
 
   return (
     <>

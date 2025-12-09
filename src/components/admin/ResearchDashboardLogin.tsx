@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { validateCredentials, createSession, saveSessionToStorage, getAllowedEmails } from '@/lib/auth';
+import { useState } from 'react';
+import { signIn } from '@/lib/auth';
 
 interface ResearchDashboardLoginProps {
   onLogin: () => void;
@@ -12,7 +12,6 @@ export function ResearchDashboardLogin({ onLogin }: ResearchDashboardLoginProps)
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showAllowedEmails, setShowAllowedEmails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,21 +19,20 @@ export function ResearchDashboardLogin({ onLogin }: ResearchDashboardLoginProps)
     setIsLoading(true);
     setError('');
 
-    // Simulate a small delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Sign in with Firebase Authentication
+      await signIn(email, password);
 
-    if (validateCredentials(password, email)) {
-      const session = createSession(email);
-      saveSessionToStorage(session);
+      // Success - callback will be triggered by auth state change
       onLogin();
-    } else {
-      setError('Invalid email or password. Please check your credentials.');
-    }
-
+    } catch (err) {
+      // Handle authentication errors
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in. Please try again.';
+      setError(errorMessage);
+    } finally {
     setIsLoading(false);
+    }
   };
-
-  const allowedEmails = getAllowedEmails();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -64,25 +62,6 @@ export function ResearchDashboardLogin({ onLogin }: ResearchDashboardLoginProps)
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your email"
                 />
-              </div>
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAllowedEmails(!showAllowedEmails)}
-                  className="text-sm text-blue-600 hover:text-blue-500"
-                >
-                  {showAllowedEmails ? 'Hide' : 'Show'} allowed emails
-                </button>
-                {showAllowedEmails && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                    <p className="text-xs text-gray-600 mb-2">Allowed email addresses:</p>
-                    <ul className="text-xs text-gray-700 space-y-1">
-                      {allowedEmails.map((email) => (
-                        <li key={email} className="font-mono">{email}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
 

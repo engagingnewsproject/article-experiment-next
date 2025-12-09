@@ -12,6 +12,7 @@
 
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 /**
  * Firebase configuration object.
@@ -62,6 +63,18 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
  */
 export const db = getFirestore(app);
 
+/**
+ * Firebase Authentication instance.
+ * 
+ * This instance:
+ * - Provides access to Firebase Authentication
+ * - Handles user authentication operations
+ * - Manages user sessions
+ * 
+ * @type {Auth}
+ */
+export const auth = getAuth(app);
+
 // Connect to emulator in development
 // CRITICAL: This must happen BEFORE any Firestore operations
 // In Next.js, check both NODE_ENV and hostname to detect development
@@ -89,6 +102,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 // Use a global flag to prevent multiple connection attempts (works across hot reloads)
 const globalKey = '__firestoreEmulatorConnected';
 const windowKey = '__firestoreEmulatorConnected';
+const authEmulatorKey = '__authEmulatorConnected';
 
 // Check if already connected (server-side)
 const isConnectedServer = typeof global !== 'undefined' && (global as any)[globalKey];
@@ -140,6 +154,37 @@ if (shouldUseEmulator && !isAlreadyConnected) {
       console.error('❌ Failed to connect to Firestore emulator:', error);
       console.error('   Make sure the emulator is running on localhost:8080');
       console.error('   Check: npm run emulator');
+    }
+  }
+}
+
+// Connect to Auth emulator in development
+const isAuthEmulatorConnected = typeof global !== 'undefined' && (global as any)[authEmulatorKey];
+if (shouldUseEmulator && !isAuthEmulatorConnected) {
+  try {
+    // Auth emulator typically runs on port 9099
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    
+    // Mark as connected
+    if (typeof global !== 'undefined') {
+      (global as any)[authEmulatorKey] = true;
+    }
+    
+    if (typeof window !== 'undefined') {
+      console.log('✅ Connected to Auth emulator at localhost:9099');
+    }
+  } catch (error) {
+    const errorMessage = (error as Error).message || '';
+    if (errorMessage.includes('already been called') || errorMessage.includes('already connected')) {
+      if (typeof global !== 'undefined') {
+        (global as any)[authEmulatorKey] = true;
+      }
+      if (typeof window !== 'undefined') {
+        console.log('✅ Auth emulator already connected (from previous load)');
+      }
+    } else {
+      console.error('❌ Failed to connect to Auth emulator:', error);
+      console.error('   Make sure the emulator is running on localhost:9099');
     }
   }
 } 

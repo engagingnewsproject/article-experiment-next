@@ -1,78 +1,170 @@
-// Simple authentication for research dashboard
-// In a production environment, you'd want to use proper authentication
+/**
+ * Firebase Authentication module for research dashboard.
+ * 
+ * This module:
+ * - Provides Firebase Authentication integration
+ * - Manages user authentication state
+ * - Handles session management
+ * 
+ * Access control is managed entirely through Firebase Authentication.
+ * Only users with valid Firebase Auth accounts can access the dashboard.
+ * 
+ * @module auth
+ */
 
-// ============================================================================
-// CONFIGURATION - Update these values as needed
-// ============================================================================
+import { 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  User,
+  onAuthStateChanged,
+  UserCredential
+} from 'firebase/auth';
+import { auth } from './firebase';
 
-// Password from environment variable or fallback
-const RESEARCH_DASHBOARD_PASSWORD = process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_PASSWORD || 'research2025!';
-
-// List of email addresses that are allowed to access the research dashboard
-// In production, set this via environment variable RESEARCH_DASHBOARD_EMAILS (comma-separated)
-const getDefaultEmails = () => [
-  'davlungu3@gmail.com',
-  'luke@lukecarlhartman.com',
-  'researcher@research2025.com'
-];
-
-// Emails from environment variable or fallback
-const ALLOWED_EMAILS = process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_EMAILS 
-  ? process.env.NEXT_PUBLIC_RESEARCH_DASHBOARD_EMAILS.split(',').map(email => email.trim())
-  : getDefaultEmails();
-
-// ============================================================================
-// END CONFIGURATION
-// ============================================================================
-
+/**
+ * Authentication session interface.
+ */
 export interface AuthSession {
   isAuthenticated: boolean;
   email: string;
   timestamp: number;
+  uid?: string;
 }
 
-export function validateCredentials(password: string, email: string): boolean {
-  return password === RESEARCH_DASHBOARD_PASSWORD && ALLOWED_EMAILS.includes(email.toLowerCase());
+/**
+ * Signs in a user with email and password using Firebase Authentication.
+ * 
+ * @param email - User's email address
+ * @param password - User's password
+ * @returns Promise that resolves to UserCredential on success
+ * @throws Error if credentials are invalid
+ */
+export async function signIn(email: string, password: string): Promise<UserCredential> {
+  try {
+    // Sign in with Firebase Auth
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential;
+  } catch (error: unknown) {
+    // Re-throw with more user-friendly message
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Handle common Firebase Auth errors
+    if (errorMessage.includes('auth/user-not-found') || errorMessage.includes('auth/wrong-password')) {
+      throw new Error('Invalid email or password.');
+    } else if (errorMessage.includes('auth/invalid-email')) {
+      throw new Error('Invalid email address.');
+    } else if (errorMessage.includes('auth/too-many-requests')) {
+      throw new Error('Too many failed attempts. Please try again later.');
+    }
+    
+    throw error;
+  }
 }
 
-export function createSession(email: string): AuthSession {
+/**
+ * Signs out the current user.
+ * 
+ * @returns Promise that resolves when sign out is complete
+ */
+export async function signOut(): Promise<void> {
+  await firebaseSignOut(auth);
+}
+
+/**
+ * Gets the current authenticated user.
+ * 
+ * @returns The current User object, or null if not authenticated
+ */
+export function getCurrentUser(): User | null {
+  return auth.currentUser;
+}
+
+/**
+ * Creates an AuthSession object from a Firebase User.
+ * 
+ * @param user - Firebase User object
+ * @returns AuthSession object
+ */
+export function createSessionFromUser(user: User): AuthSession {
+  if (!user.email) {
+    throw new Error('User does not have an email address');
+  }
+  
   return {
     isAuthenticated: true,
-    email: email.toLowerCase(),
+    email: user.email.toLowerCase(),
+    uid: user.uid,
     timestamp: Date.now()
   };
 }
 
-export function getSessionFromStorage(): AuthSession | null {
-  if (typeof window === 'undefined') return null;
-  
-  const sessionData = localStorage.getItem('research-dashboard-session');
-  if (!sessionData) return null;
-  
-  try {
-    const session: AuthSession = JSON.parse(sessionData);
-    // Check if session is still valid (24 hours)
-    if (Date.now() - session.timestamp > 24 * 60 * 60 * 1000) {
-      localStorage.removeItem('research-dashboard-session');
-      return null;
-    }
-    return session;
-  } catch {
-    localStorage.removeItem('research-dashboard-session');
+/**
+ * Gets the current authentication session.
+ * This checks Firebase Auth state synchronously.
+ * 
+ * @returns AuthSession object if authenticated, null otherwise
+ */
+export function getCurrentSession(): AuthSession | null {
+  const user = getCurrentUser();
+  if (!user || !user.email) {
     return null;
   }
+  
+  return createSessionFromUser(user);
 }
 
+/**
+ * Subscribes to authentication state changes.
+ * 
+ * @param callback - Function called when auth state changes
+ * @returns Unsubscribe function
+ */
+export function onAuthChange(callback: (user: User | null) => void): () => void {
+  return onAuthStateChanged(auth, callback);
+}
+
+// Legacy functions for backward compatibility
+// These maintain the same interface as the old password-based auth
+
+/**
+ * @deprecated Use signIn() instead. This is kept for backward compatibility.
+ */
+export function validateCredentials(password: string, email: string): boolean {
+  // This function is no longer used with Firebase Auth
+  // Always return false to force use of Firebase Auth flow
+  return false;
+}
+
+/**
+ * @deprecated Use createSessionFromUser() instead. This is kept for backward compatibility.
+ */
+export function createSession(email: string): AuthSession {
+  // This should not be called directly anymore
+  // Firebase Auth handles session creation
+  throw new Error('createSession() is deprecated. Use Firebase Auth signIn() instead.');
+}
+
+/**
+ * @deprecated Use getCurrentSession() instead. This is kept for backward compatibility.
+ */
+export function getSessionFromStorage(): AuthSession | null {
+  // Check Firebase Auth state instead of localStorage
+  return getCurrentSession();
+}
+
+/**
+ * @deprecated No longer needed with Firebase Auth. This is kept for backward compatibility.
+ */
 export function saveSessionToStorage(session: AuthSession): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('research-dashboard-session', JSON.stringify(session));
+  // Firebase Auth handles session persistence automatically
+  // This is a no-op for backward compatibility
 }
 
-export function clearSession(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('research-dashboard-session');
-}
-
-export function getAllowedEmails(): string[] {
-  return [...ALLOWED_EMAILS];
+/**
+ * Clears the current authentication session by signing out.
+ * 
+ * @deprecated Use signOut() instead. This is kept for backward compatibility.
+ */
+export async function clearSession(): Promise<void> {
+  await signOut();
 } 
