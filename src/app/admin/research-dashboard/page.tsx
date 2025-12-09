@@ -36,7 +36,9 @@
 'use client';
 
 import { StudyDropdown } from '@/components/admin/StudyDropdown';
-import { signOut, getCurrentUser, onAuthChange, type User } from '@/lib/auth';
+import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
+import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
+import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 import { loadStudies, StudyDefinition, getStudyAliases, getStudyName } from '@/lib/studies';
 import DOMPurify from 'dompurify';
@@ -55,8 +57,8 @@ interface LogEntry {
   label: string;
   details: string;
   timestamp: any;
-  qualtricsResponseId?: string; // ✅ Added Qualtrics responseId
-  qualtricsSurveyId?: string; // ✅ Added Qualtrics surveyId
+  qualtricsResponseId?: string;
+  qualtricsSurveyId?: string;
 }
 
 interface Article {
@@ -419,7 +421,7 @@ export default function ResearchDashboard() {
         (log.label && log.label.toLowerCase().includes(searchLower)) ||
         (typeof log.details === 'string' && log.details.toLowerCase().includes(searchLower)) ||
         (log.url && log.url.toLowerCase().includes(searchLower)) ||
-        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower)) // ✅ Added Qualtrics responseId to search
+        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower))
       );
     }
     return true;
@@ -573,8 +575,16 @@ export default function ResearchDashboard() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <ResearchDashboardLogin onLogin={() => setIsAuthenticated(true)} />;
+  if (!userEmail) {
+    return <ResearchDashboardLogin onLogin={() => {
+      // Auth state change will be handled by useEffect
+      const user = getCurrentUser();
+      if (user && user.email) {
+        setUserEmail(user.email);
+        loadData();
+        loadStudiesData();
+      }
+    }} />;
   }
 
   if (loading) {

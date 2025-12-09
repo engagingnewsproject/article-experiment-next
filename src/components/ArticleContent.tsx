@@ -21,7 +21,7 @@ import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
 import { useLogger } from '@/hooks/useLogger';
-import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
+import { type QualtricsData } from '@/hooks/useQualtrics';
 import { type ArticleTheme } from "@/lib/firestore";
 import { Article } from "@/types/article";
 import DOMPurify from 'dompurify';
@@ -106,8 +106,8 @@ interface ArticleContentProps {
     }[];
   }[];
   userId: string;
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
-  isAuthenticated?: boolean; // ✅ Added authentication status prop
+  qualtricsData?: QualtricsData;
+  isAuthenticated?: boolean;
 }
 
 /**
@@ -130,17 +130,17 @@ export function ArticleContent({
   explainBoxValue,
   comments = [],
   userId,
-  qualtricsData, // ✅ Added Qualtrics data parameter
-  isAuthenticated = false, // ✅ Added authentication status parameter
+  qualtricsData,
+  isAuthenticated = false,
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
   const author_bio = searchParams?.get("author_bio") || "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   // Get studyId from article if available, otherwise it will use URL-based studyId
   const articleStudyId = article.studyId;
-  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId); // ✅ Pass article's studyId to logger
+  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId);
   const timeWhenPageOpened = useRef<number>(Date.now());
-  const lastLoggedArticleId = useRef<string | null>(null); // ✅ Track which article we logged for
+  const lastLoggedArticleId = useRef<string | null>(null);
 
   // Log page view when component mounts (only once per article)
   // useEffect(() => {
@@ -304,9 +304,9 @@ export function ArticleContent({
               );
             }}
             userId={userId}
-            qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to Comments
-            studyId={articleStudyId} // ✅ Pass article's studyId to Comments
-            isAuthenticated={isAuthenticated} // ✅ Pass authentication status to Comments
+            qualtricsData={qualtricsData}
+            studyId={articleStudyId}
+            isAuthenticated={isAuthenticated}
           />
         )}
       </article>

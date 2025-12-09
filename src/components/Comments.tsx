@@ -18,7 +18,7 @@ import React, { useState } from "react";
 import { type Comment } from "@/lib/firestore";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentList } from "@/components/CommentList";
-import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
+import { type QualtricsData } from '@/hooks/useQualtrics';
 import styles from "@/components/Comments.module.css";
 
 /**
@@ -38,9 +38,9 @@ interface CommentsProps {
   identifier: string;
   articleTitle: string;
   userId: string;
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  qualtricsData?: QualtricsData;
   studyId?: string; // Article's studyId
-  isAuthenticated?: boolean; // ✅ Added authentication status prop
+  isAuthenticated?: boolean;
   onCommentSubmit?: (name: string, content: string) => void;
 }
 
@@ -70,9 +70,9 @@ export const Comments: React.FC<CommentsProps> = ({
   identifier,
   articleTitle,
   userId,
-  qualtricsData, // ✅ Added Qualtrics data parameter
+  qualtricsData,
   studyId, // Article's studyId
-  isAuthenticated = false, // ✅ Added authentication status parameter
+  isAuthenticated = false,
   onCommentSubmit,
 }) => {
   // Default comments are the baseline - always start fresh with these on page load
@@ -158,8 +158,8 @@ export const Comments: React.FC<CommentsProps> = ({
           studyId={studyId}
           articleTitle={articleTitle}
           userId={userId}
-          qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentList
-          isAuthenticated={isAuthenticated} // ✅ Pass authentication status to CommentList
+          qualtricsData={qualtricsData}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </section>
