@@ -22,7 +22,7 @@ service cloud.firestore {
                    && request.resource.data.name is string
                    && request.resource.data.name.size() <= 100;
         allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes']);
-        allow delete: if false; // Comments cannot be deleted by users (only admins)
+        allow delete: if request.auth != null; // Only authenticated admins can delete comments
         
         // Replies subcollection: Public read and write
         match /replies/{replyId} {
@@ -34,7 +34,7 @@ service cloud.firestore {
                      && request.resource.data.name is string
                      && request.resource.data.name.size() <= 100;
           allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes']);
-          allow delete: if false; // Replies cannot be deleted by users (only admins)
+          allow delete: if request.auth != null; // Only authenticated admins can delete replies
         }
       }
     }

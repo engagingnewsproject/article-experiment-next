@@ -49,8 +49,34 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     fetchArticle();
   }, [id]);
 
+  /**
+   * Converts text to a URL-friendly slug format.
+   * 
+   * @param text - The text to convert to a slug
+   * @returns The slugified text (lowercase, hyphen-separated, special chars removed)
+   */
+  const slugify = (text: string): string => {
+    return text
+      .toLowerCase() // Convert to lowercase
+      .trim() // Remove leading/trailing whitespace
+      .replace(/[^\w\s-]/g, '') // Remove special characters (keep alphanumeric, spaces, hyphens)
+      .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with a single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+  };
+
   const handleChange = (field: string, value: any) => {
     setArticle((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  /**
+   * Handles slug input changes and converts text to slug format.
+   * 
+   * @param value - The input value to slugify
+   */
+  const handleSlugChange = (value: string) => {
+    const slugified = slugify(value);
+    handleChange('slug', slugified);
   };
 
   const handleThemeContentChange = (index: number, value: string) => {
@@ -199,10 +225,19 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           <input
             type="text"
             value={article.slug || ''}
-            onChange={e => handleChange('slug', e.target.value)}
+            onChange={e => handleSlugChange(e.target.value)}
+            onPaste={(e) => {
+              e.preventDefault();
+              const pastedText = e.clipboardData.getData('text');
+              handleSlugChange(pastedText);
+            }}
             className="w-full px-3 py-2 border rounded"
+            placeholder="article-title-slug"
             required
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Text will be automatically converted to lowercase, hyphen-separated format
+          </p>
         </div>
         <div>
           <label className="block mb-2 font-bold">Summary</label>

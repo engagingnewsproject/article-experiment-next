@@ -1,64 +1,75 @@
 'use client';
 
-import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { Header } from '@/components/Header';
-import { clearSession, getSessionFromStorage } from '@/lib/auth';
+import { signOut, onAuthChange, getCurrentUser } from '@/lib/auth';
+import type { User } from 'firebase/auth';
 import { loadStudies, StudyDefinition } from '@/lib/studies';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [studiesLoading, setStudiesLoading] = useState(true);
 
-  useEffect(() => {
-    // Check authentication on component mount
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
+  // Determine Firebase project based on current domain
+  const getFirebaseConsoleUrl = () => {
+    if (typeof window === 'undefined') {
+      // Default to prod on server-side
+      return 'https://console.firebase.google.com/u/0/project/article-experiment-next/firestore/databases/-default-/data/~2Farticles~2F0jwWfOt1afXnhaiYYgnQ';
     }
-  }, []);
+    
+    const hostname = window.location.hostname;
+    const isDev = hostname.includes('dev--') || hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    if (isDev) {
+      return 'https://console.firebase.google.com/u/0/project/article-experiment-next-dev/firestore/databases/-default-/data/~2Farticles';
+    }
+    
+    return 'https://console.firebase.google.com/u/0/project/article-experiment-next/overview';
+  };
 
   useEffect(() => {
-    // Load studies from Firestore when component mounts or when authenticated
-    if (isAuthenticated) {
-      const fetchStudies = async () => {
+    // Subscribe to Firebase Auth state changes to get user email
+    const unsubscribe = onAuthChange((user: User | null) => {
+      if (user && user.email) {
+        setUserEmail(user.email);
+        loadStudiesData();
+      } else {
+        setUserEmail('');
+      }
+    });
+
+    // Load studies on mount (auth is already handled by layout)
+    const user = getCurrentUser();
+    if (user && user.email) {
+      setUserEmail(user.email);
+      loadStudiesData();
+    }
+
+    return () => unsubscribe();
+  }, []);
+
+  const loadStudiesData = async () => {
         try {
           setStudiesLoading(true);
           const loadedStudies = await loadStudies();
           setStudies(loadedStudies);
         } catch (error) {
           console.error('Error loading studies:', error);
-          // Fallback to empty array or code-defined studies
           setStudies([]);
         } finally {
           setStudiesLoading(false);
         }
       };
-      fetchStudies();
-    }
-  }, [isAuthenticated]);
 
-  const handleLogin = () => {
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
-    }
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    setIsAuthenticated(false);
-    setUserEmail('');
-  };
-
-  if (!isAuthenticated) {
-    return <ResearchDashboardLogin onLogin={handleLogin} />;
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
   }
+  };
 
   return (
     <>
@@ -73,7 +84,7 @@ export default function AdminPage() {
             </div>
             <div className="flex space-x-2">
               <a
-                href="https://console.firebase.google.com/u/0/project/article-experiment-next/overview"
+                href={getFirebaseConsoleUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 text-sm text-orange-600 border border-orange-300 rounded-md hover:text-orange-800 hover:bg-orange-50"
@@ -179,7 +190,7 @@ export default function AdminPage() {
                     return (
                       <Link 
                         key={study.id}
-                        href={`/?study=${study.id}`}
+                        href={`/admin/articles?study=${study.id}`}
                         className={`w-full inline-flex items-center justify-center px-4 py-2 ${colorClasses} !text-white rounded-md`}
                       >
                         Manage {study.name} Articles

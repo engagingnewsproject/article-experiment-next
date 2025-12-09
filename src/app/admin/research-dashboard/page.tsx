@@ -35,9 +35,8 @@
 
 'use client';
 
-import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { StudyDropdown } from '@/components/admin/StudyDropdown';
-import { clearSession, getSessionFromStorage } from '@/lib/auth';
+import { signOut, getCurrentUser, onAuthChange, type User } from '@/lib/auth';
 import { db } from '@/lib/firebase';
 import { loadStudies, StudyDefinition, getStudyAliases, getStudyName } from '@/lib/studies';
 import DOMPurify from 'dompurify';
@@ -116,7 +115,6 @@ function matchesStudy(studyId: string | undefined, selectedStudy: string): boole
 }
 
 export default function ResearchDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -156,21 +154,32 @@ export default function ResearchDashboard() {
   const [commentSort, setCommentSort] = useState('date-desc');
 
   useEffect(() => {
-    // Check authentication on component mount
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
+    // Subscribe to Firebase Auth state changes to get user email (auth is handled by layout)
+    const unsubscribe = onAuthChange((user: User | null) => {
+      if (user && user.email) {
+        setUserEmail(user.email);
       loadData();
+        loadStudiesData();
+    } else {
+        setUserEmail('');
+      setLoading(false);
+    }
+    });
+
+    // Check initial auth state and load data
+    const user = getCurrentUser();
+    if (user && user.email) {
+      setUserEmail(user.email);
+      loadData();
+      loadStudiesData();
     } else {
       setLoading(false);
     }
+
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    // Load studies from Firestore when authenticated
-    if (isAuthenticated) {
-      const fetchStudies = async () => {
+  const loadStudiesData = async () => {
         try {
           const loadedStudies = await loadStudies();
           setStudies(loadedStudies);
@@ -179,27 +188,18 @@ export default function ResearchDashboard() {
           setStudies([]);
         }
       };
-      fetchStudies();
-    }
-  }, [isAuthenticated]);
 
-  const handleLogin = () => {
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
-      loadData();
-    }
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
     setUserEmail('');
     setStats(null);
     setLogs([]);
     setArticles([]);
     setComments([]);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const loadData = async () => {
@@ -574,7 +574,7 @@ export default function ResearchDashboard() {
   }
 
   if (!isAuthenticated) {
-    return <ResearchDashboardLogin onLogin={handleLogin} />;
+    return <ResearchDashboardLogin onLogin={() => setIsAuthenticated(true)} />;
   }
 
   if (loading) {

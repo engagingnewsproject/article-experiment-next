@@ -102,6 +102,32 @@ function AddArticleFormContent() {
   };
 
   /**
+   * Converts text to a URL-friendly slug format.
+   * 
+   * @param text - The text to convert to a slug
+   * @returns The slugified text (lowercase, hyphen-separated, special chars removed)
+   */
+  const slugify = (text: string): string => {
+    return text
+      .toLowerCase() // Convert to lowercase
+      .trim() // Remove leading/trailing whitespace
+      .replace(/[^\w\s-]/g, '') // Remove special characters (keep alphanumeric, spaces, hyphens)
+      .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with a single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+  };
+
+  /**
+   * Handles slug input changes and converts text to slug format.
+   * 
+   * @param value - The input value to slugify
+   */
+  const handleSlugChange = (value: string) => {
+    const slugified = slugify(value);
+    setSlug(slugified);
+  };
+
+  /**
    * Handles form submission.
    * 
    * This function:
@@ -201,10 +227,19 @@ function AddArticleFormContent() {
         <input
           type="text"
           value={slug}
-          onChange={(e) => setSlug(e.target.value)}
+          onChange={(e) => handleSlugChange(e.target.value)}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData('text');
+            handleSlugChange(pastedText);
+          }}
           className="block w-full mt-1 border border-gray-300 rounded-md shadow-sm px-2 py-1"
+          placeholder="article-title-slug"
           required
         />
+        <p className="mt-1 text-xs text-gray-500">
+          Text will be automatically converted to lowercase, hyphen-separated format
+        </p>
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Content*</label>

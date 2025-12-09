@@ -54,6 +54,13 @@ interface CommentsProps {
  * - Manages form state and submission
  * - Uses CSS modules for styling
  * 
+ * IMPORTANT: Comments display behavior:
+ * - Page loads show ONLY default comments (from article.default_comments)
+ * - User interactions (comments, replies, votes) are shown only in the current session
+ * - All user interactions are saved to Firebase for research data collection
+ * - On page refresh, the article resets to its default state
+ * - Each survey participant sees the article in its original form
+ * 
  * @param {CommentsProps} props - Component props
  * @returns {JSX.Element} The rendered comments section
  */
@@ -68,13 +75,20 @@ export const Comments: React.FC<CommentsProps> = ({
   isAuthenticated = false, // ✅ Added authentication status parameter
   onCommentSubmit,
 }) => {
+  // Default comments are the baseline - always start fresh with these on page load
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
+  
+  // Local comments include defaults + user's session interactions (comments, replies)
+  // This is what gets displayed and modified during the session
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
 
-  // Update defaultComments and localComments when comments prop changes
+  // When comments prop changes (page load/refresh), reset to defaults only
+  // This ensures each viewer sees the article in its original state
   React.useEffect(() => {
-    setDefaultComments(comments);
-    setLocalComments(comments);
+    // Deep clone to create a fresh copy of default comments
+    const clonedDefaults = JSON.parse(JSON.stringify(comments));
+    setDefaultComments(clonedDefaults);
+    setLocalComments(clonedDefaults);
   }, [comments]);
 
   const handleCommentSubmitted = async (newComment: Comment) => {
