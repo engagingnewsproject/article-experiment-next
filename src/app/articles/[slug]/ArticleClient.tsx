@@ -20,7 +20,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
   let version = searchParams?.get('version') || '3';
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
-  const { qualtricsData } = useQualtrics(); // ✅ Added Qualtrics data hook
+  const { qualtricsData } = useQualtrics();
   const { studyId } = useStudyId();
   
   // Get project config for fallback values (pubdate, siteName, author)
@@ -157,15 +157,15 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
           summary: article.summary || '',
           explain_box: article.explain_box || [],
           metadata: article.metadata,
-          studyId: (article as any).studyId, // ✅ Explicitly preserve studyId for logging
+          studyId: (article as any).studyId,
         }} 
         version={version}
         showExplainBox={!!explain_box} 
         explainBoxValue={explain_box || ''}
         comments={formattedComments}
         userId={userId || 'anonymous'}
-        qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to ArticleContent
-        isAuthenticated={isAuthenticated} // ✅ Pass authentication status to ArticleContent
+        qualtricsData={qualtricsData}
+        isAuthenticated={isAuthenticated}
       />
     </div>
   );

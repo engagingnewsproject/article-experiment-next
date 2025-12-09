@@ -8,11 +8,15 @@
 import { Header } from '@/components/Header';
 import { getCurrentSession } from '@/lib/auth';
 import { useStudyId } from '@/hooks/useStudyId';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function Home() {
+/**
+ * Client component that handles redirect logic using search params.
+ * Must be wrapped in Suspense because it uses useSearchParams().
+ */
+function HomeContent() {
   const router = useRouter();
   const { studyId } = useStudyId();
   const session = getCurrentSession();
@@ -42,5 +46,21 @@ export default function Home() {
         </Link>
       </div>
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <>
+        <Header />
+        <div className="max-w-4xl mx-auto p-8 text-center">
+          <h1 className="text-4xl font-bold mb-4">Article Experiment</h1>
+          <p className="text-gray-600 mb-8">Loading...</p>
+        </div>
+      </>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

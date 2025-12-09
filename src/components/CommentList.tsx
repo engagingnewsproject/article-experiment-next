@@ -18,7 +18,7 @@ import { CommentReplyForm } from "@/components/CommentReplyForm";
 import { createCookie, deleteCookie } from "@/components/Comments";
 import { CommentVoteSection } from "@/components/CommentVoteSection";
 import { useLogger } from '@/hooks/useLogger';
-import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
+import { type QualtricsData } from '@/hooks/useQualtrics';
 import { deleteComment, saveComment, type Comment } from "@/lib/firestore";
 import DOMPurify from "dompurify";
 import React, { useState } from "react";
@@ -36,7 +36,7 @@ interface CommentListProps {
   /** Unique identifier for the user */
   userId: string;
   /** Qualtrics survey data */
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  qualtricsData?: QualtricsData;
   /** Article's studyId */
   studyId?: string;
   /** Whether the user is authenticated (for showing delete buttons) */
@@ -64,7 +64,7 @@ const CommentNode: React.FC<{
   /** Unique identifier for the user */
   userId: string;
   /** Qualtrics survey data */
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  qualtricsData?: QualtricsData;
   /** Article's studyId */
   studyId?: string;
   /** Whether the user is authenticated (for showing delete buttons) */
@@ -87,7 +87,7 @@ const CommentNode: React.FC<{
   const [replyName, setReplyName] = useState(anonymous ? "Anonymous" : "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { logComment } = useLogger(qualtricsData || {}, studyId); // ✅ Pass article's studyId to logger
+  const { logComment } = useLogger(qualtricsData || {}, studyId);
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,7 +216,7 @@ const CommentNode: React.FC<{
               identifier={identifier}
               articleTitle={articleTitle}
               userId={userId}
-              qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
+              qualtricsData={qualtricsData}
               studyId={studyId}
               isAuthenticated={isAuthenticated}
               onCommentRemoved={onCommentRemoved}
@@ -249,9 +249,9 @@ export const CommentList: React.FC<CommentListProps> = ({
   identifier,
   articleTitle,
   userId,
-  qualtricsData, // ✅ Added Qualtrics data parameter
+  qualtricsData,
   studyId, // Article's studyId
-  isAuthenticated = false, // ✅ Added authentication status parameter
+  isAuthenticated = false,
   onCommentRemoved,
   onReply,
 }) => {
@@ -280,7 +280,7 @@ export const CommentList: React.FC<CommentListProps> = ({
           identifier={identifier}
           articleTitle={articleTitle}
           userId={userId}
-          qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentNode
+          qualtricsData={qualtricsData}
           studyId={studyId}
           isAuthenticated={isAuthenticated}
           onCommentRemoved={onCommentRemoved}

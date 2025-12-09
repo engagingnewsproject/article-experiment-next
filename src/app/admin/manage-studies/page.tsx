@@ -8,7 +8,8 @@
 'use client';
 
 import { Header } from '@/components/Header';
-import { signOut, getCurrentUser, onAuthChange, type User } from '@/lib/auth';
+import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
+import { User } from 'firebase/auth';
 import { deleteStudy, getStudies, saveStudy, Study, getProjectConfigFirestore } from '@/lib/firestore';
 import { CODE_STUDIES, clearStudiesCache } from '@/lib/studies';
 import { useEffect, useState } from 'react';

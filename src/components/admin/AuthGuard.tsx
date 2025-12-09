@@ -10,7 +10,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthChange, getCurrentUser, type User } from '@/lib/auth';
+import { onAuthChange, getCurrentUser } from '@/lib/auth';
+import { User } from 'firebase/auth';
 import { ResearchDashboardLogin } from './ResearchDashboardLogin';
 
 interface AuthGuardProps {
