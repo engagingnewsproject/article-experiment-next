@@ -27,6 +27,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ArticleClient from './ArticleClient';
 import { useStudyId } from '@/hooks/useStudyId';
+import { getStudyDefaults } from '@/lib/studies';
+import { type ArticleConfig } from '@/lib/config';
 
 /**
  * Converts Firestore Timestamp to ISO string
@@ -79,6 +81,7 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [studyDefaults, setStudyDefaults] = useState<ArticleConfig | null>(null);
   const searchParams = useSearchParams();
   const studyParam = searchParams?.get('study');
   // Only use studyId if explicitly provided in URL, otherwise treat as "no filter" (undefined)
@@ -149,6 +152,16 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
     setIsAuthenticated(!!(session && session.isAuthenticated));
   }, []);
 
+  // Load study defaults asynchronously
+  useEffect(() => {
+    async function loadDefaults() {
+      const effectiveStudyId = studyId || defaultStudyId;
+      const defaults = await getStudyDefaults(effectiveStudyId);
+      setStudyDefaults(defaults);
+    }
+    loadDefaults();
+  }, [studyId, defaultStudyId]);
+
   if (!params.slug) {
     return (
       <div className="max-w-4xl p-4 mx-auto">
@@ -188,8 +201,12 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
     );
   }
 
-  // Get siteName from article (stored from project config at creation) or fallback
-  const siteName = (article as any)?.siteName || 'The Gazette Star';
+  // Priority: article siteName first (if it exists), then study defaults siteName, then default
+  // This maintains backward compatibility - articles with stored siteName keep it,
+  // but articles without stored siteName use the study defaults
+  const siteName = (article as any)?.siteName 
+    || studyDefaults?.siteName 
+    || 'The Gazette Star';
 
   return (
     <div className="max-w-4xl p-4 mx-auto" data-article-id={article?.id}>

@@ -5,7 +5,8 @@ import { type Article, type Comment } from '@/lib/firestore';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useQualtrics } from '@/hooks/useQualtrics';
-import { getProjectConfig } from '@/lib/projectConfig';
+import { getStudyDefaults } from '@/lib/studies';
+import { type ArticleConfig } from '@/lib/config';
 import { useStudyId } from '@/hooks/useStudyId';
 
 interface ArticleClientProps {
@@ -16,6 +17,7 @@ interface ArticleClientProps {
 
 function ArticleContentWithParams({ article, comments, isAuthenticated }: ArticleClientProps) {
   const [userId, setUserId] = useState('anonymous')
+  const [studyDefaults, setStudyDefaults] = useState<ArticleConfig | null>(null);
   const searchParams = useSearchParams();
   let version = searchParams?.get('version') || '3';
   const explain_box = searchParams?.get('explain_box') || '';
@@ -23,26 +25,49 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
   const { qualtricsData } = useQualtrics();
   const { studyId } = useStudyId();
   
-  // Get project config for fallback values (pubdate, siteName, author)
-  const projectConfig = getProjectConfig(studyId);
+  // Load study defaults asynchronously
+  useEffect(() => {
+    async function loadDefaults() {
+      const defaults = await getStudyDefaults(studyId);
+      setStudyDefaults(defaults);
+    }
+    loadDefaults();
+  }, [studyId]);
   
-  // Use the article's stored author data (from project config at creation time)
-  // This ensures custom project configs are reflected in the rendered article
-  // Fall back to project config if article doesn't have author data
-  const authorName = article.author?.name || projectConfig.articleConfig.author.name || 'Staff Reporter';
+  // Priority: Article values first (if they exist), then fall back to study defaults
+  // This maintains backward compatibility - articles with stored values keep them,
+  // but articles without stored values use the study defaults
+  const authorName = article.author?.name 
+    || studyDefaults?.author.name 
+    || 'Staff Reporter';
+  
   const authorBio = {
-    personal: article.author?.bio?.personal || projectConfig.articleConfig.author.bio.personal || '',
-    basic: article.author?.bio?.basic || projectConfig.articleConfig.author.bio.basic || ''
+    personal: article.author?.bio?.personal 
+      || studyDefaults?.author.bio.personal 
+      || '',
+    basic: article.author?.bio?.basic 
+      || studyDefaults?.author.bio.basic 
+      || ''
   };
+  
   // Handle both photo (string) and image (object) formats
+  // Priority: article photo/image, then study defaults image, then default
   const authorPhoto = (article.author as any)?.photo 
     ? { src: (article.author as any).photo, alt: authorName } 
     : (article.author as any)?.image 
     ? (article.author as any).image 
-    : projectConfig.articleConfig.author.image;
-  // Use article's pubdate, or fall back to project config's default pubdate
-  const pubdate = article.pubdate || projectConfig.articleConfig.pubdate || '';
-  const siteName = (article as any).siteName || projectConfig.siteName || 'The Gazette Star';
+    : studyDefaults?.author.image 
+    || { src: '/images/author-image.jpg', alt: authorName };
+  
+  // Priority: article pubdate, then study defaults pubdate, then empty
+  const pubdate = article.pubdate 
+    || studyDefaults?.pubdate 
+    || '';
+  
+  // Priority: article siteName, then study defaults siteName, then default
+  const siteName = (article as any).siteName 
+    || studyDefaults?.siteName 
+    || 'The Gazette Star';
 
   function generateUUID(): string {
   const prefix = "user";

@@ -15,8 +15,8 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useState, Suspense, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { useStudyId } from '@/hooks/useStudyId';
-import { getProjectConfig, getProjectConfigAsync } from '@/lib/projectConfig';
-import { getStudyName } from '@/lib/studies';
+import { getStudyName, getStudyDefaults } from '@/lib/studies';
+import { type ArticleConfig } from '@/lib/config';
 import { InsertImageButton } from '@/components/admin/InsertImageButton';
 
 /**
@@ -33,7 +33,7 @@ import { InsertImageButton } from '@/components/admin/InsertImageButton';
  */
 function AddArticleFormContent() {
   const { studyId } = useStudyId();
-  const [projectConfig, setProjectConfig] = useState(getProjectConfig(studyId));
+  const [studyDefaults, setStudyDefaults] = useState<ArticleConfig | null>(null);
   const [studyName, setStudyName] = useState(getStudyName(studyId));
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -44,13 +44,13 @@ function AddArticleFormContent() {
   const [explainBoxItems, setExplainBoxItems] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Load project config asynchronously to ensure we get Firestore configs if available
+  // Load study defaults asynchronously
   useEffect(() => {
-    async function loadConfig() {
-      const config = await getProjectConfigAsync(studyId);
-      setProjectConfig(config);
+    async function loadDefaults() {
+      const defaults = await getStudyDefaults(studyId);
+      setStudyDefaults(defaults);
     }
-    loadConfig();
+    loadDefaults();
   }, [studyId]);
 
   /**
@@ -66,6 +66,10 @@ function AddArticleFormContent() {
    * @returns {Promise<void>} A promise that resolves when the article is added
    */
   const addArticle = async (title: string, slug: string, content: string, summary: string, themes: ArticleTheme[] | null, explainBoxItems: string[], studyId: string) => {
+    if (!studyDefaults) {
+      throw new Error('Study defaults not loaded yet');
+    }
+    
     const articlesCollection = collection(db, 'articles');
     const articleData = {
       title,
@@ -77,9 +81,9 @@ function AddArticleFormContent() {
       studyId, // Assign the study ID
       comments_display: true,
       anonymous: false,
-      pubdate: projectConfig.articleConfig.pubdate,
-      author: projectConfig.articleConfig.author,
-      siteName: projectConfig.siteName, // Store site name from project config
+      pubdate: studyDefaults.pubdate,
+      author: studyDefaults.author,
+      siteName: studyDefaults.siteName, // Store site name from study defaults
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -180,7 +184,7 @@ function AddArticleFormContent() {
         (window as any).refreshArticleList();
       }
       
-      alert(`Article added successfully to ${projectConfig.name}!\nArticle ID: ${articleId}`);
+      alert(`Article added successfully to ${studyName}!\nArticle ID: ${articleId}`);
     } catch (err) {
       console.error('❌ Error adding article:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
