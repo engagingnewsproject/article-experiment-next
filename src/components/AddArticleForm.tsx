@@ -105,26 +105,47 @@ function AddArticleFormContent() {
    * Converts text to a URL-friendly slug format.
    * 
    * @param text - The text to convert to a slug
+   * @param preserveHyphens - If true, preserves trailing/leading hyphens (for typing)
    * @returns The slugified text (lowercase, hyphen-separated, special chars removed)
    */
-  const slugify = (text: string): string => {
-    return text
+  const slugify = (text: string, preserveHyphens: boolean = false): string => {
+    let result = text
       .toLowerCase() // Convert to lowercase
       .trim() // Remove leading/trailing whitespace
       .replace(/[^\w\s-]/g, '') // Remove special characters (keep alphanumeric, spaces, hyphens)
       .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with a single hyphen
-      .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+      .replace(/-+/g, '-'); // Replace multiple hyphens with a single hyphen
+    
+    // Only remove leading/trailing hyphens if not preserving them (e.g., during typing)
+    if (!preserveHyphens) {
+      result = result.replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+    }
+    
+    return result;
   };
 
   /**
    * Handles slug input changes and converts text to slug format.
+   * Preserves hyphens during typing to allow users to type them freely.
    * 
    * @param value - The input value to slugify
    */
   const handleSlugChange = (value: string) => {
-    const slugified = slugify(value);
+    // Preserve hyphens during typing so users can type them
+    const slugified = slugify(value, true);
     setSlug(slugified);
+  };
+
+  /**
+   * Handles slug input blur event and finalizes the slug format.
+   * Removes trailing/leading hyphens when user finishes editing.
+   */
+  const handleSlugBlur = () => {
+    if (slug) {
+      // Finalize slug by removing trailing/leading hyphens
+      const finalized = slugify(slug, false);
+      setSlug(finalized);
+    }
   };
 
   /**
@@ -143,7 +164,9 @@ function AddArticleFormContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const articleId = await addArticle(title, slug, content, summary, themes, explainBoxItems, studyId);
+      // Finalize slug by removing trailing/leading hyphens before saving
+      const finalizedSlug = slug ? slugify(slug, false) : slug;
+      const articleId = await addArticle(title, finalizedSlug, content, summary, themes, explainBoxItems, studyId);
       setTitle('');
       setSlug('');
       setContent('');
@@ -228,6 +251,7 @@ function AddArticleFormContent() {
           type="text"
           value={slug}
           onChange={(e) => handleSlugChange(e.target.value)}
+          onBlur={handleSlugBlur}
           onPaste={(e) => {
             e.preventDefault();
             const pastedText = e.clipboardData.getData('text');

@@ -149,18 +149,29 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
         label: theme.label || '',
         content: theme.content
       }));
+      const filteredExplainBoxItems = explainBoxItems.filter(item => item.trim().length > 0);
       // Finalize slug by removing trailing/leading hyphens before saving
       const finalizedSlug = article.slug ? slugify(article.slug, false) : article.slug;
-      await updateDoc(docRef, {
+      
+      // Create the finalized article object with all saved values
+      const finalizedArticle = {
         ...article,
         slug: finalizedSlug,
         themes: mappedThemes,
-        explain_box: explainBoxItems.filter(item => item.trim().length > 0),
-      });
-      // Update original state after successful save
-      setOriginalArticle({ ...article });
+        explain_box: filteredExplainBoxItems,
+      };
+      
+      await updateDoc(docRef, finalizedArticle);
+      
+      // Update both article and originalArticle states with the finalized values
+      // Also update themes and explainBoxItems to match what was saved (filtered versions)
+      // This ensures hasUnsavedChanges() will return false after saving
+      setArticle(finalizedArticle);
+      setOriginalArticle({ ...finalizedArticle });
+      setThemes([...mappedThemes]);
       setOriginalThemes([...mappedThemes]);
-      setOriginalExplainBoxItems([...explainBoxItems.filter(item => item.trim().length > 0)]);
+      setExplainBoxItems([...filteredExplainBoxItems]);
+      setOriginalExplainBoxItems([...filteredExplainBoxItems]);
       setSuccess('Article updated successfully!');
     } catch (err) {
       setError('Error updating article');
