@@ -686,11 +686,30 @@ await updateArticleWithDefaultComments('your-article-id', defaultComments);
 
 /**
  * Study type definition for Firestore.
+ * 
+ * Studies can have optional defaults for author, publication date, and site name.
+ * These defaults are used when creating new articles for the study.
  */
 export type Study = {
   id: string;
   name: string;
   aliases?: string[];
+  /** Optional author defaults (used when creating new articles) */
+  author?: {
+    name: string;
+    bio: {
+      personal: string;
+      basic: string;
+    };
+    image: {
+      src: string;
+      alt: string;
+    };
+  };
+  /** Optional publication date default (used when creating new articles) */
+  pubdate?: string;
+  /** Optional site name default (used when creating new articles) */
+  siteName?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -748,6 +767,17 @@ export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): 
     studyData.aliases = study.aliases;
   }
   
+  // Include optional defaults if provided
+  if (study.author) {
+    studyData.author = study.author;
+  }
+  if (study.pubdate) {
+    studyData.pubdate = study.pubdate;
+  }
+  if (study.siteName) {
+    studyData.siteName = study.siteName;
+  }
+  
   if (!existingStudy) {
     studyData.createdAt = serverTimestamp() as Timestamp;
   }
@@ -764,109 +794,4 @@ export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): 
 export async function deleteStudy(studyId: string): Promise<void> {
   const studyRef = doc(db, 'studies', studyId);
   await deleteDoc(studyRef);
-}
-
-/**
- * ProjectConfig type definition for Firestore.
- * This matches the ProjectConfig interface from projectConfig.ts
- */
-export type ProjectConfigFirestore = {
-  studyId: string; // The study ID this config belongs to
-  name: string;
-  siteName: string;
-  articleConfig: {
-    author: {
-      name: string;
-      bio: {
-        personal: string;
-        basic: string;
-      };
-      image: {
-        src: string;
-        alt: string;
-      };
-    };
-    pubdate: string;
-    siteName: string;
-  };
-  usesAuthorVariations?: boolean;
-  usesExplainBox?: boolean;
-  usesCommentVariations?: boolean;
-  usesSummaries?: boolean;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-};
-
-/**
- * Gets a project config by study ID from Firestore.
- * 
- * @param studyId - The study ID
- * @returns The project config, or null if not found
- */
-export async function getProjectConfigFirestore(studyId: string): Promise<ProjectConfigFirestore | null> {
-  const configRef = doc(db, 'projectConfigs', studyId);
-  const configSnap = await getDoc(configRef);
-  if (!configSnap.exists()) {
-    return null;
-  }
-  return {
-    studyId: configSnap.id,
-    ...configSnap.data()
-  } as ProjectConfigFirestore;
-}
-
-/**
- * Gets all study configs from Firestore.
- * 
- * @returns Array of all study configs
- */
-export async function getAllProjectConfigsFirestore(): Promise<ProjectConfigFirestore[]> {
-  const configsRef = collection(db, 'projectConfigs');
-  const querySnapshot = await getDocs(configsRef);
-  return querySnapshot.docs.map(doc => ({
-    studyId: doc.id,
-    ...doc.data()
-  })) as ProjectConfigFirestore[];
-}
-
-/**
- * Creates or updates a project config in Firestore.
- * 
- * @param config - The project config data
- * @returns The study ID
- */
-export async function saveProjectConfigFirestore(
-  config: Omit<ProjectConfigFirestore, 'createdAt' | 'updatedAt'>
-): Promise<string> {
-  const configRef = doc(db, 'projectConfigs', config.studyId);
-  const existingConfig = await getProjectConfigFirestore(config.studyId);
-  
-  const configData: Partial<ProjectConfigFirestore> = {
-    studyId: config.studyId,
-    name: config.name,
-    siteName: config.siteName,
-    articleConfig: config.articleConfig,
-    usesAuthorVariations: config.usesAuthorVariations,
-    usesExplainBox: config.usesExplainBox,
-    usesCommentVariations: config.usesCommentVariations,
-    usesSummaries: config.usesSummaries,
-    updatedAt: serverTimestamp() as Timestamp,
-  };
-  
-  if (!existingConfig) {
-    configData.createdAt = serverTimestamp() as Timestamp;
-  }
-  
-  await setDoc(configRef, configData, { merge: true });
-  return config.studyId;
-}
-
-/**
- * Deletes a project config from Firestore.
- * 
- * @param studyId - The study ID to delete the config for
- */
-export async function deleteProjectConfigFirestore(studyId: string): Promise<void> {
-  const configRef = doc(db, 'projectConfigs', studyId);
-  await deleteDoc(configRef);
 }

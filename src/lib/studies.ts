@@ -7,8 +7,8 @@
  * @module studies
  */
 
-import { ProjectConfig, getProjectConfig } from './projectConfig';
-import { getStudies as getFirestoreStudies } from './firestore';
+import { getStudies as getFirestoreStudies, getStudy, type Study } from './firestore';
+import { defaultConfig, type ArticleConfig } from './config';
 
 /**
  * Study definition interface.
@@ -115,21 +115,6 @@ export function clearStudiesCache(): void {
   studiesLoadPromise = null;
 }
 
-/**
- * Gets the full study definition including project config.
- * 
- * @param studyId - The study ID (canonical or alias)
- * @returns The study definition with config, or null if not found
- */
-export function getStudyWithConfig(studyId: string): (StudyDefinition & { config: ProjectConfig }) | null {
-  const study = getStudyById(studyId);
-  if (!study) return null;
-  
-  return {
-    ...study,
-    config: getProjectConfig(study.id),
-  };
-}
 
 /**
  * Default study ID (used when no study parameter is provided in URL).
@@ -224,16 +209,38 @@ export function getStudyName(studyId: string): string {
   return study?.name || studyId;
 }
 
+
 /**
- * Gets all studies with their full configurations.
- * Uses cached studies or code-defined only (synchronous).
+ * Gets article defaults for a study.
  * 
- * @returns Array of study definitions with configs
+ * Priority:
+ * 1. Study document defaults (if stored in Firestore)
+ * 2. Code-defined defaults for 'eonc' study
+ * 3. General code-defined defaults
+ * 
+ * @param studyId - The study ID (canonical or alias)
+ * @returns ArticleConfig with defaults for the study
  */
-export function getAllStudiesWithConfigs(): (StudyDefinition & { config: ProjectConfig })[] {
-  return getStudiesSync().map(study => ({
-    ...study,
-    config: getProjectConfig(study.id),
-  }));
+export async function getStudyDefaults(studyId: string): Promise<ArticleConfig> {
+  const normalizedId = normalizeStudyId(studyId);
+  
+  // Try to get study from Firestore
+  try {
+    const study = await getStudy(normalizedId);
+    
+    // If study has defaults stored, use those
+    if (study && (study.author || study.pubdate || study.siteName)) {
+      return {
+        author: study.author || defaultConfig.author,
+        pubdate: study.pubdate || defaultConfig.pubdate,
+        siteName: study.siteName || defaultConfig.siteName,
+      };
+    }
+  } catch (error) {
+    console.warn(`Failed to load study defaults for "${normalizedId}":`, error);
+  }
+  
+  // Fall back to code-defined defaults (same for all studies, including eonc)
+  return defaultConfig;
 }
 
