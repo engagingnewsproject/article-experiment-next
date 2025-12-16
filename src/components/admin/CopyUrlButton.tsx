@@ -33,6 +33,8 @@ interface CopyUrlButtonProps {
   title?: string;
   /** Duration in milliseconds to show the copied state (default: 2000) */
   copiedDuration?: number;
+  /** Button size variant */
+  size?: 'small' | 'default';
 }
 
 /**
@@ -45,10 +47,17 @@ export const CopyUrlButton: React.FC<CopyUrlButtonProps> = ({
   url,
   label = 'Copy URL',
   copiedLabel = 'Copied!',
-  className = 'px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-700',
+  className,
   title = 'Copy URL to clipboard',
   copiedDuration = 2000,
+  size = 'default',
 }) => {
+  // Default className based on size
+  const defaultClassName = size === 'small'
+    ? 'px-2 py-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-700'
+    : 'px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-700';
+  
+  const buttonClassName = className || defaultClassName;
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -80,7 +89,7 @@ export const CopyUrlButton: React.FC<CopyUrlButtonProps> = ({
   return (
     <button
       onClick={handleCopy}
-      className={className}
+      className={buttonClassName}
       title={title}
       type="button"
     >

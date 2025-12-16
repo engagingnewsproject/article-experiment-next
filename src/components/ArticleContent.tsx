@@ -134,7 +134,8 @@ export function ArticleContent({
   isAuthenticated = false,
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
-  const author_bio = searchParams?.get("author_bio") || "basic";
+  const author_bio = searchParams?.get("author_bio");
+  const shouldShowAuthorBio = author_bio === "personal" || author_bio === "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   // Get studyId from article if available, otherwise it will use URL-based studyId
   const articleStudyId = article.studyId;
@@ -212,19 +213,21 @@ export function ArticleContent({
       <article className={styles.article}>
         <ArticleHeader article={article} />
 
-        {/* <AuthorBio
-          author={{
-            name: article.author.name,
-            bio: {
-              personal: article.author.bio?.personal || "",
-              basic: article.author.bio?.basic || "",
-            },
-            image: article.author.photo
-              ? { src: article.author.photo, alt: article.author.name }
-              : undefined,
-          }}
-          bioType={author_bio as "personal" | "basic"}
-        /> */}
+        {shouldShowAuthorBio && (
+          <AuthorBio
+            author={{
+              name: article.author.name,
+              bio: {
+                personal: article.author.bio?.personal || "",
+                basic: article.author.bio?.basic || "",
+              },
+              image: article.author.photo
+                ? { src: article.author.photo, alt: article.author.name }
+                : undefined,
+            }}
+            bioType={author_bio as "personal" | "basic"}
+          />
+        )}
         
         <div 
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedContent) }}
