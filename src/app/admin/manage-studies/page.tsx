@@ -10,24 +10,35 @@
 import { Header } from '@/components/Header';
 import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
-import { deleteStudy, getStudies, saveStudy, Study, getProjectConfigFirestore } from '@/lib/firestore';
+import { deleteStudy, getStudies, saveStudy, Study, getStudy } from '@/lib/firestore';
 import { CODE_STUDIES, clearStudiesCache } from '@/lib/studies';
+import { defaultConfig } from '@/lib/config';
 import { useEffect, useState } from 'react';
 
 export default function ManageStudiesPage() {
   const [userEmail, setUserEmail] = useState('');
   const [studies, setStudies] = useState<Study[]>([]);
-  const [configStatuses, setConfigStatuses] = useState<Record<string, 'code-defined' | 'firestore' | 'default'>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
   // Form state
   const [isAdding, setIsAdding] = useState(false);
+  const [editingStudyId, setEditingStudyId] = useState<string | null>(null);
+  const [showAuthorFields, setShowAuthorFields] = useState(false);
+  const [showPubdateField, setShowPubdateField] = useState(false);
+  const [showSiteNameField, setShowSiteNameField] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     aliases: '',
+    authorName: '',
+    authorBioPersonal: '',
+    authorBioBasic: '',
+    authorImageSrc: '',
+    authorImageAlt: '',
+    pubdate: '',
+    siteName: '',
   });
 
   useEffect(() => {
@@ -71,19 +82,6 @@ export default function ManageStudiesPage() {
       ];
       
       setStudies(mergedStudies);
-      
-      // Load config statuses for each study
-      const statuses: Record<string, 'code-defined' | 'firestore' | 'default'> = {};
-      for (const study of mergedStudies) {
-        if (codeStudyIds.has(study.id)) {
-          statuses[study.id] = 'code-defined';
-        } else {
-          const config = await getProjectConfigFirestore(study.id);
-          statuses[study.id] = config ? 'firestore' : 'default';
-        }
-      }
-      setConfigStatuses(statuses);
-      
       setError(null);
     } catch (err) {
       console.error('Error loading studies:', err);
@@ -100,6 +98,26 @@ export default function ManageStudiesPage() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      name: '',
+      aliases: '',
+      authorName: '',
+      authorBioPersonal: '',
+      authorBioBasic: '',
+      authorImageSrc: '',
+      authorImageAlt: '',
+      pubdate: '',
+      siteName: '',
+    });
+    setShowAuthorFields(false);
+    setShowPubdateField(false);
+    setShowSiteNameField(false);
+    setIsAdding(false);
+    setEditingStudyId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,8 +142,8 @@ export default function ManageStudiesPage() {
       return;
     }
 
-    // Check if ID already exists
-    if (studies.some(s => s.id === formData.id.trim())) {
+    // Check if ID already exists (only when adding, not editing)
+    if (!editingStudyId && studies.some(s => s.id === formData.id.trim())) {
       setError('A study with this ID already exists');
       return;
     }
@@ -136,20 +154,80 @@ export default function ManageStudiesPage() {
         .map(a => a.trim())
         .filter(a => a.length > 0);
 
+      // Build author object if any author fields are filled
+      const author = (formData.authorName.trim() || formData.authorBioPersonal.trim() || formData.authorBioBasic.trim() || formData.authorImageSrc.trim())
+        ? {
+            name: formData.authorName.trim() || defaultConfig.author.name,
+            bio: {
+              personal: formData.authorBioPersonal.trim() || defaultConfig.author.bio.personal,
+              basic: formData.authorBioBasic.trim() || defaultConfig.author.bio.basic,
+            },
+            image: {
+              src: formData.authorImageSrc.trim() || defaultConfig.author.image.src,
+              alt: formData.authorImageAlt.trim() || defaultConfig.author.image.alt,
+            },
+          }
+        : undefined;
+
       await saveStudy({
         id: formData.id.trim(),
         name: formData.name.trim(),
         aliases: aliases.length > 0 ? aliases : undefined,
+        author,
+        pubdate: formData.pubdate.trim() || undefined,
+        siteName: formData.siteName.trim() || undefined,
       });
 
-      setSuccess(`Study "${formData.name}" added successfully!`);
-      setFormData({ id: '', name: '', aliases: '' });
-      setIsAdding(false);
-      clearStudiesCache(); // Clear cache so new study is loaded
+      setSuccess(`Study "${formData.name}" ${editingStudyId ? 'updated' : 'added'} successfully!`);
+      resetForm();
+      clearStudiesCache();
       await loadStudies();
     } catch (err) {
       console.error('Error saving study:', err);
       setError(err instanceof Error ? err.message : 'Failed to save study');
+    }
+  };
+
+  const handleEdit = async (studyId: string) => {
+    try {
+      setError(null);
+      const study = await getStudy(studyId);
+      if (!study) {
+        setError('Study not found');
+        return;
+      }
+
+      setEditingStudyId(studyId);
+      setFormData({
+        id: study.id,
+        name: study.name,
+        aliases: study.aliases?.join(', ') || '',
+        authorName: study.author?.name || '',
+        authorBioPersonal: study.author?.bio.personal || '',
+        authorBioBasic: study.author?.bio.basic || '',
+        authorImageSrc: study.author?.image.src || '',
+        authorImageAlt: study.author?.image.alt || '',
+        pubdate: study.pubdate || '',
+        siteName: study.siteName || '',
+      });
+      
+      // Show fields if they have values
+      setShowAuthorFields(!!study.author);
+      setShowPubdateField(!!study.pubdate);
+      setShowSiteNameField(!!study.siteName);
+      
+      setIsAdding(true); // Use the same form for editing
+      
+      // Scroll to form after a brief delay to ensure it's rendered
+      setTimeout(() => {
+        const formElement = document.querySelector('[data-study-form]');
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Error loading study for edit:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load study for editing');
     }
   };
 
@@ -214,10 +292,12 @@ export default function ManageStudiesPage() {
             </div>
           )}
 
-          {/* Add Study Form */}
+          {/* Add/Edit Study Form */}
           {isAdding ? (
-            <div className="mb-6 p-6 bg-white rounded-lg shadow">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">Add New Study</h2>
+            <div className="mb-6 p-6 bg-white rounded-lg shadow" data-study-form>
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                {editingStudyId ? 'Edit Study' : 'Add New Study'}
+              </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">
@@ -230,9 +310,11 @@ export default function ManageStudiesPage() {
                     placeholder="e.g., newstudy"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                    disabled={!!editingStudyId}
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Lowercase letters, numbers, hyphens, and underscores only. Used in URLs: ?study=ID
+                    {editingStudyId && ' (cannot be changed)'}
                   </p>
                 </div>
                 <div>
@@ -263,20 +345,134 @@ export default function ManageStudiesPage() {
                     Comma-separated list of alternative IDs for backward compatibility
                   </p>
                 </div>
-                <div className="flex space-x-3">
+
+                {/* Optional Defaults Section */}
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="mb-3 text-sm font-medium text-gray-700">
+                    Article Defaults (optional) - Used when creating new articles for this study
+                  </p>
+                  
+                  {/* Author Fields */}
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthorFields(!showAuthorFields)}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      {showAuthorFields ? '−' : '+'} Set Study Author
+                    </button>
+                    {showAuthorFields && (
+                      <div className="mt-2 space-y-3 pl-4 border-l-2 border-gray-200">
+                        <div>
+                          <label className="block mb-1 text-xs font-medium text-gray-600">Author Name</label>
+                          <input
+                            type="text"
+                            value={formData.authorName}
+                            onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
+                            placeholder={defaultConfig.author.name}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-xs font-medium text-gray-600">Author Bio (Personal)</label>
+                          <textarea
+                            value={formData.authorBioPersonal}
+                            onChange={(e) => setFormData({ ...formData, authorBioPersonal: e.target.value })}
+                            placeholder={defaultConfig.author.bio.personal.substring(0, 100) + '...'}
+                            rows={3}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-xs font-medium text-gray-600">Author Bio (Basic)</label>
+                          <textarea
+                            value={formData.authorBioBasic}
+                            onChange={(e) => setFormData({ ...formData, authorBioBasic: e.target.value })}
+                            placeholder={defaultConfig.author.bio.basic.substring(0, 100) + '...'}
+                            rows={3}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-xs font-medium text-gray-600">Author Image URL</label>
+                          <input
+                            type="text"
+                            value={formData.authorImageSrc}
+                            onChange={(e) => setFormData({ ...formData, authorImageSrc: e.target.value })}
+                            placeholder={defaultConfig.author.image.src}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-xs font-medium text-gray-600">Author Image Alt Text</label>
+                          <input
+                            type="text"
+                            value={formData.authorImageAlt}
+                            onChange={(e) => setFormData({ ...formData, authorImageAlt: e.target.value })}
+                            placeholder={defaultConfig.author.image.alt}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Publication Date Field */}
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowPubdateField(!showPubdateField)}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      {showPubdateField ? '−' : '+'} Set Study Publication Date
+                    </button>
+                    {showPubdateField && (
+                      <div className="mt-2 pl-4 border-l-2 border-gray-200">
+                        <input
+                          type="text"
+                          value={formData.pubdate}
+                          onChange={(e) => setFormData({ ...formData, pubdate: e.target.value })}
+                          placeholder={defaultConfig.pubdate}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">e.g., "1 day ago", "Aug. 6, 2019"</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Site Name Field */}
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowSiteNameField(!showSiteNameField)}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      {showSiteNameField ? '−' : '+'} Set Site Title
+                    </button>
+                    {showSiteNameField && (
+                      <div className="mt-2 pl-4 border-l-2 border-gray-200">
+                        <input
+                          type="text"
+                          value={formData.siteName}
+                          onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
+                          placeholder={defaultConfig.siteName}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4 border-t border-gray-200">
                   <button
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
-                    Add Study
+                    {editingStudyId ? 'Update Study' : 'Add Study'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsAdding(false);
-                      setFormData({ id: '', name: '', aliases: '' });
-                      setError(null);
-                    }}
+                    onClick={resetForm}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                   >
                     Cancel
@@ -310,65 +506,78 @@ export default function ManageStudiesPage() {
               <div className="divide-y divide-gray-200">
                 {studies.map((study) => {
                   const isCodeDefined = CODE_STUDIES.some(s => s.id === study.id);
-                  const configStatus = configStatuses[study.id] || 'default';
+                  const hasDefaults = !!(study.author || study.pubdate || study.siteName);
                   
                   return (
                     <div key={study.id} className="p-6 hover:bg-gray-50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 flex-wrap">
-                            <h3 className="text-lg font-semibold text-gray-900">{study.name}</h3>
+                      <div className="space-y-3">
+                        {/* Top Row: Study Name and Tags */}
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-gray-900">{study.name}</h3>
+                          <div className="flex items-center gap-2">
                             {isCodeDefined && (
                               <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded">
                                 Code-defined
                               </span>
                             )}
-                            {configStatus === 'firestore' && (
+                            {hasDefaults && (
                               <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded">
-                                Firestore Config
-                              </span>
-                            )}
-                            {configStatus === 'default' && !isCodeDefined && (
-                              <span className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded">
-                                Default Config
+                                Has Defaults
                               </span>
                             )}
                           </div>
-                          {configStatus && (
-                            <p className="mt-1 text-xs text-gray-500">
-                              <span className="font-medium">Config:</span> {
-                                configStatus === 'code-defined' ? 'Code-defined (cannot be edited)' :
-                                configStatus === 'firestore' ? 'Custom Firestore config' :
-                                'Using default EONC config'
-                              }
-                            </p>
-                          )}
-                          <p className="mt-1 text-sm text-gray-600">
-                            <span className="font-medium">ID:</span> <code className="px-1 py-0.5 bg-gray-100 rounded">{study.id}</code>
-                          </p>
-                          {study.aliases && study.aliases.length > 0 && (
-                            <p className="mt-1 text-sm text-gray-600">
-                              <span className="font-medium">Aliases:</span>{' '}
-                              {study.aliases.map((alias, idx) => (
-                                <span key={alias}>
-                                  <code className="px-1 py-0.5 bg-gray-100 rounded">{alias}</code>
-                                  {idx < study.aliases!.length - 1 && ', '}
-                                </span>
-                              ))}
-                            </p>
-                          )}
-                          <p className="mt-2 text-xs text-gray-500">
-                            URL: <code className="px-1 py-0.5 bg-gray-100 rounded">/?study={study.id}</code>
-                          </p>
                         </div>
-                        {!isCodeDefined && (
-                          <button
-                            onClick={() => handleDelete(study.id)}
-                            className="ml-4 px-3 py-1 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        
+                        {/* Bottom Row: Details and Action Buttons */}
+                        <div className="flex items-end justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">ID:</span> <code className="px-1 py-0.5 bg-gray-100 rounded">{study.id}</code>
+                            </p>
+                            {study.aliases && study.aliases.length > 0 && (
+                              <p className="mt-1 text-sm text-gray-600">
+                                <span className="font-medium">Aliases:</span>{' '}
+                                {study.aliases.map((alias, idx) => (
+                                  <span key={alias}>
+                                    <code className="px-1 py-0.5 bg-gray-100 rounded">{alias}</code>
+                                    {idx < study.aliases!.length - 1 && ', '}
+                                  </span>
+                                ))}
+                              </p>
+                            )}
+                            {hasDefaults && (
+                              <div className="mt-2 text-xs text-gray-500">
+                                <span className="font-medium">Defaults:</span>
+                                {study.author && <span className="ml-1">Author: {study.author.name}</span>}
+                                {study.pubdate && <span className="ml-1">Pubdate: {study.pubdate}</span>}
+                                {study.siteName && <span className="ml-1">Site: {study.siteName}</span>}
+                              </div>
+                            )}
+                            <p className="mt-2 text-xs text-gray-500">
+                              URL: <code className="px-1 py-0.5 bg-gray-100 rounded">/?study={study.id}</code>
+                            </p>
+                          </div>
+                          {!isCodeDefined && (
+                            <div className="flex space-x-2 ml-4">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleEdit(study.id);
+                                }}
+                                className="px-3 py-1 text-sm text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(study.id)}
+                                className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -384,8 +593,8 @@ export default function ManageStudiesPage() {
               <li>Studies are used to separate research projects and their data</li>
               <li>Each study has a unique ID used in URLs (e.g., <code className="px-1 bg-blue-100 rounded">?study=eonc</code>)</li>
               <li>Code-defined studies (shown with blue badge) cannot be deleted through this UI</li>
-              <li>Config status shows which configuration each study uses: Code-defined, Firestore, or Default</li>
-              <li>To create or edit a study&apos;s configuration, go to <a href="/admin/manage-project-configs" className="underline">Manage Study Configs</a></li>
+              <li>Optional defaults (author, publication date, site title) are used when creating new articles for the study</li>
+              <li>Articles store their own values, so changing study defaults only affects new articles</li>
             </ul>
           </div>
         </div>
