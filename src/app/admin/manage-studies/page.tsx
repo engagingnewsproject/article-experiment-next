@@ -7,7 +7,6 @@
 
 'use client';
 
-import { Header } from '@/components/Header';
 import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
 import { deleteStudy, getStudies, saveStudy, Study, getStudy } from '@/lib/firestore';
@@ -254,9 +253,7 @@ export default function ManageStudiesPage() {
   };
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen p-8 bg-gray-50">
+    <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between mb-8">
             <div>
@@ -599,7 +596,6 @@ export default function ManageStudiesPage() {
           </div>
         </div>
       </div>
-    </>
   );
 }
 

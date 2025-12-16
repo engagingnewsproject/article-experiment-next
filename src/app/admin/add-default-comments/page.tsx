@@ -2,7 +2,6 @@
 
 import AdminCommentForm from '@/components/admin/AdminCommentForm';
 import { AdminImportButton } from '@/components/admin/AdminImportButton';
-import { Header } from '@/components/Header';
 import { updateArticleWithDefaultComments, type Comment } from '@/lib/firestore';
 import { useState } from 'react';
 
@@ -98,9 +97,7 @@ export default function AddDefaultCommentsPage() {
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex flex-col items-center p-8">
+    <div className="flex flex-col items-center p-8">
         <h1 className="mb-4 text-2xl font-bold">Add Default Comments</h1>
     
         <form onSubmit={handleSubmit} className="w-full max-w-4xl">
@@ -173,6 +170,5 @@ export default function AddDefaultCommentsPage() {
           </div>
         </form>
       </div>
-    </>
   );
 }

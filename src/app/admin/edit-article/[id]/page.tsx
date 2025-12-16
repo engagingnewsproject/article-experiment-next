@@ -1,5 +1,4 @@
 "use client";
-import { Header } from '@/components/Header';
 import { InsertImageButton } from '@/components/admin/InsertImageButton';
 import { db } from '@/lib/firebase';
 import { ArticleTheme } from '@/lib/firestore';
@@ -240,7 +239,6 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
 
   return (
     <div className="max-w-3xl p-8 mx-auto">
-      <Header />
       <div className="flex items-center justify-between mb-6">
         <h1 className="w-full text-2xl font-bold text-center">Edit Article</h1>
       </div>

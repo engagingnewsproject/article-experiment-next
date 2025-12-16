@@ -14,7 +14,6 @@
 
 import AddArticleForm from '@/components/AddArticleForm';
 import { CopyUrlButton } from '@/components/admin/CopyUrlButton';
-import { Header } from '@/components/Header';
 import { getCurrentSession } from '@/lib/auth';
 import { getArticles, type Article } from '@/lib/firestore';
 import { useStudyId } from '@/hooks/useStudyId';
@@ -105,9 +104,7 @@ function ArticlesContent() {
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
   return (
-    <>
-      <Header />
-      <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Articles</h1>
           <div className="flex space-x-2">
@@ -244,7 +241,6 @@ function ArticlesContent() {
         </ul>
         <AddArticleForm />
       </div>
-    </>
   );
 }
 

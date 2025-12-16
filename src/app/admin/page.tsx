@@ -1,6 +1,5 @@
 'use client';
 
-import { Header } from '@/components/Header';
 import { signOut, onAuthChange, getCurrentUser } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 import { loadStudies, StudyDefinition } from '@/lib/studies';
@@ -72,9 +71,7 @@ export default function AdminPage() {
   };
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen p-8 bg-gray-50">
+    <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-start justify-between mb-8">
             <div>
@@ -234,6 +231,5 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
-    </>
   );
 }
