@@ -37,6 +37,7 @@
 
 import { StudyDropdown } from '@/components/admin/StudyDropdown';
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
@@ -603,29 +604,10 @@ export default function ResearchDashboard() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="mx-auto max-w-7xl">
-        {/* Header with Logout */}
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="mb-2 text-3xl font-bold text-gray-900">Research Data Dashboard</h1>
-            <p className="text-gray-600">Interactive data exploration and analysis for researchers</p>
-            <p className="mt-1 text-sm text-gray-500">Logged in as: {userEmail}</p>
-          </div>
-          <div className="flex space-x-2">
-            <a
-              href="/admin"
-              className="px-4 py-2 text-sm text-white bg-blue-600 border border-gray-300 rounded-md hover:bg-blue-700"
-              style={{ color: 'white' }}
-            >
-              Admin
-            </a>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Research Data Dashboard" 
+          subtitle="Interactive dashboard for researchers to explore user activity, articles, comments, and export data for analysis." 
+        />
 
         {/* Navigation Tabs */}
         <div className="mb-8 bg-white rounded-lg shadow">

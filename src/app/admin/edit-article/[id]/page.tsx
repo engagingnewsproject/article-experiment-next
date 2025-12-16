@@ -1,5 +1,6 @@
 "use client";
 import { InsertImageButton } from '@/components/admin/InsertImageButton';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { db } from '@/lib/firebase';
 import { ArticleTheme } from '@/lib/firestore';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -238,10 +239,9 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   if (!article) return null;
 
   return (
-    <div className="max-w-3xl p-8 mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="w-full text-2xl font-bold text-center">Edit Article</h1>
-      </div>
+    <div className="min-h-screen p-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <PageHeader title="Edit Article" />
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block mb-2 font-bold">Title <span className="text-red-500">*</span></label>
@@ -400,6 +400,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
         {success && <div className="mt-2 text-green-600">{success}</div>}
         {error && <div className="mt-2 text-red-600">{error}</div>}
       </form>
+      </div>
     </div>
   );
 }

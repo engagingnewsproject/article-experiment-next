@@ -14,6 +14,7 @@
 
 import AddArticleForm from '@/components/AddArticleForm';
 import { CopyUrlButton } from '@/components/admin/CopyUrlButton';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { getCurrentSession } from '@/lib/auth';
 import { getArticles, type Article } from '@/lib/firestore';
 import { useStudyId } from '@/hooks/useStudyId';
@@ -105,27 +106,7 @@ function ArticlesContent() {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Articles</h1>
-          <div className="flex space-x-2">
-            <Link
-              href="/admin"
-              className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-            >
-              <span className="text-white">
-                Admin Dashboard
-              </span>
-            </Link>
-            <Link
-              href="/admin/add-default-comments"
-              className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition-colors"
-            >
-              <span className="text-white">
-                Add Default Comments
-              </span>
-            </Link>
-          </div>
-        </div>
+        <PageHeader title="Articles" />
         {studyId && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
             <p className="text-sm text-blue-800 !mb-0">

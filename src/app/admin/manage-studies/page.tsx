@@ -13,6 +13,7 @@ import { deleteStudy, getStudies, saveStudy, Study, getStudy } from '@/lib/fires
 import { CODE_STUDIES, clearStudiesCache } from '@/lib/studies';
 import { defaultConfig } from '@/lib/config';
 import { useEffect, useState } from 'react';
+import { PageHeader } from '@/components/admin/PageHeader';
 
 export default function ManageStudiesPage() {
   const [userEmail, setUserEmail] = useState('');
@@ -255,27 +256,10 @@ export default function ManageStudiesPage() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="mb-2 text-3xl font-bold text-gray-900">Manage Studies</h1>
-              <p className="text-gray-600">View, add, edit, and delete research studies</p>
-              <p className="mt-1 text-sm text-gray-500">Logged in as: {userEmail}</p>
-            </div>
-            <div className="flex space-x-2">
-              <a
-                href="/admin"
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50"
-              >
-                ← Back to Admin
-              </a>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
+          <PageHeader 
+            title="Manage Studies" 
+            subtitle="View, add, edit, and delete research studies" 
+          />
 
           {/* Success/Error Messages */}
           {success && (
