@@ -12,8 +12,9 @@
  */
 "use client";
 
-import { getSessionFromStorage } from "@/lib/auth";
+import { onAuthChange, getCurrentUser } from "@/lib/auth";
 import React, { useEffect, useState } from "react";
+import { User } from "firebase/auth";
 import styles from "./Header.module.css";
 
 /**
@@ -37,10 +38,19 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ siteName = 'The Gazette Star' }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	
-	// Check authentication after component mounts to avoid hydration mismatch
+	// Subscribe to Firebase Auth state changes to detect authentication
+	// This ensures the Home link appears even after page refresh when Firebase Auth initializes
 	useEffect(() => {
-		const session = getSessionFromStorage();
-		setIsAuthenticated(session?.isAuthenticated || false);
+		// Check initial auth state
+		const user = getCurrentUser();
+		setIsAuthenticated(user !== null);
+		
+		// Subscribe to auth state changes
+		const unsubscribe = onAuthChange((user: User | null) => {
+			setIsAuthenticated(user !== null);
+		});
+		
+		return () => unsubscribe();
 	}, []);
 	
 	return (
@@ -49,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ siteName = 'The Gazette Star' })
 				{siteName}
 				{isAuthenticated && (
 					<span>
-						<a href='/' className={styles.homeLink}>
+						<a href='/admin' className={styles.homeLink}>
 							Home
 						</a>
 					</span>
