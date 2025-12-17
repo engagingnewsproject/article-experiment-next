@@ -17,6 +17,8 @@ import { CopyUrlButton } from '@/components/admin/CopyUrlButton';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { getCurrentSession } from '@/lib/auth';
 import { getArticles, type Article } from '@/lib/firestore';
+import { loadStudies, type StudyDefinition } from '@/lib/studies';
+import { getStudyBorderColor } from '@/lib/studyColors';
 import { useStudyId } from '@/hooks/useStudyId';
 import Link from 'next/link';
 import { useEffect, useState, Suspense, useCallback } from 'react';
@@ -25,6 +27,7 @@ function ArticlesContent() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const { studyId } = useStudyId();
   const [refreshKey, setRefreshKey] = useState(0); // Force refresh trigger
 
@@ -44,6 +47,19 @@ function ArticlesContent() {
   useEffect(() => {
     fetchArticles();
   }, [fetchArticles, refreshKey]);
+
+  // Load studies for color assignment
+  useEffect(() => {
+    const loadStudiesData = async () => {
+      try {
+        const loadedStudies = await loadStudies();
+        setStudies(loadedStudies);
+      } catch (error) {
+        console.error('Error loading studies:', error);
+      }
+    };
+    loadStudiesData();
+  }, []);
 
   // Expose refresh function globally so AddArticleForm can trigger it
   useEffect(() => {
@@ -105,13 +121,24 @@ function ArticlesContent() {
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4">
         <PageHeader title="Articles" />
         {studyId && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm text-blue-800 !mb-0">
-              <strong>Study:</strong> {studyId}
-            </p>
+          <div className={`mb-6 bg-white shadow border-l-4 p-5 ${
+            studies.length > 0 ? getStudyBorderColor(studyId, studies) : 'border-blue-500'
+          }`}>
+            <h3 className="text-lg font-semibold text-gray-900 mb-0">
+              {(() => {
+                const study = studies.find(s => s.id === studyId || s.aliases?.includes(studyId));
+                return study ? (
+                  <>
+                    {study.name} (<code className="text-sm font-mono bg-gray-100 px-1.5 py-0.5 rounded">{studyId}</code>)
+                  </>
+                ) : (
+                  studyId
+                );
+              })()}
+            </h3>
           </div>
         )}
         <ul className="space-y-6 mb-8">
@@ -221,6 +248,24 @@ function ArticlesContent() {
           })}
         </ul>
         <AddArticleForm />
+
+        {/* Info Box */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <h3 className="mb-2 text-sm font-semibold text-blue-900">About Article URLs</h3>
+          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+            <li>Article URLs support query parameters to control content variants</li>
+            <li>
+              <code className="px-1 bg-blue-100 rounded">study</code> - Required parameter specifying the study ID (e.g., <code className="px-1 bg-blue-100 rounded">?study=eonc</code>)
+            </li>
+            <li>
+              <code className="px-1 bg-blue-100 rounded">author_bio</code> - Optional parameter to control author bio display. Values: <code className="px-1 bg-blue-100 rounded">personal</code> or <code className="px-1 bg-blue-100 rounded">basic</code>
+            </li>
+            <li>
+              <code className="px-1 bg-blue-100 rounded">explain_box</code> - Optional parameter to show/hide explanation boxes. Set to <code className="px-1 bg-blue-100 rounded">show</code> to display explanation boxes (only works if article has explanation content)
+            </li>
+            <li>Parameters can be combined (e.g., <code className="px-1 bg-blue-100 rounded">?study=eonc&author_bio=personal&explain_box=show</code>)</li>
+          </ul>
+        </div>
       </div>
   );
 }

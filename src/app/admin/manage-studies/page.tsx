@@ -12,6 +12,7 @@ import { User } from 'firebase/auth';
 import { deleteStudy, getStudies, saveStudy, Study, getStudy } from '@/lib/firestore';
 import { CODE_STUDIES, clearStudiesCache } from '@/lib/studies';
 import { defaultConfig } from '@/lib/config';
+import { getStudyBorderColor } from '@/lib/studyColors';
 import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
 
@@ -254,7 +255,7 @@ export default function ManageStudiesPage() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
+      <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <PageHeader 
             title="Manage Studies" 
@@ -488,9 +489,10 @@ export default function ManageStudiesPage() {
                 {studies.map((study) => {
                   const isCodeDefined = CODE_STUDIES.some(s => s.id === study.id);
                   const hasDefaults = !!(study.author || study.pubdate || study.siteName);
+                  const borderColor = getStudyBorderColor(study.id, studies);
                   
                   return (
-                    <div key={study.id} className="p-6 hover:bg-gray-50">
+                    <div key={study.id} className={`p-6 hover:bg-gray-50 border-l-4 ${borderColor}`}>
                       <div className="space-y-3">
                         {/* Top Row: Study Name and Tags */}
                         <div className="flex items-center justify-between">

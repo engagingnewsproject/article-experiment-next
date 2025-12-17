@@ -3,6 +3,7 @@
 import { signOut, onAuthChange, getCurrentUser } from '@/lib/auth';
 import type { User } from 'firebase/auth';
 import { loadStudies, StudyDefinition } from '@/lib/studies';
+import { getStudyBorderColor } from '@/lib/studyColors';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
@@ -72,7 +73,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
+      <div className="min-h-screen p-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <PageHeader 
             title="Admin Dashboard" 
@@ -82,8 +83,8 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
 
-            {/* Articles Card */}
-            <div className="p-6 bg-white rounded-lg shadow md:col-span-2">
+            {/* Articles Section */}
+            <div className="md:col-span-2">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
                   <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,37 +92,43 @@ export default function AdminPage() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Articles</h2>
-                  <p className="text-sm text-gray-600">View, search, and manage articles by study.</p>
+                  <h2 className="text-xl font-semibold text-gray-900">Studies</h2>
+                  <p className="text-sm text-gray-600">Access and manage articles for each study. Edit, delete, or add new articles as needed.</p>
                 </div>
               </div>
-              <p className="mb-4 text-gray-700">
-                Access and manage articles for each study. Edit, delete, or add new articles as needed.
-              </p>
               {studiesLoading ? (
-                <div className="py-4 text-center text-gray-500">
+                <div className="py-8 text-center text-gray-500">
                   Loading studies...
                 </div>
               ) : studies.length === 0 ? (
-                <div className="py-4 text-center text-gray-500">
+                <div className="py-8 text-center text-gray-500">
                   No studies found. Add a study first.
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {studies.map((study, index) => {
-                    // Alternate colors for visual distinction
-                    const colorClasses = index % 2 === 0 
-                      ? 'bg-purple-600 hover:bg-purple-700' 
-                      : 'bg-indigo-600 hover:bg-indigo-700';
-                    
+                <div className="flex flex-col gap-6">
+                  {studies.map((study) => {
+                    const borderColor = getStudyBorderColor(study.id, studies);
                     return (
-                      <Link 
+                      <Link
                         key={study.id}
                         href={`/admin/articles?study=${study.id}`}
-                        className={`w-full inline-flex items-center justify-center px-4 py-2 ${colorClasses} !text-white rounded-md`}
+                        className={`group flex items-center justify-between bg-white shadow hover:shadow-md transition-shadow border-l-4 ${borderColor} p-5`}
                       >
-                        Manage {study.name} Articles
-                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                            {study.name}
+                          </h3>
+
+                        </div>
+                        <p className="text-sm text-gray-600 !mb-0">
+                          Manage articles
+                        </p>
+                        <svg 
+                          className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0 ml-4" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </Link>
