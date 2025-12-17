@@ -417,7 +417,7 @@ export default function ManageStudiesPage() {
                           placeholder={defaultConfig.pubdate}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
                         />
-                        <p className="mt-1 text-xs text-gray-500">e.g., "1 day ago", "Aug. 6, 2019"</p>
+                        <p className="mt-1 text-xs text-gray-500">e.g., &quot;1 day ago&quot;, &quot;Aug. 6, 2019&quot;</p>
                       </div>
                     )}
                   </div>
