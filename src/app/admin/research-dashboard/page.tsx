@@ -41,7 +41,7 @@ import { PageHeader } from '@/components/admin/PageHeader';
 import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
-import { loadStudies, StudyDefinition, getStudyAliases, getStudyName } from '@/lib/studies';
+import { loadStudies, StudyDefinition, getStudyAliases, getStudyName, CODE_STUDIES } from '@/lib/studies';
 import DOMPurify from 'dompurify';
 import { collection, getDocs, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -109,12 +109,54 @@ interface DashboardStats {
 
 /**
  * Helper function to check if a studyId matches the selected study (including aliases).
+ * For code-defined studies like 'eonc', also includes items without a studyId (legacy items).
  */
 function matchesStudy(studyId: string | undefined, selectedStudy: string): boolean {
   if (selectedStudy === 'all') return true;
+  
+  // For code-defined studies (like 'eonc'), include items without studyId as legacy items
+  const isCodeDefinedStudy = CODE_STUDIES.some(s => s.id === selectedStudy);
+  if (isCodeDefinedStudy && !studyId) {
+    return true; // Legacy items belong to code-defined studies
+  }
+  
   if (!studyId) return false;
   const aliases = getStudyAliases(selectedStudy);
   return aliases.includes(studyId);
+}
+
+/**
+ * Safely extracts a Date object from a Firestore timestamp.
+ * Handles Firestore Timestamp objects, string timestamps, and invalid values.
+ * 
+ * @param timestamp - Firestore timestamp, string, number, or null/undefined
+ * @returns Date object or null if invalid
+ */
+function safeExtractDate(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  try {
+    // Handle Firestore Timestamp objects
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    // Handle string/number timestamps
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts all valid dates from an array of logs.
+ * 
+ * @param logs - Array of log entries with timestamp fields
+ * @returns Array of valid Date objects
+ */
+function extractValidDates(logs: LogEntry[]): Date[] {
+  return logs
+    .map(log => safeExtractDate(log.timestamp))
+    .filter((date): date is Date => date !== null);
 }
 
 export default function ResearchDashboard() {
@@ -124,6 +166,7 @@ export default function ResearchDashboard() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
@@ -208,17 +251,41 @@ export default function ResearchDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
+      
+      // Verify authentication before loading data
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        const errorMsg = 'User not authenticated. Please log in.';
+        console.error('[Research Dashboard]', errorMsg);
+        setLoadError(errorMsg);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[Research Dashboard] Starting data load...');
+      console.log('[Research Dashboard] Authenticated user:', currentUser.email);
+      console.log('[Research Dashboard] Firestore db:', db);
+      console.log('[Research Dashboard] Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+      
       const logsRef = collection(db, 'logs');
+      console.log('[Research Dashboard] Logs collection ref:', logsRef);
       const logsQuery = query(logsRef, orderBy('timestamp', 'desc'));
+      console.log('[Research Dashboard] Executing logs query...');
       const logsSnapshot = await getDocs(logsQuery);
+      console.log('[Research Dashboard] Logs snapshot size:', logsSnapshot.size);
       const logsData = logsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as LogEntry[];
+      console.log('[Research Dashboard] Logs data:', logsData.length, 'entries');
 
       const articlesRef = collection(db, 'articles');
+      console.log('[Research Dashboard] Articles collection ref:', articlesRef);
       const articlesQuery = query(articlesRef, orderBy('createdAt', 'desc'));
+      console.log('[Research Dashboard] Executing articles query...');
       const articlesSnapshot = await getDocs(articlesQuery);
+      console.log('[Research Dashboard] Articles snapshot size:', articlesSnapshot.size);
 
       async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<LocalComment[]> {
         const repliesRef = collection(db, ...((parentPath as unknown) as [string, ...string[]]));
@@ -279,10 +346,13 @@ export default function ResearchDashboard() {
       }
 
       console.log('Loaded user comments:', allUserComments.length, allUserComments);
-      console.log('Loaded articles:', articlesData.length);
+      console.log('Loaded articles:', articlesData.length, articlesData);
+      console.log('Loaded logs:', logsData.length, logsData);
       console.log('Default comments count:', articlesData.reduce((sum, article) => 
         sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
       ));
+      console.log('Articles with studyId:', articlesData.filter(a => (a as any).studyId).map(a => ({ id: a.id, studyId: (a as any).studyId })));
+      console.log('Logs with studyId:', logsData.filter(l => (l as any).studyId).map(l => ({ id: l.id, studyId: (l as any).studyId, action: l.action })));
 
       setLogs(logsData);
       setArticles(articlesData);
@@ -294,10 +364,12 @@ export default function ResearchDashboard() {
         actionsByType[log.action] = (actionsByType[log.action] || 0) + 1;
       });
 
-      const timestamps = logsData.map(log => log.timestamp).filter(Boolean);
+      // Safely extract and convert timestamps to dates
+      const validDates = extractValidDates(logsData);
+
       const dateRange = {
-        earliest: timestamps.length > 0 ? new Date(Math.min(...timestamps.map(t => t.toDate ? t.toDate() : new Date(t)))).toISOString() : '',
-        latest: timestamps.length > 0 ? new Date(Math.max(...timestamps.map(t => t.toDate ? t.toDate() : new Date(t)))).toISOString() : ''
+        earliest: validDates.length > 0 ? new Date(Math.min(...validDates.map(d => d.getTime()))).toISOString() : '',
+        latest: validDates.length > 0 ? new Date(Math.max(...validDates.map(d => d.getTime()))).toISOString() : ''
       };
 
       const articlesWithComments = articlesData.filter(article => 
@@ -325,32 +397,80 @@ export default function ResearchDashboard() {
       });
 
     } catch (error) {
-      console.error('Error loading data:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[Research Dashboard] Error loading data:', error);
+      console.error('[Research Dashboard] Error details:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined
+      });
+      setLoadError(errorMessage);
+      // Set empty arrays on error so UI can still render
+      setLogs([]);
+      setArticles([]);
+      setComments([]);
+      setStats(null);
     } finally {
       setLoading(false);
+      console.log('[Research Dashboard] Data load complete');
     }
   };
 
   const exportToCSV = (data: any[], filename: string) => {
     if (!data.length) return;
     const headers = Object.keys(data[0] || {});
+    
+    /**
+     * Converts a Firestore Timestamp (in any format) to an ISO string.
+     * Handles both live Timestamp objects and serialized formats.
+     */
+    const convertTimestamp = (value: any): string | null => {
+      if (!value) return null;
+      
+      // Handle Firestore Timestamp with toDate method
+      if (typeof value === 'object' && typeof value.toDate === 'function') {
+        try {
+          return value.toDate().toISOString();
+        } catch {
+          return null;
+        }
+      }
+      
+      // Handle serialized Firestore Timestamp with _seconds and _nanoseconds
+      if (typeof value === 'object' && value._seconds !== undefined) {
+        try {
+          const milliseconds = value._seconds * 1000 + (value._nanoseconds || 0) / 1000000;
+          return new Date(milliseconds).toISOString();
+        } catch {
+          return null;
+        }
+      }
+      
+      // Handle string or number timestamps
+      if (typeof value === 'string' || typeof value === 'number') {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
+      
+      return null;
+    };
+    
     const csvContent = [
       headers.join(','),
       ...data.map(row => 
         headers.map(header => {
           let value = row[header];
-          if ((header === 'timestamp' || header === 'createdAt') && value) {
-            if (typeof value === 'object' && typeof value.toDate === 'function') {
-              value = value.toDate().toISOString();
-            } else if (typeof value === 'string' || typeof value === 'number') {
-              const d = new Date(value);
-              if (!isNaN(d.getTime())) value = d.toISOString();
-            }
+          
+          // Handle timestamp fields
+          if ((header === 'timestamp' || header === 'createdAt' || header === 'updatedAt') && value) {
+            const converted = convertTimestamp(value);
+            value = converted || value;
           }
-          // For objects, convert to JSON string if they exist
-          else if (typeof value === 'object' && value !== null && header !== 'timestamp' && header !== 'createdAt') {
+          // For other objects, convert to JSON string if they exist
+          else if (typeof value === 'object' && value !== null) {
             value = JSON.stringify(value);
           }
+          
           return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : (value ?? '');
         }).join(',')
       )
@@ -403,11 +523,12 @@ export default function ResearchDashboard() {
   const filteredLogs = logs.filter(log => {
     if (selectedAction !== 'all' && log.action !== selectedAction) return false;
     if (selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
-    // Filter by studyId if selected
+    // Filter by studyId if selected (when "All Studies" is selected, show all logs)
     if (selectedStudy !== 'all') {
       const logStudyId = (log as any).studyId;
       if (!matchesStudy(logStudyId, selectedStudy)) return false;
     }
+    // When "All Studies" is selected, include logs even if they don't have a studyId
     if (selectedDateRange !== 'all') {
       const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
       const now = new Date();
@@ -659,56 +780,77 @@ export default function ResearchDashboard() {
                   </span>
                 </p>
               )}
+              {/* Error Display */}
+              {loadError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                  <p><strong>Error loading data:</strong> {loadError}</p>
+                  <p className="mt-1 text-xs">Check browser console for details.</p>
+                </div>
+              )}
+              {/* Debug info */}
+              <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                <p><strong>Debug:</strong> Total logs loaded: {logs.length} | Filtered: {filteredLogs.length}</p>
+                <p>Total articles loaded: {articles.length} | Filtered: {filteredArticles.length}</p>
+                <p>Total comments loaded: {comments.length} | All comments (with defaults): {allComments.length}</p>
+                <p>Selected study filter: {selectedStudy}</p>
+                <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'unknown'}</p>
+              </div>
             </div>
 
             {/* Stats Overview */}
-            {stats && (
-              <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Total User Actions</h3>
-                  <p className="text-3xl font-bold text-gray-900">{filteredLogs.length.toLocaleString()}</p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {new Set(filteredLogs.map(log => log.userId)).size} unique users
-                    {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                  </p>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Articles</h3>
-                  <p className="text-3xl font-bold text-gray-900">{filteredArticles.length}</p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Avg {filteredArticles.length > 0 ? Math.round(filteredArticles.reduce((sum, a) => sum + (a.content ? a.content.split(/\s+/).length : 0), 0) / filteredArticles.length) : 0} words
-                    {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                  </p>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Comments</h3>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {/* Default comments from filtered articles + user comments (already filtered by study) */}
-                    {filteredArticles.reduce((sum, article) => 
-                      sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
-                    ) + allComments.length}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {filteredArticles.filter(article => 
-                      Array.isArray(article.default_comments) && article.default_comments.length > 0
-                    ).length} articles have comments
-                    {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                  </p>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Date Range</h3>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {filteredLogs.length > 0 && filteredLogs[0]?.timestamp ? 
-                      (new Date(filteredLogs[filteredLogs.length - 1]?.timestamp?.toDate ? filteredLogs[filteredLogs.length - 1].timestamp.toDate() : filteredLogs[filteredLogs.length - 1].timestamp)).toLocaleDateString() : 'N/A'}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    to {filteredLogs.length > 0 && filteredLogs[0]?.timestamp ? 
-                      (new Date(filteredLogs[0]?.timestamp?.toDate ? filteredLogs[0].timestamp.toDate() : filteredLogs[0].timestamp)).toLocaleDateString() : 'N/A'}
-                    {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                  </p>
-                </div>
+            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Total User Actions</h3>
+                <p className="text-3xl font-bold text-gray-900">{filteredLogs.length.toLocaleString()}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {new Set(filteredLogs.map(log => log.userId)).size} unique users
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
               </div>
-            )}
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Articles</h3>
+                <p className="text-3xl font-bold text-gray-900">{filteredArticles.length}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Avg {filteredArticles.length > 0 ? Math.round(filteredArticles.reduce((sum, a) => sum + (a.content ? a.content.split(/\s+/).length : 0), 0) / filteredArticles.length) : 0} words
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Comments</h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {/* Default comments from filtered articles + user comments (already filtered by study) */}
+                  {filteredArticles.reduce((sum, article) => 
+                    sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
+                  ) + allComments.length}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {filteredArticles.filter(article => 
+                    Array.isArray(article.default_comments) && article.default_comments.length > 0
+                  ).length} articles have comments
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Date Range</h3>
+                <p className="text-lg font-semibold text-gray-900">
+                  {(() => {
+                    const validDates = extractValidDates(filteredLogs);
+                    if (validDates.length === 0) return 'N/A';
+                    const earliest = new Date(Math.min(...validDates.map(d => d.getTime())));
+                    return earliest.toLocaleDateString();
+                  })()}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  to {(() => {
+                    const validDates = extractValidDates(filteredLogs);
+                    if (validDates.length === 0) return 'N/A';
+                    const latest = new Date(Math.max(...validDates.map(d => d.getTime())));
+                    return latest.toLocaleDateString();
+                  })()}
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+            </div>
 
             {/* Export Section */}
             <div className="flex flex-col p-6 bg-white rounded-lg shadow">
