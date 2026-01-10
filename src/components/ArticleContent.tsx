@@ -21,7 +21,7 @@ import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
 import { useLogger } from '@/hooks/useLogger';
-import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
+import { type QualtricsData } from '@/hooks/useQualtrics';
 import { type ArticleTheme } from "@/lib/firestore";
 import { Article } from "@/types/article";
 import DOMPurify from 'dompurify';
@@ -69,7 +69,9 @@ interface ArticleContentProps {
       tags?: string[];
     };
     themes: ArticleTheme[],
-    summary: string
+    summary: string;
+    studyId?: string; // Study ID from article document (for logging)
+    siteName?: string; // Site name from project config
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -104,7 +106,8 @@ interface ArticleContentProps {
     }[];
   }[];
   userId: string;
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  qualtricsData?: QualtricsData;
+  isAuthenticated?: boolean;
 }
 
 /**
@@ -127,14 +130,18 @@ export function ArticleContent({
   explainBoxValue,
   comments = [],
   userId,
-  qualtricsData, // ✅ Added Qualtrics data parameter
+  qualtricsData,
+  isAuthenticated = false,
 }: ArticleContentProps) {
   const searchParams = useSearchParams();
-  const author_bio = searchParams?.get("author_bio") || "basic";
+  const author_bio = searchParams?.get("author_bio");
+  const shouldShowAuthorBio = author_bio === "personal" || author_bio === "basic";
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
-  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}); // ✅ Pass Qualtrics data to logger
+  // Get studyId from article if available, otherwise it will use URL-based studyId
+  const articleStudyId = article.studyId;
+  const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId);
   const timeWhenPageOpened = useRef<number>(Date.now());
-  const lastLoggedArticleId = useRef<string | null>(null); // ✅ Track which article we logged for
+  const lastLoggedArticleId = useRef<string | null>(null);
 
   // Log page view when component mounts (only once per article)
   // useEffect(() => {
@@ -206,24 +213,39 @@ export function ArticleContent({
       <article className={styles.article}>
         <ArticleHeader article={article} />
 
-        {/* <AuthorBio
-          author={{
-            name: article.author.name,
-            bio: {
-              personal: article.author.bio?.personal || "",
-              basic: article.author.bio?.basic || "",
-            },
-            image: article.author.photo
-              ? { src: article.author.photo, alt: article.author.name }
-              : undefined,
-          }}
-          bioType={author_bio as "personal" | "basic"}
-        /> */}
+        {shouldShowAuthorBio && (
+          <AuthorBio
+            author={{
+              name: article.author.name,
+              bio: {
+                personal: article.author.bio?.personal || "",
+                basic: article.author.bio?.basic || "",
+              },
+              image: article.author.photo
+                ? { src: article.author.photo, alt: article.author.name }
+                : undefined,
+            }}
+            bioType={author_bio as "personal" | "basic"}
+          />
+        )}
         
         <div 
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedContent) }}
             onClick={handleArticleLinkClick}
           />
+
+        {shouldShowExplainBox && (
+          <BehindTheStory 
+            explainBox={article.explain_box}
+            article={{
+              who_spoke_to: article.metadata?.who_spoke_to,
+              where_written: article.metadata?.where_written,
+              editor: article.metadata?.editor,
+              corrections: article.metadata?.corrections,
+              version_history: article.metadata?.version_history,
+            }}
+          />
+        )}
 
         {(version === '2' || version === '3' || version === '4')&& (
           <>
@@ -244,7 +266,7 @@ export function ArticleContent({
 
         {article.comments_display && (
           <Comments
-            comments={comments.map((comment) => ({
+            comments={comments.length > 0 ? comments.map((comment) => ({
               id: comment.id,
               name: comment.name,
               content: comment.content,
@@ -252,7 +274,7 @@ export function ArticleContent({
               createdAt: comment.timestamp,
               upvotes: comment.upvotes,
               downvotes: comment.downvotes,
-              replies: comment.replies.map((reply) => ({
+              replies: (comment.replies || []).map((reply) => ({
                 parentId: comment.id,
                 id: reply.id,
                 name: reply.name,
@@ -260,7 +282,7 @@ export function ArticleContent({
                 upvotes: reply.upvotes,
                 downvotes: reply.downvotes,
                 createdAt: reply.timestamp,
-                replies: reply.replies.map((subReply) => ({
+                replies: (reply.replies || []).map((subReply) => ({
                   parentId: reply.id,
                   id: subReply.id,
                   name: subReply.name,
@@ -270,7 +292,7 @@ export function ArticleContent({
                   createdAt: subReply.timestamp,
                 })),
               })),
-            }))}
+            })) : []}
             anonymous={article.anonymous}
             identifier={article.id}
             articleTitle={article.title}
@@ -285,7 +307,9 @@ export function ArticleContent({
               );
             }}
             userId={userId}
-            qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to Comments
+            qualtricsData={qualtricsData}
+            studyId={articleStudyId}
+            isAuthenticated={isAuthenticated}
           />
         )}
       </article>

@@ -35,9 +35,13 @@
 
 'use client';
 
+import { StudyDropdown } from '@/components/admin/StudyDropdown';
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
-import { clearSession, getSessionFromStorage } from '@/lib/auth';
+import { PageHeader } from '@/components/admin/PageHeader';
+import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
+import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
+import { loadStudies, StudyDefinition, getStudyAliases, getStudyName, CODE_STUDIES } from '@/lib/studies';
 import DOMPurify from 'dompurify';
 import { collection, getDocs, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -54,8 +58,8 @@ interface LogEntry {
   label: string;
   details: string;
   timestamp: any;
-  qualtricsResponseId?: string; // ✅ Added Qualtrics responseId
-  qualtricsSurveyId?: string; // ✅ Added Qualtrics surveyId
+  qualtricsResponseId?: string;
+  qualtricsSurveyId?: string;
 }
 
 interface Article {
@@ -103,17 +107,71 @@ interface DashboardStats {
   averageWordCount: number;
 }
 
+/**
+ * Helper function to check if a studyId matches the selected study (including aliases).
+ * For code-defined studies like 'eonc', also includes items without a studyId (legacy items).
+ */
+function matchesStudy(studyId: string | undefined, selectedStudy: string): boolean {
+  if (selectedStudy === 'all') return true;
+  
+  // For code-defined studies (like 'eonc'), include items without studyId as legacy items
+  const isCodeDefinedStudy = CODE_STUDIES.some(s => s.id === selectedStudy);
+  if (isCodeDefinedStudy && !studyId) {
+    return true; // Legacy items belong to code-defined studies
+  }
+  
+  if (!studyId) return false;
+  const aliases = getStudyAliases(selectedStudy);
+  return aliases.includes(studyId);
+}
+
+/**
+ * Safely extracts a Date object from a Firestore timestamp.
+ * Handles Firestore Timestamp objects, string timestamps, and invalid values.
+ * 
+ * @param timestamp - Firestore timestamp, string, number, or null/undefined
+ * @returns Date object or null if invalid
+ */
+function safeExtractDate(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  try {
+    // Handle Firestore Timestamp objects
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    // Handle string/number timestamps
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts all valid dates from an array of logs.
+ * 
+ * @param logs - Array of log entries with timestamp fields
+ * @returns Array of valid Date objects
+ */
+function extractValidDates(logs: LogEntry[]): Date[] {
+  return logs
+    .map(log => safeExtractDate(log.timestamp))
+    .filter((date): date is Date => date !== null);
+}
+
 export default function ResearchDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');
   const [selectedArticle, setSelectedArticle] = useState('all');
+  const [selectedStudy, setSelectedStudy] = useState<string>('all'); // Filter by study ID
   const [viewMode, setViewMode] = useState<'overview' | 'logs' | 'articles' | 'comments'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -142,50 +200,92 @@ export default function ResearchDashboard() {
   const [commentSort, setCommentSort] = useState('date-desc');
 
   useEffect(() => {
-    // Check authentication on component mount
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
+    // Subscribe to Firebase Auth state changes to get user email (auth is handled by layout)
+    const unsubscribe = onAuthChange((user: User | null) => {
+      if (user && user.email) {
+        setUserEmail(user.email);
       loadData();
+        loadStudiesData();
+    } else {
+        setUserEmail('');
+      setLoading(false);
+    }
+    });
+
+    // Check initial auth state and load data
+    const user = getCurrentUser();
+    if (user && user.email) {
+      setUserEmail(user.email);
+      loadData();
+      loadStudiesData();
     } else {
       setLoading(false);
     }
+
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = () => {
-    const session = getSessionFromStorage();
-    if (session && session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserEmail(session.email);
-      loadData();
-    }
-  };
+  const loadStudiesData = async () => {
+        try {
+          const loadedStudies = await loadStudies();
+          setStudies(loadedStudies);
+        } catch (error) {
+          console.error('Error loading studies:', error);
+          setStudies([]);
+        }
+      };
 
-  const handleLogout = () => {
-    clearSession();
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await signOut();
     setUserEmail('');
     setStats(null);
     setLogs([]);
     setArticles([]);
     setComments([]);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
+      
+      // Verify authentication before loading data
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        const errorMsg = 'User not authenticated. Please log in.';
+        console.error('[Research Dashboard]', errorMsg);
+        setLoadError(errorMsg);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('[Research Dashboard] Starting data load...');
+      console.log('[Research Dashboard] Authenticated user:', currentUser.email);
+      console.log('[Research Dashboard] Firestore db:', db);
+      console.log('[Research Dashboard] Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+      
       const logsRef = collection(db, 'logs');
+      console.log('[Research Dashboard] Logs collection ref:', logsRef);
       const logsQuery = query(logsRef, orderBy('timestamp', 'desc'));
+      console.log('[Research Dashboard] Executing logs query...');
       const logsSnapshot = await getDocs(logsQuery);
+      console.log('[Research Dashboard] Logs snapshot size:', logsSnapshot.size);
       const logsData = logsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as LogEntry[];
+      console.log('[Research Dashboard] Logs data:', logsData.length, 'entries');
 
       const articlesRef = collection(db, 'articles');
+      console.log('[Research Dashboard] Articles collection ref:', articlesRef);
       const articlesQuery = query(articlesRef, orderBy('createdAt', 'desc'));
+      console.log('[Research Dashboard] Executing articles query...');
       const articlesSnapshot = await getDocs(articlesQuery);
+      console.log('[Research Dashboard] Articles snapshot size:', articlesSnapshot.size);
 
       async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<LocalComment[]> {
         const repliesRef = collection(db, ...((parentPath as unknown) as [string, ...string[]]));
@@ -246,10 +346,13 @@ export default function ResearchDashboard() {
       }
 
       console.log('Loaded user comments:', allUserComments.length, allUserComments);
-      console.log('Loaded articles:', articlesData.length);
+      console.log('Loaded articles:', articlesData.length, articlesData);
+      console.log('Loaded logs:', logsData.length, logsData);
       console.log('Default comments count:', articlesData.reduce((sum, article) => 
         sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
       ));
+      console.log('Articles with studyId:', articlesData.filter(a => (a as any).studyId).map(a => ({ id: a.id, studyId: (a as any).studyId })));
+      console.log('Logs with studyId:', logsData.filter(l => (l as any).studyId).map(l => ({ id: l.id, studyId: (l as any).studyId, action: l.action })));
 
       setLogs(logsData);
       setArticles(articlesData);
@@ -261,10 +364,12 @@ export default function ResearchDashboard() {
         actionsByType[log.action] = (actionsByType[log.action] || 0) + 1;
       });
 
-      const timestamps = logsData.map(log => log.timestamp).filter(Boolean);
+      // Safely extract and convert timestamps to dates
+      const validDates = extractValidDates(logsData);
+
       const dateRange = {
-        earliest: timestamps.length > 0 ? new Date(Math.min(...timestamps.map(t => t.toDate ? t.toDate() : new Date(t)))).toISOString() : '',
-        latest: timestamps.length > 0 ? new Date(Math.max(...timestamps.map(t => t.toDate ? t.toDate() : new Date(t)))).toISOString() : ''
+        earliest: validDates.length > 0 ? new Date(Math.min(...validDates.map(d => d.getTime()))).toISOString() : '',
+        latest: validDates.length > 0 ? new Date(Math.max(...validDates.map(d => d.getTime()))).toISOString() : ''
       };
 
       const articlesWithComments = articlesData.filter(article => 
@@ -292,32 +397,80 @@ export default function ResearchDashboard() {
       });
 
     } catch (error) {
-      console.error('Error loading data:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[Research Dashboard] Error loading data:', error);
+      console.error('[Research Dashboard] Error details:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined
+      });
+      setLoadError(errorMessage);
+      // Set empty arrays on error so UI can still render
+      setLogs([]);
+      setArticles([]);
+      setComments([]);
+      setStats(null);
     } finally {
       setLoading(false);
+      console.log('[Research Dashboard] Data load complete');
     }
   };
 
   const exportToCSV = (data: any[], filename: string) => {
     if (!data.length) return;
     const headers = Object.keys(data[0] || {});
+    
+    /**
+     * Converts a Firestore Timestamp (in any format) to an ISO string.
+     * Handles both live Timestamp objects and serialized formats.
+     */
+    const convertTimestamp = (value: any): string | null => {
+      if (!value) return null;
+      
+      // Handle Firestore Timestamp with toDate method
+      if (typeof value === 'object' && typeof value.toDate === 'function') {
+        try {
+          return value.toDate().toISOString();
+        } catch {
+          return null;
+        }
+      }
+      
+      // Handle serialized Firestore Timestamp with _seconds and _nanoseconds
+      if (typeof value === 'object' && value._seconds !== undefined) {
+        try {
+          const milliseconds = value._seconds * 1000 + (value._nanoseconds || 0) / 1000000;
+          return new Date(milliseconds).toISOString();
+        } catch {
+          return null;
+        }
+      }
+      
+      // Handle string or number timestamps
+      if (typeof value === 'string' || typeof value === 'number') {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
+      
+      return null;
+    };
+    
     const csvContent = [
       headers.join(','),
       ...data.map(row => 
         headers.map(header => {
           let value = row[header];
-          if ((header === 'timestamp' || header === 'createdAt') && value) {
-            if (typeof value === 'object' && typeof value.toDate === 'function') {
-              value = value.toDate().toISOString();
-            } else if (typeof value === 'string' || typeof value === 'number') {
-              const d = new Date(value);
-              if (!isNaN(d.getTime())) value = d.toISOString();
-            }
+          
+          // Handle timestamp fields
+          if ((header === 'timestamp' || header === 'createdAt' || header === 'updatedAt') && value) {
+            const converted = convertTimestamp(value);
+            value = converted || value;
           }
-          // For objects, convert to JSON string if they exist
-          else if (typeof value === 'object' && value !== null && header !== 'timestamp' && header !== 'createdAt') {
+          // For other objects, convert to JSON string if they exist
+          else if (typeof value === 'object' && value !== null) {
             value = JSON.stringify(value);
           }
+          
           return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : (value ?? '');
         }).join(',')
       )
@@ -344,12 +497,15 @@ export default function ResearchDashboard() {
 
       return rows.map((row: any) => {
         // construct an ordered, minimal export row
+        const studyId = row.studyId || '';
         return {
           qualtricsResponseId: row.qualtricsResponseId ?? userToQualtrics[row.userId] ?? '',
           // keep id first
           id: row.id ?? '',
           // user and action
           userId: row.userId ?? '',
+          studyId: studyId,
+          studyName: studyId ? getStudyName(studyId) : '',
           ipAddress: row.ipAddress ?? '',
           action: row.action ?? '',
           // move details immediately after action
@@ -367,6 +523,12 @@ export default function ResearchDashboard() {
   const filteredLogs = logs.filter(log => {
     if (selectedAction !== 'all' && log.action !== selectedAction) return false;
     if (selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
+    // Filter by studyId if selected (when "All Studies" is selected, show all logs)
+    if (selectedStudy !== 'all') {
+      const logStudyId = (log as any).studyId;
+      if (!matchesStudy(logStudyId, selectedStudy)) return false;
+    }
+    // When "All Studies" is selected, include logs even if they don't have a studyId
     if (selectedDateRange !== 'all') {
       const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
       const now = new Date();
@@ -381,35 +543,41 @@ export default function ResearchDashboard() {
         (log.label && log.label.toLowerCase().includes(searchLower)) ||
         (typeof log.details === 'string' && log.details.toLowerCase().includes(searchLower)) ||
         (log.url && log.url.toLowerCase().includes(searchLower)) ||
-        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower)) // ✅ Added Qualtrics responseId to search
+        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower))
       );
     }
     return true;
   });
 
-  // Only filter articles by title/id filter in articles tab
-  const filteredArticles = viewMode === 'articles'
-    ? articles.filter(article => {
-        if (articleTitleIdFilter) {
-          const filter = articleTitleIdFilter.toLowerCase();
-          return (
-            article.title.toLowerCase().includes(filter) ||
-            article.id.toLowerCase().includes(filter)
-          );
-        }
-        return true;
-      })
-    : articles.filter(article => {
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
-          return (
-            article.title.toLowerCase().includes(searchLower) ||
-            article.content.toLowerCase().includes(searchLower) ||
-            (article.author?.name || '').toLowerCase().includes(searchLower)
-          );
-        }
-        return true;
-      });
+  // Filter articles by studyId and other filters
+  const filteredArticles = articles.filter(article => {
+    // Filter by studyId if selected
+    if (selectedStudy !== 'all') {
+      const articleStudyId = (article as any).studyId;
+      if (!matchesStudy(articleStudyId, selectedStudy)) return false;
+    }
+    
+    // Apply tab-specific filters
+    if (viewMode === 'articles') {
+      if (articleTitleIdFilter) {
+        const filter = articleTitleIdFilter.toLowerCase();
+        return (
+          article.title.toLowerCase().includes(filter) ||
+          article.id.toLowerCase().includes(filter)
+        );
+      }
+    } else {
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          article.title.toLowerCase().includes(searchLower) ||
+          article.content.toLowerCase().includes(searchLower) ||
+          (article.author?.name || '').toLowerCase().includes(searchLower)
+        );
+      }
+    }
+    return true;
+  });
 
   function flattenComments(comments: any[], article: any, parentId: string | null = null, grandParentId?: string) {
     const flat: any[] = [];
@@ -432,7 +600,15 @@ export default function ResearchDashboard() {
     return flat;
   }
 
-  const allComments = articles.flatMap(article =>
+  // Filter articles by study first, then get comments from those articles
+  const articlesForComments = selectedStudy !== 'all' 
+    ? articles.filter(article => {
+        const articleStudyId = (article as any).studyId;
+        return matchesStudy(articleStudyId, selectedStudy);
+      })
+    : articles;
+
+  const allComments = articlesForComments.flatMap(article =>
     flattenComments(
       showDefaultComments && Array.isArray(article.default_comments) && article.default_comments.length > 0
         ? article.default_comments
@@ -521,8 +697,16 @@ export default function ResearchDashboard() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <ResearchDashboardLogin onLogin={handleLogin} />;
+  if (!userEmail) {
+    return <ResearchDashboardLogin onLogin={() => {
+      // Auth state change will be handled by useEffect
+      const user = getCurrentUser();
+      if (user && user.email) {
+        setUserEmail(user.email);
+        loadData();
+        loadStudiesData();
+      }
+    }} />;
   }
 
   if (loading) {
@@ -541,29 +725,10 @@ export default function ResearchDashboard() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="mx-auto max-w-7xl">
-        {/* Header with Logout */}
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="mb-2 text-3xl font-bold text-gray-900">Research Data Dashboard</h1>
-            <p className="text-gray-600">Interactive data exploration and analysis for researchers</p>
-            <p className="mt-1 text-sm text-gray-500">Logged in as: {userEmail}</p>
-          </div>
-          <div className="flex space-x-2">
-            <a
-              href="/admin"
-              className="px-4 py-2 text-sm text-white bg-blue-600 border border-gray-300 rounded-md hover:bg-blue-700"
-              style={{ color: 'white' }}
-            >
-              Admin
-            </a>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
+        <PageHeader 
+          title="Research Data Dashboard" 
+          subtitle="Interactive dashboard for researchers to explore user activity, articles, comments, and export data for analysis." 
+        />
 
         {/* Navigation Tabs */}
         <div className="mb-8 bg-white rounded-lg shadow">
@@ -571,9 +736,9 @@ export default function ResearchDashboard() {
             <nav className="flex px-6 -mb-px space-x-8">
               {[
                 { id: 'overview', label: 'Overview', count: null },
-                { id: 'logs', label: 'User Activity', count: logs.length },
-                { id: 'articles', label: 'Articles', count: articles.length },
-                { id: 'comments', label: 'Comments', count: allComments.length }
+                { id: 'logs', label: 'User Activity', count: filteredLogs.length },
+                { id: 'articles', label: 'Articles', count: filteredArticles.length },
+                { id: 'comments', label: 'Comments', count: filteredComments.length }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -599,46 +764,115 @@ export default function ResearchDashboard() {
         {/* Content Based on View Mode */}
         {viewMode === 'overview' && (
           <>
-            {/* Stats Overview */}
-            {stats && (
-              <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Total User Actions</h3>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalLogs.toLocaleString()}</p>
-                  <p className="mt-1 text-sm text-gray-600">Unique users: {stats.uniqueUsers}</p>
+            {/* Study Filter */}
+            <div className="p-4 mb-6 bg-white rounded-lg shadow">
+              <StudyDropdown
+                value={selectedStudy}
+                onChange={setSelectedStudy}
+                studies={studies}
+                label="Filter by Study"
+                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md"
+              />
+              {selectedStudy !== 'all' && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Showing data for: <span className="font-semibold">
+                    {getStudyName(selectedStudy)}
+                  </span>
+                </p>
+              )}
+              {/* Error Display */}
+              {loadError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+                  <p><strong>Error loading data:</strong> {loadError}</p>
+                  <p className="mt-1 text-xs">Check browser console for details.</p>
                 </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Articles</h3>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalArticles}</p>
-                  <p className="mt-1 text-sm text-gray-600">Avg {stats.averageWordCount} words</p>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Comments</h3>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalComments}</p>
-                  <p className="mt-1 text-sm text-gray-600">{stats.articlesWithComments} articles have comments</p>
-                </div>
-                <div className="p-6 bg-white rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Date Range</h3>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {stats.dateRange.earliest ? new Date(stats.dateRange.earliest).toLocaleDateString() : 'N/A'}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">to {stats.dateRange.latest ? new Date(stats.dateRange.latest).toLocaleDateString() : 'N/A'}</p>
-                </div>
+              )}
+              {/* Debug info */}
+              <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                <p><strong>Debug:</strong> Total logs loaded: {logs.length} | Filtered: {filteredLogs.length}</p>
+                <p>Total articles loaded: {articles.length} | Filtered: {filteredArticles.length}</p>
+                <p>Total comments loaded: {comments.length} | All comments (with defaults): {allComments.length}</p>
+                <p>Selected study filter: {selectedStudy}</p>
+                <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'unknown'}</p>
               </div>
-            )}
+            </div>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Total User Actions</h3>
+                <p className="text-3xl font-bold text-gray-900">{filteredLogs.length.toLocaleString()}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {new Set(filteredLogs.map(log => log.userId)).size} unique users
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Articles</h3>
+                <p className="text-3xl font-bold text-gray-900">{filteredArticles.length}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Avg {filteredArticles.length > 0 ? Math.round(filteredArticles.reduce((sum, a) => sum + (a.content ? a.content.split(/\s+/).length : 0), 0) / filteredArticles.length) : 0} words
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Comments</h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {/* Default comments from filtered articles + user comments (already filtered by study) */}
+                  {filteredArticles.reduce((sum, article) => 
+                    sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
+                  ) + allComments.length}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {filteredArticles.filter(article => 
+                    Array.isArray(article.default_comments) && article.default_comments.length > 0
+                  ).length} articles have comments
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+              <div className="p-6 bg-white rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">Date Range</h3>
+                <p className="text-lg font-semibold text-gray-900">
+                  {(() => {
+                    const validDates = extractValidDates(filteredLogs);
+                    if (validDates.length === 0) return 'N/A';
+                    const earliest = new Date(Math.min(...validDates.map(d => d.getTime())));
+                    return earliest.toLocaleDateString();
+                  })()}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  to {(() => {
+                    const validDates = extractValidDates(filteredLogs);
+                    if (validDates.length === 0) return 'N/A';
+                    const latest = new Date(Math.max(...validDates.map(d => d.getTime())));
+                    return latest.toLocaleDateString();
+                  })()}
+                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
+                </p>
+              </div>
+            </div>
 
             {/* Export Section */}
             <div className="flex flex-col p-6 bg-white rounded-lg shadow">
               <h2 className="mb-4 text-xl font-semibold text-center">Export Data</h2>
-              <div className="flex justify-center">
+              <div className="flex justify-center space-x-4">
                 <button
                   onClick={() => exportToCSV(
-                    prepareLogExportRows(logs),
-                    `user_activity_${new Date().toISOString().split('T')[0]}.csv`
+                    prepareLogExportRows(filteredLogs),
+                    `user_activity_${selectedStudy !== 'all' ? selectedStudy + '_' : ''}${new Date().toISOString().split('T')[0]}.csv`
                   )}
                   className="px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   Export User Activity (CSV)
+                </button>
+                <button
+                  onClick={() => exportToCSV(
+                    filteredArticles.map(a => ({ ...a, studyId: (a as any).studyId || 'N/A' })),
+                    `articles_${selectedStudy !== 'all' ? selectedStudy + '_' : ''}${new Date().toISOString().split('T')[0]}.csv`
+                  )}
+                  className="px-4 py-2 mt-4 text-white bg-green-600 rounded-md hover:bg-green-700"
+                >
+                  Export Articles (CSV)
                 </button>
               </div>
             </div>
@@ -649,7 +883,12 @@ export default function ResearchDashboard() {
           <>
             {/* Search and Filters */}
             <div className="p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
+                <StudyDropdown
+                  value={selectedStudy}
+                  onChange={setSelectedStudy}
+                  studies={studies}
+                />
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">User</label>
                   <input
@@ -695,7 +934,7 @@ export default function ResearchDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
                     <option value="all">All Articles</option>
-                    {articles.map(article => (
+                    {filteredArticles.map(article => (
                       <option key={article.id} value={article.id}>{article.title}</option>
                     ))}
                   </select>
@@ -737,6 +976,7 @@ export default function ResearchDashboard() {
                     <tr>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Time</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">User</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Study</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Details</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Article</th>
@@ -754,6 +994,12 @@ export default function ResearchDashboard() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           {log.userId}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {(() => {
+                            const logStudyId = (log as any).studyId;
+                            return logStudyId ? getStudyName(logStudyId) : '-';
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -788,7 +1034,22 @@ export default function ResearchDashboard() {
         {viewMode === 'articles' && (
           <>
             <div className="p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="flex flex-col justify-center max-w-2xl gap-4 mx-auto md:flex-row md:items-end">
+              <div className="flex flex-col justify-center max-w-3xl gap-4 mx-auto md:flex-row md:items-end">
+                <div className="flex-1 min-w-[180px]">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">Study</label>
+                  <select
+                    value={selectedStudy}
+                    onChange={e => setSelectedStudy(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="all">All Studies</option>
+                    {studies.map(study => (
+                      <option key={study.id} value={study.id}>
+                        {study.name} ({study.id.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex-1 min-w-[220px]">
                   <label className="block mb-2 text-sm font-medium text-gray-700">Filter by Title or Article ID</label>
                   <input
@@ -857,7 +1118,12 @@ export default function ResearchDashboard() {
           <>
             {/* Search and Filters for Comments */}
             <div className="p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
+                <StudyDropdown
+                  value={selectedStudy}
+                  onChange={setSelectedStudy}
+                  studies={studies}
+                />
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Search</label>
                   <input
@@ -886,7 +1152,7 @@ export default function ResearchDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   >
                     <option value="all">All Articles</option>
-                    {articles.map(article => (
+                    {filteredArticles.map(article => (
                       <option key={article.id} value={article.id}>{article.title}</option>
                     ))}
                   </select>
@@ -908,6 +1174,7 @@ export default function ResearchDashboard() {
                 <div className="flex items-end space-x-2">
                   <button
                     onClick={() => {
+                      setSelectedStudy('all');
                       setSelectedArticle('all');
                       setSelectedUser('');
                       setSelectedCommentDateRange('all');
@@ -943,7 +1210,10 @@ export default function ResearchDashboard() {
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
                   <h2 className="text-xl font-semibold">Comments</h2>
-                  <p className="text-gray-600">Showing {filteredComments.length} of {allComments.length} comments</p>
+                  <p className="text-gray-600">
+                    Showing {filteredComments.length} comment{filteredComments.length !== 1 ? 's' : ''}
+                    {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered by study)</span>}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button

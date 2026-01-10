@@ -45,14 +45,25 @@ useEffect(() => {
   const session = getSessionFromStorage();
   setIsAuthenticated(!!(session && session.isAuthenticated));
 }, []);
+  // Get author name and site name from article data (set from project config at creation)
+  const authorName = article.author?.name || 'Staff Reporter';
+  const siteName = (article as any).siteName || 'The Gazette Star';
+  const pubdate = article.pubdate || '';
+  
+  // Format publication date for display
+  const formatPubdate = (dateStr: string) => {
+    if (!dateStr) return 'Recently';
+    return dateStr;
+  };
+
   return (
     <header className={styles.header}>
       <div className="flex items-center justify-center gap-4">
         <h2 className={styles.title}>{article.title}</h2>
       </div>
-      <p className={styles.author__job}>Posted 1 day ago</p>
-      <p className={styles.author__job}>By Jim Phelps</p>
-      <p className={styles.author__job}>The Gazette Star Staff Reporter</p>
+      {pubdate && <p className={styles.author__job}>Posted {formatPubdate(pubdate)}</p>}
+      <p className={styles.author__job}>By {authorName}</p>
+      <p className={styles.author__job}>{siteName} Staff Reporter</p>
       {isAuthenticated && article.id && (
         <a
           href={`/admin/edit-article/${article.id}`}

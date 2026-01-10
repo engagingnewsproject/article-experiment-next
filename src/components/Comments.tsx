@@ -18,7 +18,7 @@ import React, { useState } from "react";
 import { type Comment } from "@/lib/firestore";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentList } from "@/components/CommentList";
-import { type QualtricsData } from '@/hooks/useQualtrics'; // ✅ Added Qualtrics data type
+import { type QualtricsData } from '@/hooks/useQualtrics';
 import styles from "@/components/Comments.module.css";
 
 /**
@@ -38,7 +38,9 @@ interface CommentsProps {
   identifier: string;
   articleTitle: string;
   userId: string;
-  qualtricsData?: QualtricsData; // ✅ Added Qualtrics data prop
+  qualtricsData?: QualtricsData;
+  studyId?: string; // Article's studyId
+  isAuthenticated?: boolean;
   onCommentSubmit?: (name: string, content: string) => void;
 }
 
@@ -52,6 +54,13 @@ interface CommentsProps {
  * - Manages form state and submission
  * - Uses CSS modules for styling
  * 
+ * IMPORTANT: Comments display behavior:
+ * - Page loads show ONLY default comments (from article.default_comments)
+ * - User interactions (comments, replies, votes) are shown only in the current session
+ * - All user interactions are saved to Firebase for research data collection
+ * - On page refresh, the article resets to its default state
+ * - Each survey participant sees the article in its original form
+ * 
  * @param {CommentsProps} props - Component props
  * @returns {JSX.Element} The rendered comments section
  */
@@ -61,11 +70,26 @@ export const Comments: React.FC<CommentsProps> = ({
   identifier,
   articleTitle,
   userId,
-  qualtricsData, // ✅ Added Qualtrics data parameter
+  qualtricsData,
+  studyId, // Article's studyId
+  isAuthenticated = false,
   onCommentSubmit,
 }) => {
+  // Default comments are the baseline - always start fresh with these on page load
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
+  
+  // Local comments include defaults + user's session interactions (comments, replies)
+  // This is what gets displayed and modified during the session
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
+
+  // When comments prop changes (page load/refresh), reset to defaults only
+  // This ensures each viewer sees the article in its original state
+  React.useEffect(() => {
+    // Deep clone to create a fresh copy of default comments
+    const clonedDefaults = JSON.parse(JSON.stringify(comments));
+    setDefaultComments(clonedDefaults);
+    setLocalComments(clonedDefaults);
+  }, [comments]);
 
   const handleCommentSubmitted = async (newComment: Comment) => {
     setLocalComments((prev) => [newComment, ...prev]);
@@ -103,10 +127,6 @@ export const Comments: React.FC<CommentsProps> = ({
     setLocalComments(prev => addReplyById(prev, commentId, reply));
   }
 
-  React.useEffect(() => {
-    setLocalComments(defaultComments);
-  }, [defaultComments]);
-
   // Helper function to count all comments including nested replies
   const countAllComments = (comments: Comment[]): number => {
     return comments.reduce((total, comment) => {
@@ -130,14 +150,16 @@ export const Comments: React.FC<CommentsProps> = ({
           Comments ({countAllComments(localComments)}):        
         </div>
         <CommentList 
-          comments={localComments} 
+          comments={localComments}
           onCommentRemoved={handleCommentRemoved}
           onReply={handleReply}
           anonymous={anonymous}
           identifier={identifier}
+          studyId={studyId}
           articleTitle={articleTitle}
           userId={userId}
-          qualtricsData={qualtricsData} // ✅ Pass Qualtrics data to CommentList
+          qualtricsData={qualtricsData}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </section>
