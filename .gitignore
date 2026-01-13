@@ -40,8 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 serviceAccountKey.json
+serviceAccountKey-dev.json
 firestore-debug.log
 firebase-debug.log
 research-exports/
 pglite-debug.log
 LOCAL/console/*
+# Production Firestore data exports (contains sensitive production data)
+firestore-data/
+article-experiment-next.code-workspace

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { validateCredentials, createSession, saveSessionToStorage, getAllowedEmails } from '@/lib/auth';
+import { useState } from 'react';
+import { signIn } from '@/lib/auth';
 
 interface ResearchDashboardLoginProps {
   onLogin: () => void;
@@ -12,28 +12,27 @@ export function ResearchDashboardLogin({ onLogin }: ResearchDashboardLoginProps)
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showAllowedEmails, setShowAllowedEmails] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate a small delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Sign in with Firebase Authentication
+      await signIn(email, password);
 
-    if (validateCredentials(password, email)) {
-      const session = createSession(email);
-      saveSessionToStorage(session);
+      // Success - callback will be triggered by auth state change
       onLogin();
-    } else {
-      setError('Invalid email or password. Please check your credentials.');
-    }
-
+    } catch (err) {
+      // Handle authentication errors
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in. Please try again.';
+      setError(errorMessage);
+    } finally {
     setIsLoading(false);
+    }
   };
-
-  const allowedEmails = getAllowedEmails();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -64,43 +63,41 @@ export function ResearchDashboardLogin({ onLogin }: ResearchDashboardLoginProps)
                   placeholder="Enter your email"
                 />
               </div>
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAllowedEmails(!showAllowedEmails)}
-                  className="text-sm text-blue-600 hover:text-blue-500"
-                >
-                  {showAllowedEmails ? 'Hide' : 'Show'} allowed emails
-                </button>
-                {showAllowedEmails && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                    <p className="text-xs text-gray-600 mb-2">Allowed email addresses:</p>
-                    <ul className="text-xs text-gray-700 space-y-1">
-                      {allowedEmails.map((email) => (
-                        <li key={email} className="font-mono">{email}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
-              <div className="mt-1">
+              <div className="relative mt-1">
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 

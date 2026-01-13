@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "article-experiment-next"
+    "default": "article-experiment-next",
+    "dev": "article-experiment-next-dev",
+    "prod": "article-experiment-next"
   }
 }

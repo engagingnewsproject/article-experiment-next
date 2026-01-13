@@ -2,7 +2,7 @@
 
 import AdminCommentForm from '@/components/admin/AdminCommentForm';
 import { AdminImportButton } from '@/components/admin/AdminImportButton';
-import { Header } from '@/components/Header';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { updateArticleWithDefaultComments, type Comment } from '@/lib/firestore';
 import { useState } from 'react';
 
@@ -98,12 +98,14 @@ export default function AddDefaultCommentsPage() {
   };
 
   return (
-    <>
-      <Header />
-      <div className="flex flex-col items-center p-8">
-        <h1 className="mb-4 text-2xl font-bold">Add Default Comments</h1>
+    <div className="min-h-screen p-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <PageHeader 
+          title="Add Default Comments" 
+          subtitle="Add or import default comments for articles. Upload CSV files or manually enter comment data." 
+        />
     
-        <form onSubmit={handleSubmit} className="w-full max-w-4xl">
+        <form onSubmit={handleSubmit} className="w-full">
           <div className="mb-6">
             <label htmlFor="articleId" className="block font-medium text-md">
               Article ID
@@ -173,6 +175,6 @@ export default function AddDefaultCommentsPage() {
           </div>
         </form>
       </div>
-    </>
+    </div>
   );
 }

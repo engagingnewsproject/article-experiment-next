@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // SIMPLIFIED RULES - Use this if you don't have Firebase Auth set up yet
+    // This is more secure than allow all, but still allows public writes
+    
+    // Articles: Public read, public write (restrict in production!)
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if true; // TODO: Restrict to authenticated admins
+      
+      // Comments: Public read and write
+      match /comments/{commentId} {
+        allow read, write: if true;
+        
+        // Replies: Public read and write
+        match /replies/{replyId} {
+          allow read, write: if true;
+        }
+      }
+    }
+    
+    // Logs: Public write only (for logging), no read
+    match /logs/{logId} {
+      allow read: if false; // No one can read logs directly
+      allow create: if true; // Anyone can create logs
+      allow update, delete: if false; // Logs are append-only
+    }
+    
+    // Studies, Project Configs, Authors: Public read, restricted write
+    match /studies/{studyId} {
+      allow read: if true;
+      allow write: if true; // TODO: Restrict to authenticated admins
+    }
+    
+    match /projectConfigs/{configId} {
+      allow read: if true;
+      allow write: if true; // TODO: Restrict to authenticated admins
+    }
+    
+    match /authors/{authorId} {
+      allow read: if true;
+      allow write: if true; // TODO: Restrict to authenticated admins
+    }
+  }
+}
