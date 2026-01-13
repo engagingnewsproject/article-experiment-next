@@ -302,10 +302,7 @@ export function ArticleContent({
                 userId,
                 article.title
               );
-              // Copy URL to clipboard
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(window.location.href);
-              }
+              // Note: Share button is for logging only, not actual sharing
             }}
           />
         )}

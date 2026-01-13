@@ -3,8 +3,7 @@
  * 
  * This component:
  * - Displays like and share buttons when enabled
- * - Tracks user interactions via logging
- * - Copies article URL to clipboard when share is clicked
+ * - Tracks user interactions via logging (share button is for logging only, not actual sharing)
  * 
  * @component
  * @param {Object} props - Component props
