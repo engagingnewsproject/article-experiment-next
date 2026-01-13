@@ -31,6 +31,7 @@ const nextConfig = {
    * @type {boolean}
    */
   swcMinify: true,
+
 };
 
 module.exports = nextConfig; 
