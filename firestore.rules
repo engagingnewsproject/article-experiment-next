@@ -43,6 +43,8 @@ service cloud.firestore {
     match /logs/{logId} {
       // Allow read for authenticated users (admin dashboard needs this)
       allow read: if request.auth != null;
+      // Allow list for authenticated users (required for getDocs() queries in dashboard)
+      allow list: if request.auth != null;
       allow create: if request.resource.data.keys().hasAll(['url', 'identifier', 'userId', 'action', 'label', 'details', 'timestamp'])
                   && request.resource.data.url is string
                   && request.resource.data.identifier is string
