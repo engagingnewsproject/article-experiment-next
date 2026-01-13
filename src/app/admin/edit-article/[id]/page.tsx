@@ -547,7 +547,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
                 isAdjustingTextareaHeight.current = false;
               });
             }}
-            className="w-full px-3 py-2 overflow-hidden border rounded resize-none"
+            className="w-full px-3 py-2 overflow-y-auto border rounded resize-y"
             style={{ minHeight: '120px' }}
             required
           />
