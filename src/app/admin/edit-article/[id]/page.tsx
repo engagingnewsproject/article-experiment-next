@@ -1,9 +1,10 @@
 "use client";
 import { InsertImageButton } from '@/components/admin/InsertImageButton';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { DefaultCommentsEditor } from '@/components/admin/DefaultCommentsEditor';
 import { db } from '@/lib/firebase';
-import { ArticleTheme } from '@/lib/firestore';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ArticleTheme, type Comment, updateArticleWithDefaultComments } from '@/lib/firestore';
+import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 
@@ -19,6 +20,8 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   const [originalThemes, setOriginalThemes] = useState<ArticleTheme[]>([]);
   const [explainBoxItems, setExplainBoxItems] = useState<string[]>([]);
   const [originalExplainBoxItems, setOriginalExplainBoxItems] = useState<string[]>([]);
+  const [defaultComments, setDefaultComments] = useState<Comment[]>([]);
+  const [originalDefaultComments, setOriginalDefaultComments] = useState<Comment[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -37,6 +40,20 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           const explainBoxData = Array.isArray(data.explain_box) ? data.explain_box : [];
           setExplainBoxItems(explainBoxData);
           setOriginalExplainBoxItems([...explainBoxData]); // Store original explain box items
+          
+          // Load default comments
+          const commentsData = Array.isArray(data.default_comments) ? data.default_comments : [];
+          // Convert Firestore Timestamps to ISO strings for editing
+          const convertedComments = commentsData.map((comment: any) => ({
+            ...comment,
+            createdAt: comment.createdAt?.toDate ? comment.createdAt.toDate().toISOString() : comment.createdAt,
+            replies: (comment.replies || []).map((reply: any) => ({
+              ...reply,
+              createdAt: reply.createdAt?.toDate ? reply.createdAt.toDate().toISOString() : reply.createdAt,
+            })),
+          }));
+          setDefaultComments(convertedComments);
+          setOriginalDefaultComments(JSON.parse(JSON.stringify(convertedComments))); // Deep copy for comparison
         } else {
           setError('Article not found');
         }
@@ -138,6 +155,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     setExplainBoxItems(updated);
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -163,6 +181,12 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       
       await updateDoc(docRef, finalizedArticle);
       
+      // Update default comments if they changed
+      const defaultCommentsChanged = JSON.stringify(defaultComments) !== JSON.stringify(originalDefaultComments);
+      if (defaultCommentsChanged) {
+        await updateArticleWithDefaultComments(String(id), defaultComments);
+      }
+      
       // Update both article and originalArticle states with the finalized values
       // Also update themes and explainBoxItems to match what was saved (filtered versions)
       // This ensures hasUnsavedChanges() will return false after saving
@@ -172,6 +196,8 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       setOriginalThemes([...mappedThemes]);
       setExplainBoxItems([...filteredExplainBoxItems]);
       setOriginalExplainBoxItems([...filteredExplainBoxItems]);
+      setDefaultComments(JSON.parse(JSON.stringify(defaultComments))); // Deep copy
+      setOriginalDefaultComments(JSON.parse(JSON.stringify(defaultComments))); // Deep copy
       setSuccess('Article updated successfully!');
     } catch (err) {
       setError('Error updating article');
@@ -198,8 +224,11 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     // Compare explain box items
     const explainBoxChanged = JSON.stringify(explainBoxItems) !== JSON.stringify(originalExplainBoxItems);
     
-    return articleChanged || themesChanged || explainBoxChanged;
-  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems]);
+    // Compare default comments
+    const defaultCommentsChanged = JSON.stringify(defaultComments) !== JSON.stringify(originalDefaultComments);
+    
+    return articleChanged || themesChanged || explainBoxChanged || defaultCommentsChanged;
+  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems, defaultComments, originalDefaultComments]);
 
   const handleBackToArticle = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (hasUnsavedChanges()) {
@@ -390,6 +419,13 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
             <span className="font-medium">Show like & share article icons</span>
           </label>
         </div>
+        
+        {/* Default Comments Section */}
+        <DefaultCommentsEditor 
+          comments={defaultComments} 
+          setComments={setDefaultComments} 
+        />
+        
         <div className="flex items-center gap-4">
           {article?.slug && (
             <a
