@@ -45,9 +45,10 @@ useEffect(() => {
   const session = getSessionFromStorage();
   setIsAuthenticated(!!(session && session.isAuthenticated));
 }, []);
-  // Get author name and site name from article data (set from project config at creation)
-  const authorName = article.author?.name || 'Staff Reporter';
-  const siteName = (article as any).siteName || 'The Gazette Star';
+  // Get author name and site name from article data
+  // These values are already processed in ArticleClient with proper priority logic
+  const authorName = article.author?.name || '';
+  const siteName = (article as any).siteName || '';
   const pubdate = article.pubdate || '';
   
   // Format publication date for display
@@ -62,8 +63,8 @@ useEffect(() => {
         <h2 className={styles.title}>{article.title}</h2>
       </div>
       {pubdate && <p className={styles.author__job}>Posted {formatPubdate(pubdate)}</p>}
-      <p className={styles.author__job}>By {authorName}</p>
-      <p className={styles.author__job}>{siteName} Staff Reporter</p>
+      {authorName && <p className={styles.author__job}>By {authorName}</p>}
+      {siteName && <p className={styles.author__job}>{siteName} Staff Reporter</p>}
       {isAuthenticated && article.id && (
         <a
           href={`/admin/edit-article/${article.id}`}

@@ -45,6 +45,8 @@ interface CommentListProps {
   onCommentRemoved: (commentId: string) => void;
   /** Callback function called when a reply is submitted to a comment, updates parent component state */
   onReply: (commentId: string, reply: Comment) => void;
+  /** Whether to show the name input field in comment forms (from study setting) */
+  showNameInput?: boolean;
 }
 
 const REPLIES_REVEAL_COUNT = 5;
@@ -81,7 +83,9 @@ const CommentNode: React.FC<{
   setMaxSubReplies: React.Dispatch<React.SetStateAction<{ [replyId: string]: number }>>;
   /** Current depth in the comment tree, used to limit reply functionality for deeper levels */
   depth?: number;
-}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, qualtricsData, studyId, isAuthenticated = false, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false }) => {
+  /** Whether to show the name input field in comment forms (from study setting) */
+  showNameInput?: boolean;
+}> = ({ comment, onCommentRemoved, identifier, articleTitle, userId, qualtricsData, studyId, isAuthenticated = false, onReply, maxReplies, setMaxReplies, maxSubReplies, setMaxSubReplies, depth = 1, anonymous = false, showNameInput = true }) => {
   const [replying, setReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyName, setReplyName] = useState(anonymous ? "Anonymous" : "");
@@ -205,6 +209,7 @@ const CommentNode: React.FC<{
           isSubmitting={isSubmitting}
           replyName={replyName}
           setReplyName={setReplyName}
+          showNameInput={showNameInput}
         />
       )}
       {comment.replies && comment.replies.length > 0 && (
@@ -227,6 +232,7 @@ const CommentNode: React.FC<{
               setMaxSubReplies={setMaxSubReplies}
               depth={depth + 1}
               anonymous={anonymous}
+              showNameInput={showNameInput}
             />
           ))}
           {comment.replies.length > maxReplies && (
@@ -254,6 +260,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   isAuthenticated = false,
   onCommentRemoved,
   onReply,
+  showNameInput = true,
 }) => {
   const COMMENTS_REVEAL_COUNT = 20;
   const [maxRevealLength, setMaxRevealLength] = useState(COMMENTS_REVEAL_COUNT);

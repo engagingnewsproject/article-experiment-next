@@ -34,24 +34,44 @@ export function EditablePubdateField({
   onEnabledChange,
   onValueChange,
 }: EditablePubdateFieldProps) {
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onEnabledChange(!enabled);
+  };
+
   return (
     <div className="space-y-2">
-      <label className="flex items-center gap-2">
+      <div 
+        className="flex items-center gap-2 cursor-pointer"
+        onClick={handleToggle}
+      >
         <input
           type="checkbox"
           checked={enabled}
-          onChange={(e) => onEnabledChange(e.target.checked)}
-          className="w-4 h-4"
+          readOnly
+          className="w-4 h-4 pointer-events-none"
         />
         <span className="font-medium">Show & Edit Publication Date</span>
-      </label>
+      </div>
       {enabled && (
         <div>
           <label className="block mb-1 text-sm font-medium">Publication Date:</label>
           <input
             type="text"
             value={value || ''}
-            onChange={(e) => onValueChange(e.target.value)}
+            onChange={(e) => {
+              e.stopPropagation();
+              onValueChange(e.target.value);
+            }}
+            onFocus={(e) => {
+              e.stopPropagation();
+              // Prevent browser from auto-scrolling input into view
+              e.target.scrollIntoView = () => {};
+            }}
+            onBlur={(e) => {
+              e.stopPropagation();
+            }}
             className="w-full px-3 py-2 border rounded"
             placeholder="e.g., 1 day ago, Recently, etc."
           />

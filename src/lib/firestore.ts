@@ -712,6 +712,8 @@ export type Study = {
   pubdate?: string;
   /** Optional site name default (used when creating new articles) */
   siteName?: string;
+  /** Whether to show the name input field in comment forms for this study */
+  showCommentNameInput?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -778,6 +780,12 @@ export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): 
   }
   if (study.siteName) {
     studyData.siteName = study.siteName;
+  }
+  
+  // Always include showCommentNameInput (even if false) so it can be explicitly set
+  // This allows us to explicitly hide the name input by setting it to false
+  if (study.showCommentNameInput !== undefined) {
+    studyData.showCommentNameInput = study.showCommentNameInput;
   }
   
   if (!existingStudy) {
