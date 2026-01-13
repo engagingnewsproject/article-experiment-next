@@ -714,6 +714,8 @@ export type Study = {
   siteName?: string;
   /** Whether to show the name input field in comment forms for this study */
   showCommentNameInput?: boolean;
+  /** Optional text to display before the comments section */
+  commentsIntroText?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -786,6 +788,11 @@ export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): 
   // This allows us to explicitly hide the name input by setting it to false
   if (study.showCommentNameInput !== undefined) {
     studyData.showCommentNameInput = study.showCommentNameInput;
+  }
+  
+  // Include comments intro text if provided
+  if (study.commentsIntroText) {
+    studyData.commentsIntroText = study.commentsIntroText;
   }
   
   if (!existingStudy) {

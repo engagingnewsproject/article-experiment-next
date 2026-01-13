@@ -332,6 +332,7 @@ export function ArticleContent({
           </div>
         )}
 
+        {/* Comments section: transforms comment list data structure and renders Comments component when enabled */}
         {article.comments_display && (
           <Comments
             comments={comments.length > 0 ? comments.map((comment) => ({
