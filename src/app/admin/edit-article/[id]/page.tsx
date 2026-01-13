@@ -189,7 +189,8 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       article.title !== originalArticle.title ||
       article.slug !== originalArticle.slug ||
       article.content !== originalArticle.content ||
-      article.summary !== originalArticle.summary;
+      article.summary !== originalArticle.summary ||
+      article.showLikeShare !== originalArticle.showLikeShare;
     
     // Compare themes
     const themesChanged = JSON.stringify(themes) !== JSON.stringify(originalThemes);
@@ -377,6 +378,17 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
             style={{ minHeight: '120px' }}
             required
           />
+        </div>
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={article.showLikeShare || false}
+              onChange={(e) => handleChange('showLikeShare', e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="font-medium">Show like & share article icons</span>
+          </label>
         </div>
         <div className="flex items-center gap-4">
           {article?.slug && (

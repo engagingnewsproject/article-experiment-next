@@ -42,6 +42,7 @@ function AddArticleFormContent() {
   const [themes, setThemes] = useState<ArticleTheme[] | null>([]);
   const [themeLabels, setThemeLabels] = useState<string[]>([]); // Custom theme labels
   const [explainBoxItems, setExplainBoxItems] = useState<string[]>([]);
+  const [showLikeShare, setShowLikeShare] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load study defaults asynchronously
@@ -81,6 +82,7 @@ function AddArticleFormContent() {
       studyId, // Assign the study ID
       comments_display: true,
       anonymous: false,
+      showLikeShare, // Whether to show like and share icons
       pubdate: studyDefaults.pubdate,
       author: studyDefaults.author,
       siteName: studyDefaults.siteName, // Store site name from study defaults
@@ -178,6 +180,7 @@ function AddArticleFormContent() {
       setThemes(null);
       setThemeLabels([]);
       setExplainBoxItems([]);
+      setShowLikeShare(false);
       
       // Trigger article list refresh
       if (typeof window !== 'undefined' && (window as any).refreshArticleList) {
@@ -369,6 +372,17 @@ function AddArticleFormContent() {
             + Add Theme
           </button>
         </div>
+      </div>
+      <div className="mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showLikeShare}
+            onChange={(e) => setShowLikeShare(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <span className="text-sm font-medium text-gray-700">Show like & share article icons</span>
+        </label>
       </div>
       <button
         type="submit"

@@ -62,6 +62,8 @@ export type Article = {
   studyId?: string;
   /** Site name from project config (e.g., 'The Gazette Star') */
   siteName?: string;
+  /** Whether to show like and share icons for the article */
+  showLikeShare?: boolean;
 };
 
 /**

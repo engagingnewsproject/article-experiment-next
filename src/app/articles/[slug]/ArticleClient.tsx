@@ -183,6 +183,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
           explain_box: article.explain_box || [],
           metadata: article.metadata,
           studyId: (article as any).studyId,
+          showLikeShare: (article as any).showLikeShare || false,
         }} 
         version={version}
         showExplainBox={!!explain_box} 

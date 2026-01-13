@@ -72,6 +72,7 @@ interface ArticleContentProps {
     summary: string;
     studyId?: string; // Study ID from article document (for logging)
     siteName?: string; // Site name from project config
+    showLikeShare?: boolean; // Whether to show like and share icons
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -262,6 +263,73 @@ export function ArticleContent({
               }
             </div>
           </>
+        )}
+
+        {/* Like and Share buttons */}
+        {article.showLikeShare && (
+          <div className={styles.likeShareSection}>
+            <button
+              type="button"
+              className={styles.likeButton}
+              onClick={() => {
+                logClick(
+                  'Like Article',
+                  'User clicked like button',
+                  article.id,
+                  userId,
+                  article.title
+                );
+              }}
+              aria-label="Like this article"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-3.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+              </svg>
+              <span>Like</span>
+            </button>
+            <button
+              type="button"
+              className={styles.shareButton}
+              onClick={() => {
+                logClick(
+                  'Share Article',
+                  'User clicked share button',
+                  article.id,
+                  userId,
+                  article.title
+                );
+                // Copy URL to clipboard
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(window.location.href);
+                }
+              }}
+              aria-label="Share this article"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              <span>Share</span>
+            </button>
+          </div>
         )}
 
         {article.comments_display && (
