@@ -1,113 +1,66 @@
 /**
- * Article page component that displays a single article with optional explanation box
- * and author variations.
- * 
- * This component:
- * - Fetches article data and comments from Firestore
- * - Handles different author variations (name, bio, photo)
- * - Supports explanation box display based on URL parameters
- * - Manages loading and error states
- * 
- * @component
- * @param {Object} props - Component props
- * @param {Object} props.params - Route parameters
- * @param {string} props.params.slug - The article slug from the URL
- * @returns {JSX.Element} The article page layout with content and controls
+ * Root/home page that redirects to the admin articles page if authenticated,
+ * or shows a simple landing page if not authenticated.
  */
 
 'use client';
 
-import AddArticleForm from '@/components/AddArticleForm';
-import { getSessionFromStorage } from '@/lib/auth';
-import { getArticles, type Article } from '@/lib/firestore';
+import { Header } from '@/components/Header';
+import { getCurrentSession } from '@/lib/auth';
+import { useStudyId } from '@/hooks/useStudyId';
+import { useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
-export default function Home() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const session = getSessionFromStorage();
-    setIsAuthenticated(!!(session && session.isAuthenticated));
-  }, []);
+/**
+ * Client component that handles redirect logic using search params.
+ * Must be wrapped in Suspense because it uses useSearchParams().
+ */
+function HomeContent() {
+  const router = useRouter();
+  const { studyId } = useStudyId();
+  const session = getCurrentSession();
 
   useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        const articlesData = await getArticles();
-        setArticles(articlesData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // If authenticated, redirect to admin articles page
+    if (session && session.isAuthenticated) {
+      const studyParam = studyId ? `?study=${studyId}` : '';
+      router.push(`/admin/articles${studyParam}`);
+    }
+  }, [session, studyId, router]);
 
-    fetchArticles();
-  }, []);
-
-  if (loading) return <div className="p-4">Loading...</div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
-
+  // Show a simple landing page if not authenticated
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Articles</h1>
-        <div className="flex space-x-2">
+    <>
+      <Header />
+      <div className="max-w-4xl mx-auto p-8 text-center">
+        <h1 className="text-4xl font-bold mb-4">Article Experiment</h1>
+        <p className="text-gray-600 mb-8">
+          Please sign in to access the admin dashboard.
+        </p>
         <Link
           href="/admin"
-          className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <span className="text-white"
-          >
-            Admin Dashboard
-          </span>
+          Go to Admin Login
         </Link>
-        {isAuthenticated &&
-          <Link
-            href="/admin/add-default-comments"
-            className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition-colors"
-          >
-            <span className="text-white"
-            >
-              Admin: Add Default Comments
-            </span>
-          </Link>
-        }
-        </div>
       </div>
-      {isAuthenticated &&
-        <AddArticleForm />
-      }
-      <ul className="space-y-4">
-        {articles.map((article) => (
-          <li key={article.id} className="border-b pb-4">
-            <div className="space-y-2 flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-500 mb-2">ID: {article.id}</div>
-                <Link
-                  href={`/articles/${article.slug}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {article.title} — No explanation
-                </Link>
-              </div>
-              {isAuthenticated && (
-                <Link
-                  href={`/admin/edit-article/${article.id}`}
-                  className="ml-4 px-3 py-1 text-sm text-white bg-yellow-500 rounded hover:bg-yellow-700"
-                  style={{color: 'white'}}
-                >
-                  Edit
-                </Link>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+    </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <>
+        <Header />
+        <div className="max-w-4xl mx-auto p-8 text-center">
+          <h1 className="text-4xl font-bold mb-4">Article Experiment</h1>
+          <p className="text-gray-600 mb-8">Loading...</p>
+        </div>
+      </>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

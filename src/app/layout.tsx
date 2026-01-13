@@ -6,6 +6,7 @@
  * - Global styles and CSS variables
  * - Google Analytics tracking setup
  * - Basic HTML structure with language specification
+ * - Admin class on body when on admin routes
  * 
  * @component
  * @param {Object} props - Component props
@@ -17,6 +18,8 @@ import '@/styles/globals.css';
 import '@/styles/variables.css';
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { AdminClassManager } from './AdminClassManager';
+import { DevProjectIndicator } from '@/components/DevProjectIndicator';
 
 /**
  * Metadata configuration for the application.
@@ -73,7 +76,9 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <AdminClassManager />
         {children}
+        <DevProjectIndicator />
       </body>
     </html>
   );

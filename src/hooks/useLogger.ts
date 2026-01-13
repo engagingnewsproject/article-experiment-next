@@ -1,8 +1,29 @@
 import { getClientIP, logEvent } from '@/lib/logger';
 import { useCallback } from 'react';
 import type { QualtricsData } from './useQualtrics';
+import { useStudyId } from './useStudyId';
 
-export function useLogger(qualtricsData: QualtricsData = {}) {
+export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: string) {
+  const { studyId: urlStudyId } = useStudyId();
+  // Use article's studyId if provided, otherwise fall back to URL studyId
+  const effectiveStudyId = articleStudyId || urlStudyId;
+  
+  // Debug logging in development to verify studyId and Qualtrics data
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const logKey = 'logger_init';
+    if (!(window as any)[logKey]) {
+      console.log('[Logger] Initialized with:', {
+        articleStudyId,
+        urlStudyId,
+        effectiveStudyId,
+        qualtricsResponseId: qualtricsData?.responseId,
+        qualtricsSurveyId: qualtricsData?.surveyId,
+        isEmbedded: window.parent !== window,
+      });
+      (window as any)[logKey] = true;
+    }
+  }
+  
   const log = useCallback(async (
     action: string,
     label: string,
@@ -13,7 +34,8 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
   ) => {
     const ipAddress = await getClientIP();
     
-    await logEvent({
+    // Log entry that will be saved to Firestore
+    const logEntry = {
       url: window.location.href,
       identifier,
       articleTitle,
@@ -24,8 +46,22 @@ export function useLogger(qualtricsData: QualtricsData = {}) {
       details,
       qualtricsResponseId: qualtricsData.responseId,
       qualtricsSurveyId: qualtricsData.surveyId,
-    });
-  }, [qualtricsData]);
+      studyId: effectiveStudyId,
+    };
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Logger] Logging event:', {
+        action,
+        label,
+        studyId: effectiveStudyId,
+        qualtricsResponseId: qualtricsData.responseId,
+        identifier,
+      });
+    }
+    
+    await logEvent(logEntry);
+  }, [qualtricsData, effectiveStudyId]);
 
   const logClick = useCallback(async (
     label: string,

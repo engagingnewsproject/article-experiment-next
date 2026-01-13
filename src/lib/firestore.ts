@@ -12,6 +12,7 @@
 
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
+import { DEFAULT_STUDY_ID } from './studies';
 
 /**
  * Article type definition.
@@ -57,6 +58,12 @@ export type Article = {
   default_comments?: Comment[];
   themes?: ArticleTheme[];
   summary?: string;
+  /** Study/Project identifier (e.g., 'ashwin', 'gazette') */
+  studyId?: string;
+  /** Site name from project config (e.g., 'The Gazette Star') */
+  siteName?: string;
+  /** Whether to show like and share icons for the article */
+  showLikeShare?: boolean;
 };
 
 /**
@@ -130,19 +137,91 @@ export type Author = {
 };
 
 /**
- * Retrieves all articles from Firestore.
+ * Gets aliases for a canonical study ID (for backward compatibility).
  * 
- * @returns {Promise<Article[]>} Array of articles
+ * @param {string} canonicalId - The canonical study ID
+ * @returns {string[]} Array of IDs to check (canonical + aliases)
+ */
+import { getStudyAliases } from './studies';
+
+function getStudyIdAliases(canonicalId: string): string[] {
+  return getStudyAliases(canonicalId);
+}
+
+/**
+ * Retrieves all articles from Firestore, optionally filtered by study ID.
+ * 
+ * Handles backward compatibility by checking both canonical IDs and aliases.
+ * 
+ * @param {string} [studyId] - Optional canonical study ID to filter articles (e.g., 'eonc', 'msc')
+ * @returns {Promise<Article[]>} Array of articles, sorted by createdAt descending
  * @throws {Error} If database operation fails
  */
-export async function getArticles(): Promise<Article[]> {
+export async function getArticles(studyId?: string): Promise<Article[]> {
   const articlesRef = collection(db, 'articles');
-  const q = query(articlesRef, orderBy('createdAt', 'desc'));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as Article[];
+  
+  // If no studyId, get all articles
+  if (!studyId) {
+    const q = query(articlesRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Article[];
+  }
+  
+  // Get all aliases for this study ID (for backward compatibility)
+  const idsToCheck = getStudyIdAliases(studyId);
+  
+  // Check if we're querying for the default study (for backward compatibility with old articles)
+  const isDefaultStudy = studyId === DEFAULT_STUDY_ID || idsToCheck.includes(DEFAULT_STUDY_ID);
+  
+  // For backward compatibility: if querying default study, also include articles without studyId
+  // Firestore can't query for "field doesn't exist", so we need to get all and filter
+  let articles: Article[] = [];
+  
+  if (isDefaultStudy) {
+    // Get all articles and filter in memory (for backward compatibility with old articles)
+    const allArticlesSnapshot = await getDocs(articlesRef);
+    articles = allArticlesSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Article[];
+    
+    // Filter: include articles with matching studyId OR articles without studyId (legacy)
+    articles = articles.filter(article => {
+      const articleStudyId = (article as any).studyId;
+      return !articleStudyId || idsToCheck.includes(articleStudyId);
+    });
+  } else {
+    // For non-default studies, only get articles with matching studyId
+    const q = query(articlesRef, where('studyId', 'in', idsToCheck));
+    const querySnapshot = await getDocs(q);
+    articles = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Article[];
+  }
+  
+  // Sort by createdAt (newest first)
+  articles.sort((a, b) => {
+    const getTime = (timestamp: any): number => {
+      if (!timestamp) return 0;
+      if (timestamp.toMillis) return timestamp.toMillis();
+      if (timestamp.toDate) return timestamp.toDate().getTime();
+      if (timestamp instanceof Date) return timestamp.getTime();
+      if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+        return new Date(timestamp).getTime();
+      }
+      return 0;
+    };
+    const aTime = getTime(a.createdAt);
+    const bTime = getTime(b.createdAt);
+    return bTime - aTime; // Descending order
+  });
+  
+  return articles;
 }
 
 /**
@@ -162,41 +241,134 @@ export async function getArticle(id: string): Promise<Article | null> {
 }
 
 /**
- * Retrieves an article by its slug.
+ * Retrieves an article by its slug, optionally filtered by study ID.
+ * 
+ * Handles backward compatibility by checking both canonical IDs and aliases.
  * 
  * @param {string} slug - Article slug
+ * @param {string} [studyId] - Optional canonical study ID to filter articles (e.g., 'eonc', 'msc')
  * @returns {Promise<Article | null>} The article or null if not found
  * @throws {Error} If database operation fails
  */
-export async function getArticleBySlug(slug: string): Promise<Article | null> {
+export async function getArticleBySlug(slug: string, studyId?: string): Promise<Article | null> {
   const articlesRef = collection(db, 'articles');
+  
+  if (!studyId) {
+    // No study filter - just get by slug
+    const q = query(articlesRef, where('slug', '==', slug));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return { id: doc.id, ...doc.data() } as Article;
+    }
+    return null;
+  }
+  
+  // Get all aliases for this study ID (for backward compatibility)
+  const idsToCheck = getStudyIdAliases(studyId);
+  
+  // Always include the raw studyId in the check (even if not in validated list)
+  // This handles cases where studyId might exist in database but isn't validated yet
+  if (!idsToCheck.includes(studyId.toLowerCase())) {
+    idsToCheck.push(studyId.toLowerCase());
+  }
+  
+  // Check if we're querying for the default study (for backward compatibility with old articles)
+  const isDefaultStudy = studyId === DEFAULT_STUDY_ID || idsToCheck.includes(DEFAULT_STUDY_ID);
+  
+  // Query by slug first (no index needed), then filter by studyId in memory
   const q = query(articlesRef, where('slug', '==', slug));
   const querySnapshot = await getDocs(q);
-  if (!querySnapshot.empty) {
-    const doc = querySnapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as Article;
+  
+  if (querySnapshot.empty) {
+    return null;
   }
+  
+  // Filter by studyId aliases in memory (for backward compatibility)
+  // Also include articles without studyId if querying for default study
+  for (const doc of querySnapshot.docs) {
+    const data = doc.data();
+    const articleStudyId = data.studyId;
+    
+    // Match if:
+    // 1. studyId matches any of the aliases (case-insensitive), OR
+    // 2. article has no studyId AND we're querying for the default study (backward compatibility)
+    if (articleStudyId && idsToCheck.includes(articleStudyId.toLowerCase())) {
+      return { id: doc.id, ...data } as Article;
+    }
+    if (!articleStudyId && isDefaultStudy) {
+      return { id: doc.id, ...data } as Article;
+    }
+  }
+  
   return null;
 }
 
 /**
- * Retrieves comments for a specific article.
+ * Retrieves default comments for a specific article.
+ * 
+ * Only fetches default comments from the article's default_comments field.
+ * User-submitted comments are not included - they are handled separately
+ * in client-side state for session-only display.
  * 
  * @param {string} articleId - ID of the article
- * @returns {Promise<Comment[]>} Array of comments
+ * @returns {Promise<Comment[]>} Array of default comments only
  * @throws {Error} If database operation fails
  */
 export async function getComments(articleId: string): Promise<Comment[]> {
-  // Get the article to retrieve default comments
+  const comments: Comment[] = [];
+  
+  if (!articleId) {
+    return [];
+  }
+  
+  // Get default comments from the article document only
   const articleRef = doc(db, 'articles', articleId);
   const articleSnap = await getDoc(articleRef);
+  
+  if (!articleSnap.exists()) {
+    return [];
+  }
+  
   const articleData = articleSnap.data();
-
-  // Log the raw default_comments array
-  console.log('Firestore default_comments:', articleData?.default_comments);
-
-  // Return default comments (or empty array if none exist)
-  return articleData?.default_comments || [];
+  
+  if (articleData?.default_comments) {
+    if (Array.isArray(articleData.default_comments)) {
+      // Comments are in an array
+      articleData.default_comments.forEach((comment: any, index: number) => {
+        comments.push({
+          id: comment.id || `default_${index}`,
+          content: comment.content || '',
+          name: comment.name || 'Anonymous',
+          datePosted: comment.datePosted || 'Recently',
+          createdAt: comment.createdAt,
+          upvotes: comment.upvotes || 0,
+          downvotes: comment.downvotes || 0,
+          replies: comment.replies || [],
+        } as Comment);
+      });
+    } else if (typeof articleData.default_comments === 'object') {
+      // Comments might be stored as an object/map with numeric keys
+      Object.entries(articleData.default_comments).forEach(([key, comment]: [string, any]) => {
+        comments.push({
+          id: comment.id || key,
+          content: comment.content || '',
+          name: comment.name || 'Anonymous',
+          datePosted: comment.datePosted || 'Recently',
+          createdAt: comment.createdAt,
+          upvotes: comment.upvotes || 0,
+          downvotes: comment.downvotes || 0,
+          replies: comment.replies || [],
+        } as Comment);
+      });
+    }
+  }
+  
+  // NOTE: User-submitted comments from subcollection are NOT fetched here.
+  // They are saved to Firebase for research data but only shown in the current
+  // session via client-side state management. Each page load resets to defaults.
+  
+  return comments;
 }
 
 /**
@@ -414,6 +586,21 @@ export async function updateArticleWithDefaultComments(articleId: string, defaul
  * @param {number} value - The value to increment by (positive or negative).
  * @returns {Promise<void>}
  */ 
+/**
+ * Updates vote counts for a comment in Firestore.
+ * 
+ * Note: Votes on default comments (ID starts with "default_") are not saved to the comment document,
+ * but vote actions are still logged to Firebase for research purposes via the logger.
+ * 
+ * This function saves vote data to Firebase for research, but votes on default comments
+ * won't affect the displayed vote counts on future page loads (which always show defaults).
+ * 
+ * @param articleId - The article ID
+ * @param commentId - The comment ID (default comments are skipped)
+ * @param field - 'upvotes' or 'downvotes'
+ * @param value - The increment value (typically 1 or -1)
+ * @param ancestorIds - Optional array of ancestor comment IDs for nested replies
+ */
 export async function updateCommentVotes(
   articleId: string,
   commentId: string,
@@ -421,18 +608,21 @@ export async function updateCommentVotes(
   value: number,
   ancestorIds?: string[]
 ): Promise<void> {
+  // Skip updating default comments (they are immutable baselines)
+  // Vote actions are still logged for research via the logger in CommentVoteSection
   if (commentId.startsWith("default_")) return;
 
   let commentsPath = ['articles', articleId, 'comments'];
-  
+
   if (ancestorIds && ancestorIds.length > 0) {
     ancestorIds.forEach(id => commentsPath.push(id, 'replies'));
   }
   commentsPath.push(commentId);
-  
+
   const commentRef = doc(db, ...commentsPath as [string, ...string[]]);
 
-  // Update vote count
+  // Update vote count in user-submitted comment (for data collection)
+  // Note: These votes won't be displayed on future page loads since we only load defaults
   const commentSnap = await getDoc(commentRef);
   if (!commentSnap.exists()) return;
   await updateDoc(commentRef, {
@@ -495,3 +685,130 @@ const defaultComments = [
 // To use this function:
 await updateArticleWithDefaultComments('your-article-id', defaultComments);
 */
+
+/**
+ * Study type definition for Firestore.
+ * 
+ * Studies can have optional defaults for author, publication date, and site name.
+ * These defaults are used when creating new articles for the study.
+ */
+export type Study = {
+  id: string;
+  name: string;
+  aliases?: string[];
+  /** Optional author defaults (used when creating new articles) */
+  author?: {
+    name: string;
+    bio: {
+      personal: string;
+      basic: string;
+    };
+    image: {
+      src: string;
+      alt: string;
+    };
+  };
+  /** Optional publication date default (used when creating new articles) */
+  pubdate?: string;
+  /** Optional site name default (used when creating new articles) */
+  siteName?: string;
+  /** Whether to show the name input field in comment forms for this study */
+  showCommentNameInput?: boolean;
+  /** Optional text to display before the comments section */
+  commentsIntroText?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+/**
+ * Gets all studies from Firestore.
+ * 
+ * @returns Array of all studies
+ */
+export async function getStudies(): Promise<Study[]> {
+  const studiesRef = collection(db, 'studies');
+  const querySnapshot = await getDocs(query(studiesRef, orderBy('createdAt', 'desc')));
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  })) as Study[];
+}
+
+/**
+ * Gets a study by ID from Firestore.
+ * 
+ * @param studyId - The study ID
+ * @returns The study, or null if not found
+ */
+export async function getStudy(studyId: string): Promise<Study | null> {
+  const studyRef = doc(db, 'studies', studyId);
+  const studySnap = await getDoc(studyRef);
+  if (!studySnap.exists()) {
+    return null;
+  }
+  return {
+    id: studySnap.id,
+    ...studySnap.data()
+  } as Study;
+}
+
+/**
+ * Creates or updates a study in Firestore.
+ * 
+ * @param study - The study data
+ * @returns The study ID
+ */
+export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): Promise<string> {
+  const studyRef = doc(db, 'studies', study.id);
+  const existingStudy = await getStudy(study.id);
+  
+  const studyData: Partial<Study> = {
+    id: study.id,
+    name: study.name,
+    updatedAt: serverTimestamp() as Timestamp,
+  };
+  
+  // Only include aliases if they exist and have values (Firebase doesn't accept undefined)
+  if (study.aliases && study.aliases.length > 0) {
+    studyData.aliases = study.aliases;
+  }
+  
+  // Include optional defaults if provided
+  if (study.author) {
+    studyData.author = study.author;
+  }
+  if (study.pubdate) {
+    studyData.pubdate = study.pubdate;
+  }
+  if (study.siteName) {
+    studyData.siteName = study.siteName;
+  }
+  
+  // Always include showCommentNameInput (even if false) so it can be explicitly set
+  // This allows us to explicitly hide the name input by setting it to false
+  if (study.showCommentNameInput !== undefined) {
+    studyData.showCommentNameInput = study.showCommentNameInput;
+  }
+  
+  // Include comments intro text if provided
+  if (study.commentsIntroText) {
+    studyData.commentsIntroText = study.commentsIntroText;
+  }
+  
+  if (!existingStudy) {
+    studyData.createdAt = serverTimestamp() as Timestamp;
+  }
+  
+  await setDoc(studyRef, studyData, { merge: true });
+  return study.id;
+}
+
+/**
+ * Deletes a study from Firestore.
+ * 
+ * @param studyId - The study ID to delete
+ */
+export async function deleteStudy(studyId: string): Promise<void> {
+  const studyRef = doc(db, 'studies', studyId);
+  await deleteDoc(studyRef);
+}

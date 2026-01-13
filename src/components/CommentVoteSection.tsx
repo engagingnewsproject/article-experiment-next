@@ -22,6 +22,7 @@ interface CommentVoteSectionProps {
   userId: string;
   articleTitle?: string;
   qualtricsData?: QualtricsData;
+  studyId?: string; // Article's studyId
 }
 
 /**
@@ -41,16 +42,27 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   userId,
   articleTitle,
   qualtricsData,
+  studyId,
 }) => {
-  const { log } = useLogger(qualtricsData || {});
+  const { log } = useLogger(qualtricsData || {}, studyId);
 
-  // Local state for this user's vote and the displayed counts
+  // Default vote counts from the article's default comments (baseline)
+  const defaultUpvotes = Number(comment.upvotes) || 0;
+  const defaultDownvotes = Number(comment.downvotes) || 0;
+  
+  // Session vote deltas (changes made in this viewing session)
+  const [sessionUpvoteDelta, setSessionUpvoteDelta] = useState(0);
+  const [sessionDownvoteDelta, setSessionDownvoteDelta] = useState(0);
+  
+  // Local state for this user's vote status
   const [voted, setVoted] = useState<{ upvotes: boolean; downvotes: boolean }>({
     upvotes: false,
     downvotes: false,
   });
-  const [upvotes, setUpvotes] = useState(Number(comment.upvotes) || 0);
-  const [downvotes, setDownvotes] = useState(Number(comment.downvotes) || 0);
+  
+  // Displayed counts = defaults + session changes
+  const upvotes = defaultUpvotes + sessionUpvoteDelta;
+  const downvotes = defaultDownvotes + sessionDownvoteDelta;
 
   /**
    * Handles voting logic when a user clicks upvote or downvote.
@@ -71,15 +83,21 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
 
     // If the user already voted the other way, remove that vote
     if (voted[otherVoteType]) {
-      // Decrement the other vote count
+      // Decrement the other vote's session delta
       await updateCommentVotes(identifier, commentId, otherVoteType, -1, ancestorIds);
-      if (otherVoteType === 'upvotes') setUpvotes((n) => n - 1);
-      if (otherVoteType === 'downvotes') setDownvotes((n) => n - 1);
+      if (otherVoteType === 'upvotes') {
+        setSessionUpvoteDelta((n) => n - 1);
+      } else {
+        setSessionDownvoteDelta((n) => n - 1);
+      }
     }
 
-    // Add the new vote
-    if (voteType === 'upvotes') setUpvotes((n) => n + 1);
-    if (voteType === 'downvotes') setDownvotes((n) => n + 1);
+    // Add the new vote (update session delta)
+    if (voteType === 'upvotes') {
+      setSessionUpvoteDelta((n) => n + 1);
+    } else {
+      setSessionDownvoteDelta((n) => n + 1);
+    }
 
     // Update voted state: only the new vote is true
     setVoted({
@@ -87,6 +105,7 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
       downvotes: voteType === 'downvotes',
     });
 
+    // Save vote to Firebase for research data (but it won't affect future page loads)
     await updateCommentVotes(identifier, commentId, voteType, 1, ancestorIds);
 
     // Log the vote event

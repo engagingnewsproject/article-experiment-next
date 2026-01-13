@@ -103,4 +103,6 @@ export interface Article {
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   status?: 'draft' | 'published';
+  /** Whether to show like and share icons for the article */
+  showLikeShare?: boolean;
 } 
