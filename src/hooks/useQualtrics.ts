@@ -31,22 +31,45 @@ export function useQualtrics() {
   useEffect(() => {
     // Function to process Qualtrics data
     const processQualtricsData = (data: any) => {
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useQualtrics] Received data:', data);
+      }
+      
       // Handle the new structured format
       if (data && data.type === 'QUALTRICS_DATA') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useQualtrics] Processing structured format:', data.payload);
+        }
         setQualtricsData(data.payload);
       }
       // Handle the legacy format
       else if (data && data.qualtricsResponseId) {
-        setQualtricsData({
+        const processedData = {
           responseId: data.qualtricsResponseId,
           surveyId: data.qualtricsSurveyId,
           embeddedData: data
-        });
+        };
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useQualtrics] Processing legacy format:', processedData);
+        }
+        setQualtricsData(processedData);
+      } else if (process.env.NODE_ENV === 'development' && data) {
+        console.log('[useQualtrics] Received data but no recognized format:', data);
       }
     };
 
     // Listen for postMessage from Qualtrics
     const handleMessage = (event: MessageEvent) => {
+      // Debug: Log all postMessage events to help diagnose
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useQualtrics] Received postMessage event:', {
+          origin: event.origin,
+          data: event.data,
+          source: event.source === window.parent ? 'parent' : 'other'
+        });
+      }
+      
       // Optional: Add origin validation for security
       // if (event.origin !== 'https://your-qualtrics-domain.com') return;
       

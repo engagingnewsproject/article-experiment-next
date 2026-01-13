@@ -141,6 +141,14 @@ export function ArticleContent({
   const shouldShowExplainBox = showExplainBox && explainBoxValue !== "none";
   // Get studyId from article if available, otherwise it will use URL-based studyId
   const articleStudyId = article.studyId;
+  
+  // Debug: Log when Qualtrics data changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[ArticleContent] Qualtrics data updated:', qualtricsData);
+    }
+  }, [qualtricsData]);
+  
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId);
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null);
@@ -270,6 +278,10 @@ export function ArticleContent({
         {article.showLikeShare && (
           <LikeShareButtons
             onLikeClick={() => {
+              // Debug: Log Qualtrics data when button is clicked
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[ArticleContent] Like button clicked - Qualtrics data:', qualtricsData);
+              }
               logClick(
                 'Like Article',
                 'User clicked like button',
@@ -279,6 +291,10 @@ export function ArticleContent({
               );
             }}
             onShareClick={() => {
+              // Debug: Log Qualtrics data when button is clicked
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[ArticleContent] Share button clicked - Qualtrics data:', qualtricsData);
+              }
               logClick(
                 'Share Article',
                 'User clicked share button',
