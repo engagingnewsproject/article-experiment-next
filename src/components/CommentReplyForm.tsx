@@ -8,6 +8,7 @@ interface CommentReplyFormProps {
   isSubmitting: boolean;
   replyName: string;
   setReplyName: (value: string) => void;
+  showNameInput?: boolean;
 }
 
 export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
@@ -17,16 +18,19 @@ export const CommentReplyForm: React.FC<CommentReplyFormProps> = ({
   isSubmitting,
   replyName,
   setReplyName,
+  showNameInput = true,
 }) => {
   return (
     <form onSubmit={handleReply} className={styles.inlineReplyForm}>
-      <input
-        type="text"
-        placeholder="Your Name (e.g. John D)"
-        value={replyName}
-        onChange={(e) => setReplyName(e.target.value)}
-        className={styles.input}
-      />
+      {showNameInput && (
+        <input
+          type="text"
+          placeholder="Your Name (e.g. John D)"
+          value={replyName}
+          onChange={(e) => setReplyName(e.target.value)}
+          className={styles.input}
+        />
+      )}
       <textarea
         placeholder="Write your reply..."
         value={replyContent}

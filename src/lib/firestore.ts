@@ -62,6 +62,8 @@ export type Article = {
   studyId?: string;
   /** Site name from project config (e.g., 'The Gazette Star') */
   siteName?: string;
+  /** Whether to show like and share icons for the article */
+  showLikeShare?: boolean;
 };
 
 /**
@@ -710,6 +712,10 @@ export type Study = {
   pubdate?: string;
   /** Optional site name default (used when creating new articles) */
   siteName?: string;
+  /** Whether to show the name input field in comment forms for this study */
+  showCommentNameInput?: boolean;
+  /** Optional text to display before the comments section */
+  commentsIntroText?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -776,6 +782,17 @@ export async function saveStudy(study: Omit<Study, 'createdAt' | 'updatedAt'>): 
   }
   if (study.siteName) {
     studyData.siteName = study.siteName;
+  }
+  
+  // Always include showCommentNameInput (even if false) so it can be explicitly set
+  // This allows us to explicitly hide the name input by setting it to false
+  if (study.showCommentNameInput !== undefined) {
+    studyData.showCommentNameInput = study.showCommentNameInput;
+  }
+  
+  // Include comments intro text if provided
+  if (study.commentsIntroText) {
+    studyData.commentsIntroText = study.commentsIntroText;
   }
   
   if (!existingStudy) {

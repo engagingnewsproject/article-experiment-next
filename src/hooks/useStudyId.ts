@@ -22,14 +22,22 @@ import { useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 import { 
   DEFAULT_STUDY_ID, 
-  normalizeStudyId, 
-  getAllValidStudyIds 
+  normalizeStudyId
 } from '@/lib/studies';
 
 /**
  * Valid study IDs (canonical + aliases) - exported for backward compatibility
+ * Note: This is computed synchronously and may not include Firestore-only studies
+ * until the cache loads. Use normalizeStudyId() for proper validation.
  */
-export const VALID_STUDY_IDS = getAllValidStudyIds() as readonly string[];
+export const VALID_STUDY_IDS = (() => {
+  try {
+    const { getAllValidStudyIds } = require('@/lib/studies');
+    return getAllValidStudyIds() as readonly string[];
+  } catch {
+    return [] as readonly string[];
+  }
+})();
 
 /**
  * Custom hook that extracts and validates the study ID from URL parameters.
@@ -52,14 +60,11 @@ export function useStudyId(): { studyId: string } {
     }
     
     // Normalize to canonical ID (handles aliases like 'ashwin' -> 'eonc')
+    // This will return DEFAULT_STUDY_ID if the study is not found in cached studies.
+    // Note: Studies in Firestore may not be in cache yet on first load, but will work
+    // once the cache loads. We don't warn here because the warning was causing false
+    // positives for valid Firestore-only studies.
     const normalized = normalizeStudyId(studyParam);
-    
-    // If the input was invalid, log warning
-    const validIds = getAllValidStudyIds();
-    if (!validIds.includes(studyParam.toLowerCase())) {
-      console.warn(`Invalid study ID "${studyParam}". Using default: ${DEFAULT_STUDY_ID}`);
-      return DEFAULT_STUDY_ID;
-    }
     
     return normalized;
   }, [searchParams]);

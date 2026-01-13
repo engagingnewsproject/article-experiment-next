@@ -1,0 +1,36 @@
+.likeShareSection {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.likeButton,
+.shareButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.likeButton:hover,
+.shareButton:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.likeButton:active,
+.shareButton:active {
+  background: #e5e7eb;
+}
+
+.likeButton svg,
+.shareButton svg {
+  flex-shrink: 0;
+}

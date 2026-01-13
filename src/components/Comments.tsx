@@ -14,11 +14,13 @@
  * @returns {JSX.Element} The comments section
  */
 import Cookies from "js-cookie";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { type Comment } from "@/lib/firestore";
 import { CommentForm } from "@/components/CommentForm";
 import { CommentList } from "@/components/CommentList";
+import { CommentsIntroText } from "@/components/CommentsIntroText";
 import { type QualtricsData } from '@/hooks/useQualtrics';
+import { getStudy } from '@/lib/firestore';
 import styles from "@/components/Comments.module.css";
 
 /**
@@ -77,6 +79,31 @@ export const Comments: React.FC<CommentsProps> = ({
 }) => {
   // Default comments are the baseline - always start fresh with these on page load
   const [defaultComments, setDefaultComments] = useState<Comment[]>(comments);
+  const [showCommentNameInput, setShowCommentNameInput] = useState<boolean>(true); // Default to true
+  const [commentsIntroText, setCommentsIntroText] = useState<string>('');
+
+  // Load study settings
+  useEffect(() => {
+    async function loadStudySettings() {
+      if (studyId) {
+        try {
+          const study = await getStudy(studyId);
+          if (study) {
+            // If showCommentNameInput is explicitly false, hide it; otherwise show it (default true)
+            setShowCommentNameInput(study.showCommentNameInput !== false);
+            // Load comments intro text if it exists
+            if (study.commentsIntroText) {
+              setCommentsIntroText(study.commentsIntroText);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load study settings:', error);
+          // Default to true if study can't be loaded
+        }
+      }
+    }
+    loadStudySettings();
+  }, [studyId]);
   
   // Local comments include defaults + user's session interactions (comments, replies)
   // This is what gets displayed and modified during the session
@@ -137,12 +164,14 @@ export const Comments: React.FC<CommentsProps> = ({
 
   return (
     <section className={styles.commentsSection}>
+      <CommentsIntroText text={commentsIntroText} />
         <CommentForm 
           anonymous={anonymous}
           identifier={identifier}
           onCommentSubmitted={handleCommentSubmitted}
           onCommentSubmit={onCommentSubmit}
           qualtricsResponseId={qualtricsData?.responseId}
+          showNameInput={showCommentNameInput}
         />
       <div className={styles.commentsContainer}>
         {/* Comment count */}
@@ -160,6 +189,7 @@ export const Comments: React.FC<CommentsProps> = ({
           userId={userId}
           qualtricsData={qualtricsData}
           isAuthenticated={isAuthenticated}
+          showNameInput={showCommentNameInput}
         />
       </div>
     </section>

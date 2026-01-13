@@ -19,6 +19,7 @@ import { ArticleHeader } from "@/components/ArticleHeader";
 import { AuthorBio } from "@/components/AuthorBio";
 import BehindTheStory from "@/components/BehindTheStory";
 import { Comments } from "@/components/Comments";
+import { LikeShareButtons } from "@/components/LikeShareButtons";
 import TrustProjectCallout from "@/components/TrustProjectCallout";
 import { useLogger } from '@/hooks/useLogger';
 import { type QualtricsData } from '@/hooks/useQualtrics';
@@ -72,6 +73,7 @@ interface ArticleContentProps {
     summary: string;
     studyId?: string; // Study ID from article document (for logging)
     siteName?: string; // Site name from project config
+    showLikeShare?: boolean; // Whether to show like and share icons
   };
   showExplainBox: boolean;
   explainBoxValue: string;
@@ -264,6 +266,35 @@ export function ArticleContent({
           </>
         )}
 
+        {/* Like and Share buttons */}
+        {article.showLikeShare && (
+          <LikeShareButtons
+            onLikeClick={() => {
+              logClick(
+                'Like Article',
+                'User clicked like button',
+                article.id,
+                userId,
+                article.title
+              );
+            }}
+            onShareClick={() => {
+              logClick(
+                'Share Article',
+                'User clicked share button',
+                article.id,
+                userId,
+                article.title
+              );
+              // Copy URL to clipboard
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+              }
+            }}
+          />
+        )}
+
+        {/* Comments section: transforms comment list data structure and renders Comments component when enabled */}
         {article.comments_display && (
           <Comments
             comments={comments.length > 0 ? comments.map((comment) => ({

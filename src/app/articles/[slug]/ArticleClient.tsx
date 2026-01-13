@@ -34,12 +34,13 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
     loadDefaults();
   }, [studyId]);
   
-  // Priority: Article values first (if they exist), then fall back to study defaults
-  // This maintains backward compatibility - articles with stored values keep them,
-  // but articles without stored values use the study defaults
-  const authorName = article.author?.name 
-    || studyDefaults?.author.name 
-    || 'Staff Reporter';
+  // Priority logic for authorName:
+  // 1. If article.author?.name is undefined (field was deleted), don't show it (return empty string)
+  // 2. If article.author?.name exists but is empty, use study defaults
+  // 3. If article.author?.name has a value, use it
+  const authorName = article.author?.name === undefined
+    ? '' // Field was deleted - don't show, don't use defaults
+    : (article.author?.name || studyDefaults?.author.name || 'Staff Reporter');
   
   const authorBio = {
     personal: article.author?.bio?.personal 
@@ -59,15 +60,21 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
     : studyDefaults?.author.image 
     || { src: '/images/author-image.jpg', alt: authorName };
   
-  // Priority: article pubdate, then study defaults pubdate, then empty
-  const pubdate = article.pubdate 
-    || studyDefaults?.pubdate 
-    || '';
+  // Priority logic for pubdate:
+  // 1. If article.pubdate is undefined (field was deleted), don't show it (return empty string)
+  // 2. If article.pubdate exists but is empty, use study defaults
+  // 3. If article.pubdate has a value, use it
+  const pubdate = article.pubdate === undefined
+    ? '' // Field was deleted - don't show, don't use defaults
+    : (article.pubdate || studyDefaults?.pubdate || '');
   
-  // Priority: article siteName, then study defaults siteName, then default
-  const siteName = (article as any).siteName 
-    || studyDefaults?.siteName 
-    || 'The Gazette Star';
+  // Priority logic for siteName:
+  // 1. If article.siteName is undefined (field was deleted), don't show it (return empty string)
+  // 2. If article.siteName exists but is empty, use study defaults
+  // 3. If article.siteName has a value, use it
+  const siteName = (article as any).siteName === undefined
+    ? '' // Field was deleted - don't show, don't use defaults
+    : ((article as any).siteName || studyDefaults?.siteName || 'The Gazette Star');
 
   function generateUUID(): string {
   const prefix = "user";
@@ -183,6 +190,7 @@ function ArticleContentWithParams({ article, comments, isAuthenticated }: Articl
           explain_box: article.explain_box || [],
           metadata: article.metadata,
           studyId: (article as any).studyId,
+          showLikeShare: (article as any).showLikeShare || false,
         }} 
         version={version}
         showExplainBox={!!explain_box} 

@@ -1,11 +1,15 @@
 "use client";
 import { InsertImageButton } from '@/components/admin/InsertImageButton';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { DefaultCommentsEditor } from '@/components/admin/DefaultCommentsEditor';
+import { EditablePubdateField } from '@/components/admin/EditablePubdateField';
+import { EditableAuthorNameField } from '@/components/admin/EditableAuthorNameField';
+import { EditableSiteNameField } from '@/components/admin/EditableSiteNameField';
 import { db } from '@/lib/firebase';
-import { ArticleTheme } from '@/lib/firestore';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ArticleTheme, type Comment, updateArticleWithDefaultComments } from '@/lib/firestore';
+import { doc, getDoc, updateDoc, Timestamp, deleteField } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 export default function EditArticlePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -19,6 +23,15 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   const [originalThemes, setOriginalThemes] = useState<ArticleTheme[]>([]);
   const [explainBoxItems, setExplainBoxItems] = useState<string[]>([]);
   const [originalExplainBoxItems, setOriginalExplainBoxItems] = useState<string[]>([]);
+  const [defaultComments, setDefaultComments] = useState<Comment[]>([]);
+  const [originalDefaultComments, setOriginalDefaultComments] = useState<Comment[]>([]);
+  const [showPubdate, setShowPubdate] = useState(false);
+  const [showAuthorName, setShowAuthorName] = useState(false);
+  const [showSiteName, setShowSiteName] = useState(false);
+  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const isAdjustingTextareaHeight = useRef(false);
+  const lastContentValue = useRef<string>('');
+  const scrollPositionRef = useRef<number>(0);
 
   useEffect(() => {
     if (!id) return;
@@ -31,12 +44,33 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           const data = docSnap.data();
           setArticle(data);
           setOriginalArticle({ ...data }); // Store original for comparison
+          lastContentValue.current = data.content || '';
           const themesData = data.themes || [];
           setThemes(themesData);
           setOriginalThemes([...themesData]); // Store original themes
           const explainBoxData = Array.isArray(data.explain_box) ? data.explain_box : [];
           setExplainBoxItems(explainBoxData);
           setOriginalExplainBoxItems([...explainBoxData]); // Store original explain box items
+          
+          // Load default comments
+          const commentsData = Array.isArray(data.default_comments) ? data.default_comments : [];
+          // Convert Firestore Timestamps to ISO strings for editing
+          const convertedComments = commentsData.map((comment: any) => ({
+            ...comment,
+            createdAt: comment.createdAt?.toDate ? comment.createdAt.toDate().toISOString() : comment.createdAt,
+            replies: (comment.replies || []).map((reply: any) => ({
+              ...reply,
+              createdAt: reply.createdAt?.toDate ? reply.createdAt.toDate().toISOString() : reply.createdAt,
+            })),
+          }));
+          setDefaultComments(convertedComments);
+          setOriginalDefaultComments(JSON.parse(JSON.stringify(convertedComments))); // Deep copy for comparison
+          
+          // Initialize show/hide flags based on whether fields exist in the article
+          // If a field exists (even if empty), show it. If it was deleted (undefined), hide it.
+          setShowPubdate(data.pubdate !== undefined);
+          setShowAuthorName(data.author?.name !== undefined);
+          setShowSiteName(data.siteName !== undefined);
         } else {
           setError('Article not found');
         }
@@ -138,6 +172,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     setExplainBoxItems(updated);
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -153,28 +188,115 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       // Finalize slug by removing trailing/leading hyphens before saving
       const finalizedSlug = article.slug ? slugify(article.slug, false) : article.slug;
       
-      // Create the finalized article object with all saved values
-      const finalizedArticle = {
-        ...article,
+      // Handle pubdate, authorName, and siteName based on show flags
+      // Use deleteField() to remove fields when unchecked, otherwise use the value
+      const finalPubdate = showPubdate ? (article.pubdate || '') : deleteField();
+      const finalAuthorName = showAuthorName ? (article.author?.name || '') : '';
+      const finalSiteName = showSiteName ? (article.siteName || '') : deleteField();
+      
+      // Create the finalized article object with only the fields we want to update
+      // Don't spread the entire article to avoid including fields that shouldn't be updated
+      const finalizedArticle: any = {
+        title: article.title,
         slug: finalizedSlug,
+        content: article.content,
+        summary: article.summary || '',
         themes: mappedThemes,
         explain_box: filteredExplainBoxItems,
+        pubdate: finalPubdate,
+        showLikeShare: article.showLikeShare || false,
       };
       
-      await updateDoc(docRef, finalizedArticle);
+      // Handle author name - delete if unchecked, otherwise keep the value (even if empty)
+      // Note: deleteField() can only be used at top level, so for nested fields we need a workaround
+      if (showAuthorName) {
+        finalizedArticle.author = {
+          ...(article.author || {}),
+          name: finalAuthorName || article.author?.name || '',
+        };
+      } else {
+        // To delete a nested field like author.name, we need to:
+        // 1. Update the author object without the name field (if other properties exist)
+        // 2. Use a separate update with dot notation string to delete the nested field
+        if (article.author) {
+          // Preserve other author properties (bio, image, etc.) but remove name
+          const { name, ...otherAuthorProps } = article.author;
+          if (Object.keys(otherAuthorProps).length > 0) {
+            finalizedArticle.author = otherAuthorProps;
+          }
+        }
+        // Note: We'll handle the deletion in a separate updateDoc call below
+        // because deleteField() for nested fields must be done separately
+      }
+      
+      // Only include siteName if it should be shown, otherwise delete it
+      if (showSiteName) {
+        finalizedArticle.siteName = finalSiteName || article.siteName || '';
+      } else {
+        finalizedArticle.siteName = deleteField();
+      }
+      
+      // If we need to delete author.name, we need to do it in a separate update
+      // because deleteField() for nested fields requires special handling
+      const needsAuthorNameDelete = !showAuthorName && article.author?.name !== undefined;
+      
+      if (needsAuthorNameDelete) {
+        // First update: all other fields
+        await updateDoc(docRef, finalizedArticle);
+        // Second update: delete the nested author.name field using dot notation
+        await updateDoc(docRef, {
+          'author.name': deleteField()
+        });
+      } else {
+        // Normal update for all fields
+        await updateDoc(docRef, finalizedArticle);
+      }
+      
+      // Update default comments if they changed
+      const defaultCommentsChanged = JSON.stringify(defaultComments) !== JSON.stringify(originalDefaultComments);
+      if (defaultCommentsChanged) {
+        await updateArticleWithDefaultComments(String(id), defaultComments);
+      }
       
       // Update both article and originalArticle states with the finalized values
       // Also update themes and explainBoxItems to match what was saved (filtered versions)
       // This ensures hasUnsavedChanges() will return false after saving
-      setArticle(finalizedArticle);
-      setOriginalArticle({ ...finalizedArticle });
+      // Note: deleteField() is only for Firestore, so we convert it to undefined for local state
+      const stateArticle: any = {
+        ...finalizedArticle,
+        pubdate: showPubdate ? (finalizedArticle.pubdate || '') : undefined,
+        siteName: showSiteName ? (finalizedArticle.siteName || '') : undefined,
+      };
+      
+      // Handle author name in state - convert deleteField() to undefined
+      if (showAuthorName) {
+        stateArticle.author = {
+          ...finalizedArticle.author,
+          name: finalizedArticle.author?.name || '',
+        };
+      } else {
+        stateArticle.author = {
+          ...finalizedArticle.author,
+          name: undefined,
+        };
+      }
+      setArticle(stateArticle);
+      setOriginalArticle({ ...stateArticle });
       setThemes([...mappedThemes]);
       setOriginalThemes([...mappedThemes]);
       setExplainBoxItems([...filteredExplainBoxItems]);
       setOriginalExplainBoxItems([...filteredExplainBoxItems]);
+      setDefaultComments(JSON.parse(JSON.stringify(defaultComments))); // Deep copy
+      setOriginalDefaultComments(JSON.parse(JSON.stringify(defaultComments))); // Deep copy
+      // Update show flags to match saved state (use the show flags directly, not the final values)
+      // because finalPubdate/finalSiteName might be deleteField() which is truthy
+      setShowPubdate(showPubdate);
+      setShowAuthorName(showAuthorName);
+      setShowSiteName(showSiteName);
       setSuccess('Article updated successfully!');
     } catch (err) {
-      setError('Error updating article');
+      console.error('Error updating article:', err);
+      setError(`Error updating article: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -189,7 +311,22 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       article.title !== originalArticle.title ||
       article.slug !== originalArticle.slug ||
       article.content !== originalArticle.content ||
-      article.summary !== originalArticle.summary;
+      article.summary !== originalArticle.summary ||
+      article.showLikeShare !== originalArticle.showLikeShare;
+    
+    // Compare metadata fields (considering show flags)
+    // For deleted fields, we compare undefined vs undefined
+    const pubdateChanged = (showPubdate ? (article.pubdate || '') : undefined) !== (originalArticle.pubdate !== undefined ? (originalArticle.pubdate || '') : undefined);
+    const authorNameChanged = (showAuthorName ? (article.author?.name || '') : undefined) !== (originalArticle.author?.name !== undefined ? (originalArticle.author?.name || '') : undefined);
+    const siteNameChanged = (showSiteName ? (article.siteName || '') : undefined) !== (originalArticle.siteName !== undefined ? (originalArticle.siteName || '') : undefined);
+    
+    // Compare show/hide flags
+    const showFlagsChanged = 
+      showPubdate !== (originalArticle.pubdate !== undefined) ||
+      showAuthorName !== (originalArticle.author?.name !== undefined) ||
+      showSiteName !== (originalArticle.siteName !== undefined);
+    
+    const metadataChanged = pubdateChanged || authorNameChanged || siteNameChanged;
     
     // Compare themes
     const themesChanged = JSON.stringify(themes) !== JSON.stringify(originalThemes);
@@ -197,8 +334,11 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     // Compare explain box items
     const explainBoxChanged = JSON.stringify(explainBoxItems) !== JSON.stringify(originalExplainBoxItems);
     
-    return articleChanged || themesChanged || explainBoxChanged;
-  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems]);
+    // Compare default comments
+    const defaultCommentsChanged = JSON.stringify(defaultComments) !== JSON.stringify(originalDefaultComments);
+    
+    return articleChanged || themesChanged || explainBoxChanged || defaultCommentsChanged || metadataChanged || showFlagsChanged;
+  }, [article, originalArticle, themes, originalThemes, explainBoxItems, originalExplainBoxItems, defaultComments, originalDefaultComments, showPubdate, showAuthorName, showSiteName]);
 
   const handleBackToArticle = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (hasUnsavedChanges()) {
@@ -234,6 +374,29 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     };
   }, [hasUnsavedChanges]);
 
+  // Adjust textarea height only when content actually changes, not on other state updates
+  useEffect(() => {
+    if (contentTextareaRef.current && article?.content !== undefined) {
+      const textarea = contentTextareaRef.current;
+      const currentContent = article.content || '';
+      // Only adjust if content actually changed and textarea is not focused
+      if (currentContent !== lastContentValue.current && document.activeElement !== textarea && !isAdjustingTextareaHeight.current) {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        isAdjustingTextareaHeight.current = true;
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+        lastContentValue.current = currentContent;
+        // Restore scroll position immediately
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollTop);
+          isAdjustingTextareaHeight.current = false;
+        });
+      }
+    }
+    // Only depend on article.content, not other state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article?.content]);
+
   if (loading) return <div className="p-8">Loading...</div>;
   if (!loading && error) return <div className="p-8 text-red-500">{error}</div>;
   if (!article) return null;
@@ -242,7 +405,14 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
         <PageHeader title="Edit Article" />
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        onScroll={(e) => {
+          // Prevent unwanted scrolling
+          e.stopPropagation();
+        }}
+      >
         <div>
           <label className="block mb-2 font-bold">Title <span className="text-red-500">*</span></label>
           <input
@@ -361,23 +531,71 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           />
           <textarea
             id="article-content-textarea"
-            ref={el => {
-              if (el) {
-                el.style.height = 'auto';
-                el.style.height = el.scrollHeight + 'px';
-              }
-            }}
+            ref={contentTextareaRef}
             value={article.content || ''}
             onChange={e => {
+              isAdjustingTextareaHeight.current = true;
+              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              scrollPositionRef.current = scrollTop;
               handleChange('content', e.target.value);
+              lastContentValue.current = e.target.value;
               e.target.style.height = 'auto';
               e.target.style.height = e.target.scrollHeight + 'px';
+              // Restore scroll position after height adjustment
+              requestAnimationFrame(() => {
+                window.scrollTo(0, scrollPositionRef.current);
+                isAdjustingTextareaHeight.current = false;
+              });
             }}
             className="w-full px-3 py-2 overflow-hidden border rounded resize-none"
             style={{ minHeight: '120px' }}
             required
           />
         </div>
+        <div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={article.showLikeShare || false}
+              onChange={(e) => handleChange('showLikeShare', e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="font-medium">Show like & share article icons</span>
+          </label>
+        </div>
+        
+        {/* Article Metadata Fields */}
+        <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+          <h3 className="text-lg font-bold mb-4">Article Metadata</h3>
+          
+          <EditablePubdateField
+            value={article.pubdate || ''}
+            enabled={showPubdate}
+            onEnabledChange={setShowPubdate}
+            onValueChange={(value) => handleChange('pubdate', value)}
+          />
+          
+          <EditableAuthorNameField
+            value={article.author?.name || ''}
+            enabled={showAuthorName}
+            onEnabledChange={setShowAuthorName}
+            onValueChange={(value) => handleChange('author', { ...article.author, name: value })}
+          />
+          
+          <EditableSiteNameField
+            value={article.siteName || ''}
+            enabled={showSiteName}
+            onEnabledChange={setShowSiteName}
+            onValueChange={(value) => handleChange('siteName', value)}
+          />
+        </div>
+        
+        {/* Default Comments Section */}
+        <DefaultCommentsEditor 
+          comments={defaultComments} 
+          setComments={setDefaultComments} 
+        />
+        
         <div className="flex items-center gap-4">
           {article?.slug && (
             <a

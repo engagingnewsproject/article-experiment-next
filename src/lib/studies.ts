@@ -176,11 +176,18 @@ export function getAllValidStudyIds(): string[] {
  * Normalizes a study ID to its canonical form.
  * 
  * @param studyId - The study ID (can be alias or canonical)
- * @returns The canonical study ID, or the default if not found
+ * @returns The canonical study ID, or the original ID if not found (preserves Firestore-only studies)
  */
 export function normalizeStudyId(studyId: string): string {
   const study = getStudyById(studyId);
-  return study?.id || DEFAULT_STUDY_ID;
+  // If found, return canonical ID (handles aliases)
+  if (study) {
+    return study.id;
+  }
+  // If not found in cache, preserve the original ID
+  // This allows Firestore-only studies to work even if not yet loaded in cache
+  // Only default to DEFAULT_STUDY_ID if no study ID was provided
+  return studyId || DEFAULT_STUDY_ID;
 }
 
 /**

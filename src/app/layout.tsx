@@ -19,6 +19,7 @@ import '@/styles/variables.css';
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { AdminClassManager } from './AdminClassManager';
+import { DevProjectIndicator } from '@/components/DevProjectIndicator';
 
 /**
  * Metadata configuration for the application.
@@ -77,6 +78,7 @@ export default function RootLayout({
       <body>
         <AdminClassManager />
         {children}
+        <DevProjectIndicator />
       </body>
     </html>
   );

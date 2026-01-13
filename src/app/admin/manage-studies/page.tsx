@@ -40,6 +40,8 @@ export default function ManageStudiesPage() {
     authorImageAlt: '',
     pubdate: '',
     siteName: '',
+    showCommentNameInput: true, // Default to true (show name input)
+    commentsIntroText: '', // Text to display before comments section
   });
 
   useEffect(() => {
@@ -113,6 +115,8 @@ export default function ManageStudiesPage() {
       authorImageAlt: '',
       pubdate: '',
       siteName: '',
+      showCommentNameInput: true,
+      commentsIntroText: '',
     });
     setShowAuthorFields(false);
     setShowPubdateField(false);
@@ -177,6 +181,8 @@ export default function ManageStudiesPage() {
         author,
         pubdate: formData.pubdate.trim() || undefined,
         siteName: formData.siteName.trim() || undefined,
+        showCommentNameInput: formData.showCommentNameInput,
+        commentsIntroText: formData.commentsIntroText.trim() || undefined,
       });
 
       setSuccess(`Study "${formData.name}" ${editingStudyId ? 'updated' : 'added'} successfully!`);
@@ -210,6 +216,8 @@ export default function ManageStudiesPage() {
         authorImageAlt: study.author?.image.alt || '',
         pubdate: study.pubdate || '',
         siteName: study.siteName || '',
+        showCommentNameInput: study.showCommentNameInput !== undefined ? study.showCommentNameInput : true,
+        commentsIntroText: study.commentsIntroText || '',
       });
       
       // Show fields if they have values
@@ -442,6 +450,41 @@ export default function ManageStudiesPage() {
                         />
                       </div>
                     )}
+                  </div>
+
+                  {/* Show Comment Name Input */}
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.showCommentNameInput}
+                        onChange={(e) => setFormData({ ...formData, showCommentNameInput: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Show name input in comment forms
+                      </span>
+                    </label>
+                    <p className="mt-1 ml-6 text-xs text-gray-500">
+                      When unchecked, the name input field will be hidden in comment forms for all articles in this study
+                    </p>
+                  </div>
+
+                  {/* Comments Intro Text */}
+                  <div className="mb-4">
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      Text before comments section
+                    </label>
+                    <textarea
+                      value={formData.commentsIntroText}
+                      onChange={(e) => setFormData({ ...formData, commentsIntroText: e.target.value })}
+                      placeholder="Enter text to display before the comments section..."
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md"
+                      rows={3}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Optional text that will appear before the comments section for all articles in this study
+                    </p>
                   </div>
                 </div>
 

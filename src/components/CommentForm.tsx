@@ -30,6 +30,8 @@ interface CommentFormProps {
   onCommentSubmit?: (name: string, content: string) => void;
   /** Optional Qualtrics response ID to associate with the comment */
   qualtricsResponseId?: string;
+  /** Whether to show the name input field (from study setting, defaults to true) */
+  showNameInput?: boolean;
 }
 
 export const CommentForm: React.FC<CommentFormProps> = ({
@@ -38,6 +40,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   onCommentSubmitted,
   onCommentSubmit,
   qualtricsResponseId,
+  showNameInput = true,
 }) => {
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
@@ -96,7 +99,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className={styles.commentForm}>
       <h3 className={styles.addCommentTitle}>Add a Comment</h3>
-      {!anonymous && (
+      {!anonymous && showNameInput && (
         <>
           <input
             type="text"
