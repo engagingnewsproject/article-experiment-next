@@ -263,29 +263,29 @@ export default function ResearchDashboard() {
         return;
       }
       
-      console.log('[Research Dashboard] Starting data load...');
-      console.log('[Research Dashboard] Authenticated user:', currentUser.email);
-      console.log('[Research Dashboard] Firestore db:', db);
-      console.log('[Research Dashboard] Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
-      
       const logsRef = collection(db, 'logs');
-      console.log('[Research Dashboard] Logs collection ref:', logsRef);
       const logsQuery = query(logsRef, orderBy('timestamp', 'desc'));
-      console.log('[Research Dashboard] Executing logs query...');
-      const logsSnapshot = await getDocs(logsQuery);
-      console.log('[Research Dashboard] Logs snapshot size:', logsSnapshot.size);
+      let logsSnapshot;
+      try {
+        logsSnapshot = await getDocs(logsQuery);
+      } catch (error) {
+        console.error('[Research Dashboard] Error loading logs:', error);
+        throw new Error(`Failed to load logs: ${error instanceof Error ? error.message : String(error)}`);
+      }
       const logsData = logsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as LogEntry[];
-      console.log('[Research Dashboard] Logs data:', logsData.length, 'entries');
 
       const articlesRef = collection(db, 'articles');
-      console.log('[Research Dashboard] Articles collection ref:', articlesRef);
       const articlesQuery = query(articlesRef, orderBy('createdAt', 'desc'));
-      console.log('[Research Dashboard] Executing articles query...');
-      const articlesSnapshot = await getDocs(articlesQuery);
-      console.log('[Research Dashboard] Articles snapshot size:', articlesSnapshot.size);
+      let articlesSnapshot;
+      try {
+        articlesSnapshot = await getDocs(articlesQuery);
+      } catch (error) {
+        console.error('[Research Dashboard] Error loading articles:', error);
+        throw new Error(`Failed to load articles: ${error instanceof Error ? error.message : String(error)}`);
+      }
 
       async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<LocalComment[]> {
         const repliesRef = collection(db, ...((parentPath as unknown) as [string, ...string[]]));
@@ -317,13 +317,22 @@ export default function ResearchDashboard() {
       const articlesData = await Promise.all(
         articlesSnapshot.docs.map(async doc => {
           const articleData = doc.data();
-          const comments = await fetchRepliesRecursively(doc.id, ['articles', doc.id, 'comments']);
-          console.log(comments);
-          return {
-            ...(articleData as Article),
-            id: doc.id,
-            comments
-          };
+          try {
+            const comments = await fetchRepliesRecursively(doc.id, ['articles', doc.id, 'comments']);
+            return {
+              ...(articleData as Article),
+              id: doc.id,
+              comments
+            };
+          } catch (error) {
+            // If comments fail to load for this article, continue with empty comments
+            console.warn(`[Research Dashboard] Failed to load comments for article ${doc.id}:`, error);
+            return {
+              ...(articleData as Article),
+              id: doc.id,
+              comments: []
+            };
+          }
         })
       );
 
@@ -341,18 +350,10 @@ export default function ResearchDashboard() {
           })) as LocalComment[];
           allUserComments.push(...articleComments);
         } catch (error) {
-          console.log(`No comments collection for article ${article.id} or error loading:`, error);
+          // Individual article comment errors are non-fatal
+          console.warn(`[Research Dashboard] Failed to load comments for article ${article.id}:`, error);
         }
       }
-
-      console.log('Loaded user comments:', allUserComments.length, allUserComments);
-      console.log('Loaded articles:', articlesData.length, articlesData);
-      console.log('Loaded logs:', logsData.length, logsData);
-      console.log('Default comments count:', articlesData.reduce((sum, article) => 
-        sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
-      ));
-      console.log('Articles with studyId:', articlesData.filter(a => (a as any).studyId).map(a => ({ id: a.id, studyId: (a as any).studyId })));
-      console.log('Logs with studyId:', logsData.filter(l => (l as any).studyId).map(l => ({ id: l.id, studyId: (l as any).studyId, action: l.action })));
 
       setLogs(logsData);
       setArticles(articlesData);
@@ -412,7 +413,6 @@ export default function ResearchDashboard() {
       setStats(null);
     } finally {
       setLoading(false);
-      console.log('[Research Dashboard] Data load complete');
     }
   };
 
