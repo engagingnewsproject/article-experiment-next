@@ -8,8 +8,8 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
   // Use article's studyId if provided, otherwise fall back to URL studyId
   const effectiveStudyId = articleStudyId || urlStudyId;
   
-  // Debug logging in development to verify studyId and Qualtrics data
-  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  // Production-safe logging to verify studyId and Qualtrics data
+  if (typeof window !== 'undefined') {
     const logKey = 'logger_init';
     if (!(window as any)[logKey]) {
       console.log('[Logger] Initialized with:', {
@@ -18,6 +18,7 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
         effectiveStudyId,
         qualtricsResponseId: qualtricsData?.responseId,
         qualtricsSurveyId: qualtricsData?.surveyId,
+        qualtricsData: qualtricsData,
         isEmbedded: window.parent !== window,
       });
       (window as any)[logKey] = true;
@@ -49,16 +50,15 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
       studyId: effectiveStudyId,
     };
     
-    // Debug logging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Logger] Logging event:', {
-        action,
-        label,
-        studyId: effectiveStudyId,
-        qualtricsResponseId: qualtricsData.responseId,
-        identifier,
-      });
-    }
+    // Production-safe logging for debugging
+    console.log('[Logger] Logging event:', {
+      action,
+      label,
+      studyId: effectiveStudyId,
+      qualtricsResponseId: qualtricsData.responseId,
+      qualtricsData: qualtricsData,
+      identifier,
+    });
     
     await logEvent(logEntry);
   }, [qualtricsData, effectiveStudyId]);
