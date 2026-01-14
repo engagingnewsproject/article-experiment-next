@@ -90,6 +90,7 @@ interface LocalComment {
   parentId?: string;
   grandParentId?: string;
   replies?: LocalComment[];
+  qualtricsResponseId?: string;
 }
 
 interface DashboardStats {
@@ -175,15 +176,17 @@ export default function ResearchDashboard() {
   const [viewMode, setViewMode] = useState<'overview' | 'logs' | 'articles' | 'comments'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Add a new state for user and date filter in comments
-  const [selectedUser, setSelectedUser] = useState('');
+  // Add a new state for date filter in comments
   const [selectedCommentDateRange, setSelectedCommentDateRange] = useState('all');
+  
+  // Add a new state for QT Response ID filter in comments
+  const [commentQtResponseIdFilter, setCommentQtResponseIdFilter] = useState('');
 
   // Add a new state for article title/id filter in comments
   const [articleTitleIdFilter, setArticleTitleIdFilter] = useState('');
 
-  // Add a new state for user input filter in logs
-  const [logUserFilter, setLogUserFilter] = useState('');
+  // Add a new state for QT Response ID filter in logs
+  const [qtResponseIdFilter, setQtResponseIdFilter] = useState('');
 
   // State for toggling default comments in comments tab
   const [showDefaultComments, setShowDefaultComments] = useState(true);
@@ -536,7 +539,12 @@ export default function ResearchDashboard() {
       const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
       if (logDate < cutoffDate) return false;
     }
-    if (logUserFilter && log.userId && !log.userId.toLowerCase().includes(logUserFilter.toLowerCase())) return false;
+    if (qtResponseIdFilter) {
+      // If filtering by response ID, exclude rows without a response ID
+      if (!log.qualtricsResponseId) return false;
+      // If response ID doesn't match the filter, exclude it
+      if (!log.qualtricsResponseId.toLowerCase().includes(qtResponseIdFilter.toLowerCase())) return false;
+    }
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       return (
@@ -619,7 +627,12 @@ export default function ResearchDashboard() {
 
   const filteredComments = allComments.filter(comment => {
     if (selectedArticle !== 'all' && comment.articleId !== selectedArticle) return false;
-    if (selectedUser !== 'all' && selectedUser.trim() !== '' && !comment.name.toLowerCase().includes(selectedUser.toLowerCase())) return false;
+    if (commentQtResponseIdFilter) {
+      // If filtering by response ID, exclude comments without a response ID
+      if (!comment.qualtricsResponseId) return false;
+      // If response ID doesn't match the filter, exclude it
+      if (!comment.qualtricsResponseId.toLowerCase().includes(commentQtResponseIdFilter.toLowerCase())) return false;
+    }
     if (selectedCommentDateRange !== 'all') {
       let commentDate: Date;
       const rawDate = comment.createdAt;
@@ -788,13 +801,13 @@ export default function ResearchDashboard() {
                 </div>
               )}
               {/* Debug info */}
-              <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+              {/* <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
                 <p><strong>Debug:</strong> Total logs loaded: {logs.length} | Filtered: {filteredLogs.length}</p>
                 <p>Total articles loaded: {articles.length} | Filtered: {filteredArticles.length}</p>
                 <p>Total comments loaded: {comments.length} | All comments (with defaults): {allComments.length}</p>
                 <p>Selected study filter: {selectedStudy}</p>
                 <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'unknown'}</p>
-              </div>
+              </div> */}
             </div>
 
             {/* Stats Overview */}
@@ -882,7 +895,7 @@ export default function ResearchDashboard() {
         {viewMode === 'logs' && (
           <>
             {/* Search and Filters */}
-            <div className="p-6 mb-8 bg-white rounded-lg shadow">
+            <div className="search-and-filters-section p-6 mb-8 bg-white rounded-lg shadow">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
                 <StudyDropdown
                   value={selectedStudy}
@@ -890,12 +903,12 @@ export default function ResearchDashboard() {
                   studies={studies}
                 />
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">User</label>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">QT Response ID</label>
                   <input
                     type="text"
-                    value={logUserFilter}
-                    onChange={e => setLogUserFilter(e.target.value)}
-                    placeholder="Filter by user ID..."
+                    value={qtResponseIdFilter}
+                    onChange={e => setQtResponseIdFilter(e.target.value)}
+                    placeholder="Filter by response ID..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -945,7 +958,7 @@ export default function ResearchDashboard() {
                       setSelectedDateRange('all');
                       setSelectedAction('all');
                       setSelectedArticle('all');
-                      setLogUserFilter('');
+                      setQtResponseIdFilter('');
                     }}
                     className="w-full px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600"
                   >
@@ -971,42 +984,39 @@ export default function ResearchDashboard() {
                 </button>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="user-activity-table min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Time</th>
-                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">User</th>
-                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Study</th>
+                      {/* <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">User</th> */}
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">QT Response ID</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Details</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Article</th>
-                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">QT Response ID</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Study</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredLogs.slice(0, 100).map((log) => (
                       <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        <td className="time-column px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           {log.timestamp?.toDate ? 
                             log.timestamp.toDate().toLocaleString() : 
                             new Date(log.timestamp).toLocaleString()
                           }
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        {/* <td className="user-column px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           {log.userId}
+                        </td> */}
+                        <td className="qt-response-id-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {log.qualtricsResponseId || '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                          {(() => {
-                            const logStudyId = (log as any).studyId;
-                            return logStudyId ? getStudyName(logStudyId) : '-';
-                          })()}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        <td className="action-column px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {log.action}
                           </span>
                         </td>
-                        <td className="max-w-xs px-6 py-4 text-sm text-gray-900 truncate">
+                        <td className="details-column max-w-xs px-6 py-4 text-sm text-gray-900 truncate">
                           {log.details && (
                             <div
                               className="mt-1 text-xs text-gray-500"
@@ -1016,11 +1026,14 @@ export default function ResearchDashboard() {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                        <td className="article-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                           {log.label || log.url}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                          {log.qualtricsResponseId || '-'}
+                        <td className="study-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {(() => {
+                            const logStudyId = (log as any).studyId;
+                            return logStudyId ? getStudyName(logStudyId) : '-';
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1033,7 +1046,7 @@ export default function ResearchDashboard() {
 
         {viewMode === 'articles' && (
           <>
-            <div className="p-6 mb-8 bg-white rounded-lg shadow">
+            <div className="article-filters-section p-6 mb-8 bg-white rounded-lg shadow">
               <div className="flex flex-col justify-center max-w-3xl gap-4 mx-auto md:flex-row md:items-end">
                 <div className="flex-1 min-w-[180px]">
                   <label className="block mb-2 text-sm font-medium text-gray-700">Study</label>
@@ -1117,7 +1130,7 @@ export default function ResearchDashboard() {
         {viewMode === 'comments' && (
           <>
             {/* Search and Filters for Comments */}
-            <div className="p-6 mb-8 bg-white rounded-lg shadow">
+            <div className="comments-filters-section p-6 mb-8 bg-white rounded-lg shadow">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
                 <StudyDropdown
                   value={selectedStudy}
@@ -1135,12 +1148,12 @@ export default function ResearchDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">User</label>
+                  <label className="block mb-2 text-sm font-medium text-gray-700">QT Response ID</label>
                   <input
                     type="text"
-                    value={selectedUser}
-                    onChange={e => setSelectedUser(e.target.value)}
-                    placeholder="Filter by username..."
+                    value={commentQtResponseIdFilter}
+                    onChange={e => setCommentQtResponseIdFilter(e.target.value)}
+                    placeholder="Filter by response ID..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -1176,7 +1189,7 @@ export default function ResearchDashboard() {
                     onClick={() => {
                       setSelectedStudy('all');
                       setSelectedArticle('all');
-                      setSelectedUser('');
+                      setCommentQtResponseIdFilter('');
                       setSelectedCommentDateRange('all');
                       setSearchTerm('');
                       setArticleTitleIdFilter('');
