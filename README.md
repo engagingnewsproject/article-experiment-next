@@ -4,11 +4,13 @@ A Next.js-based article experiment project focused on testing and implementing v
 
 ## Table of Contents
 - [Project Overview](#project-overview)
+- [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
 - [Environment Setup](#environment-setup)
 - [Installation and Running](#installation-and-running)
 - [Development Workflow](#development-workflow)
 - [Deployment](#deployment)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [Additional Resources](#additional-resources)
 
@@ -18,12 +20,15 @@ This project is a Next.js-based article experiment platform designed to test and
 
 ### Key Features
 
-- Dynamic author information with multiple bio variations
-- Explanation boxes for article context
-- Comment system with anonymous and authenticated modes
-- Article metadata and version tracking
-- Trust Project integration
-- Google Analytics integration
+- **Multi-Study Support**: Run multiple research projects simultaneously with isolated data
+- **Qualtrics Integration**: Track user interactions linked to survey responses
+- **Research Dashboard**: Comprehensive analytics and data export tools
+- **Dynamic Author Information**: Multiple bio variations per study
+- **Explanation Boxes**: Contextual information for articles
+- **Comment System**: Anonymous and authenticated modes with research tracking
+- **Article Metadata**: Version tracking and rich metadata
+- **Trust Project Integration**: Trust indicators and transparency
+- **Google Analytics Integration**: User behavior tracking
 
 ### Comment System
 
@@ -124,6 +129,19 @@ To verify which project you're connected to, check the browser console when runn
 - `✅ Using LIVE Firestore` with the project ID (live Firebase)
 - `✅ Connected to Firestore emulator` (local emulator)
 
+## Quick Start
+
+For a complete getting started guide, see **[docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)**.
+
+**TL;DR:**
+```bash
+git clone <repo-url>
+cd article-experiment-next
+npm install
+# Set up .env.local (see Environment Setup)
+npm run dev:emulator  # or npm run dev
+```
+
 ## Installation and Running
 
 ### Prerequisites
@@ -131,6 +149,7 @@ To verify which project you're connected to, check the browser console when runn
 - Node.js (v18 or higher)
 - npm (v9 or higher)
 - Git
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Installation Steps
 
@@ -251,6 +270,42 @@ npm run start  # Start production server
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+## Documentation
+
+Comprehensive documentation is available in the `/docs` directory:
+
+### Getting Started
+- **[Getting Started Guide](./docs/GETTING_STARTED.md)** - Quick start for new developers/researchers
+- **[Common Tasks](./docs/COMMON_TASKS.md)** - Step-by-step workflows
+
+### Setup & Development
+- **[Local Dev Setup](./docs/dev/LOCAL_DEV_SETUP.md)** - Complete local development guide
+- **[Source Code Overview](./docs/code/SRC_OVERVIEW.md)** - Architecture and code structure
+- **[Firebase Auth Setup](./docs/auth/FIREBASE_AUTH_SETUP.md)** - Authentication configuration
+
+### Features & Integration
+- **[Multiple Research Projects](./docs/MULTIPLE_RESEARCH_PROJECTS.md)** - Multi-study system
+- **[Qualtrics Integration](./docs/qualtrics/QUALTRICS_INTEGRATION.md)** - Survey integration guide
+- **[Logging Events](./docs/qualtrics/LOGGING_EVENTS.md)** - Event tracking reference
+
+### Deployment & Data
+- **[Deployment Guide](./docs/deploy/DEPLOYMENT.md)** - Netlify deployment
+- **[Research Data Export](./docs/firebase/RESEARCH_DATA_EXPORT.md)** - Data export guide
+
+### Available NPM Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start dev server (live Firebase) |
+| `npm run dev:emulator` | Start dev server with emulator |
+| `npm run build` | Build for production |
+| `npm run export-research` | Export all data for research |
+| `npm run import-data:dev` | Import data to dev Firebase |
+| `firebase use dev` | Switch to dev Firebase project |
+| `firebase use prod` | Switch to prod Firebase project |
+
+See [package.json](./package.json) for all available scripts.
 
 ## Additional Resources
 

@@ -49,7 +49,7 @@ Next.js 14+ App Router structure with client and server components.
 - `admin/manage-project-configs/` - Project configuration management
 - `admin/edit-article/[id]/` - Article editing
 - `admin/add-default-comments/` - Comment management
-- `admin/research-dashboard/` - Research analytics dashboard
+- `admin/research-dashboard/` - Research analytics dashboard with advanced filtering and Qualtrics integration
 
 **Key Features:**
 - Server-side rendering (SSR) for initial page loads
@@ -93,14 +93,17 @@ Reusable UI components organized by functionality.
 **Form Components:**
 - `AddArticleForm.tsx` - Article creation form
 
+**Interactive Components:**
+- `LikeShareButtons.tsx` - Like and share buttons (share button is for logging only, not actual sharing)
+
 ### `/hooks` - Custom React Hooks
 
 Reusable React hooks for common functionality.
 
 - `useStudyId.ts` - Extracts and validates study ID from URL parameters
-- `useLogger.ts` - Event logging with Qualtrics integration
+- `useLogger.ts` - Event logging with Qualtrics integration (includes production-safe logging)
 - `usePageTracking.ts` - Page view tracking
-- `useQualtrics.ts` - Qualtrics survey integration
+- `useQualtrics.ts` - Qualtrics survey integration via postMessage (includes production-safe logging and REQUEST_QUALTRICS_DATA handling)
 
 **Usage Pattern:**
 ```typescript
@@ -162,10 +165,17 @@ Core business logic and utilities.
 ### Logging Flow
 
 1. User interaction triggers event (click, view, etc.)
-2. `useLogger()` hook captures event with study ID
-3. Event includes Qualtrics data if available
-4. `logEvent()` writes to Firestore `logs` collection
-5. Research dashboard queries logs for analytics
+2. `useQualtrics()` hook receives Qualtrics response ID via postMessage from survey parent window
+3. `useLogger()` hook captures event with study ID and Qualtrics response ID
+4. Event includes Qualtrics data (responseId, surveyId) if embedded in survey
+5. `logEvent()` writes to Firestore `logs` collection with all metadata
+6. Research dashboard queries logs for analytics with Qualtrics response ID tracking
+
+**Qualtrics Integration:**
+- Qualtrics JavaScript sends response ID via postMessage when article iframe loads
+- Article iframe requests data if not received (handles timing issues)
+- All logs automatically include `qualtricsResponseId` when available
+- Production-safe logging helps debug integration issues
 
 ### Admin Flow
 
@@ -237,8 +247,36 @@ The app supports multiple environments:
 
 - Client-side authentication for admin pages
 - Firestore security rules control data access
+  - Logs collection requires both `read` and `list` permissions for authenticated users
+  - `read` covers single document access, `list` is required for `getDocs()` queries
 - Study-based data isolation
-- Logs are append-only
+- Logs are append-only (no update/delete permissions)
+
+## Research Dashboard Features
+
+The research dashboard (`admin/research-dashboard/`) provides comprehensive analytics and data exploration:
+
+**User Activity Logs:**
+- Filter by study, QT Response ID, date range, action type, and article
+- Checkbox to show only rows with Qualtrics Response IDs
+- Columns: Time, QT Response ID, Action, Details, Article (with title resolution), URL (clickable), Study
+- Export filtered data to CSV/JSON
+- Full width toggle for viewing wide tables
+
+**Articles View:**
+- Filter by study and article title/ID
+- Display article metadata and statistics
+
+**Comments View:**
+- Filter by study, QT Response ID, article, and date range
+- Toggle between default and user-submitted comments
+- Show comment details with upvotes/downvotes
+- Aggregate comments from article subcollections
+
+**Overview Tab:**
+- Summary statistics (total logs, articles, comments, unique users)
+- Date range information
+- Action type breakdown
 
 ## Future Considerations
 
@@ -246,3 +284,4 @@ The app supports multiple environments:
 - Enhanced security rules
 - Additional study features
 - Analytics enhancements
+- Remove production logging after Qualtrics integration is fully verified
