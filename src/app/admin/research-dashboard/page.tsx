@@ -187,6 +187,7 @@ export default function ResearchDashboard() {
 
   // Add a new state for QT Response ID filter in logs
   const [qtResponseIdFilter, setQtResponseIdFilter] = useState('');
+  const [showOnlyWithQtResponseId, setShowOnlyWithQtResponseId] = useState(false);
 
   // State for toggling default comments in comments tab
   const [showDefaultComments, setShowDefaultComments] = useState(true);
@@ -201,6 +202,9 @@ export default function ResearchDashboard() {
 
   // New state for sorting comments
   const [commentSort, setCommentSort] = useState('date-desc');
+
+  // State for full width toggle
+  const [isFullWidth, setIsFullWidth] = useState(false);
 
   useEffect(() => {
     // Subscribe to Firebase Auth state changes to get user email (auth is handled by layout)
@@ -539,6 +543,9 @@ export default function ResearchDashboard() {
       const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
       if (logDate < cutoffDate) return false;
     }
+    // Filter by checkbox: show only logs with QT Response ID
+    if (showOnlyWithQtResponseId && !log.qualtricsResponseId) return false;
+    
     if (qtResponseIdFilter) {
       // If filtering by response ID, exclude rows without a response ID
       if (!log.qualtricsResponseId) return false;
@@ -737,7 +744,7 @@ export default function ResearchDashboard() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-50">
-      <div className="mx-auto max-w-7xl">
+      <div className={`mx-auto ${isFullWidth ? '' : 'max-w-7xl'}`}>
         <PageHeader 
           title="Research Data Dashboard" 
           subtitle="Interactive dashboard for researchers to explore user activity, articles, comments, and export data for analysis." 
@@ -746,7 +753,7 @@ export default function ResearchDashboard() {
         {/* Navigation Tabs */}
         <div className="mb-8 bg-white rounded-lg shadow">
           <div className="border-b border-gray-200">
-            <nav className="flex px-6 -mb-px space-x-8">
+            <nav className="flex px-6 -mb-px space-x-8 items-center">
               {[
                 { id: 'overview', label: 'Overview', count: null },
                 { id: 'logs', label: 'User Activity', count: filteredLogs.length },
@@ -770,6 +777,19 @@ export default function ResearchDashboard() {
                   )}
                 </button>
               ))}
+              <div className="ml-auto">
+                <button
+                  onClick={() => setIsFullWidth(!isFullWidth)}
+                  className={`py-2 px-3 text-sm font-medium rounded-md ${
+                    isFullWidth
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                      : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                  }`}
+                  title={isFullWidth ? 'Switch to constrained width' : 'Switch to full width'}
+                >
+                  {isFullWidth ? '↔ Constrained' : '↔ Full Width'}
+                </button>
+              </div>
             </nav>
           </div>
         </div>
@@ -911,6 +931,15 @@ export default function ResearchDashboard() {
                     placeholder="Filter by response ID..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
+                  <label className="flex items-center mt-2">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyWithQtResponseId}
+                      onChange={e => setShowOnlyWithQtResponseId(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Only show rows with QT Response ID</span>
+                  </label>
                 </div>
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-700">Date Range</label>
@@ -959,6 +988,7 @@ export default function ResearchDashboard() {
                       setSelectedAction('all');
                       setSelectedArticle('all');
                       setQtResponseIdFilter('');
+                      setShowOnlyWithQtResponseId(false);
                     }}
                     className="w-full px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600"
                   >
@@ -993,6 +1023,7 @@ export default function ResearchDashboard() {
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Details</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Article</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">URL</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Study</th>
                     </tr>
                   </thead>
@@ -1027,7 +1058,30 @@ export default function ResearchDashboard() {
                           )}
                         </td>
                         <td className="article-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                          {log.label || log.url}
+                          {(() => {
+                            // Prioritize articleTitle from log, then try to find article by identifier
+                            if (log.articleTitle) {
+                              return log.articleTitle;
+                            }
+                            // Try to find article by identifier
+                            const matchedArticle = articles.find(a => a.id === log.identifier);
+                            if (matchedArticle) {
+                              return matchedArticle.title;
+                            }
+                            // Fallback to identifier if no article found
+                            return log.identifier || '-';
+                          })()}
+                        </td>
+                        <td className="url-column px-6 py-4 text-sm text-gray-500 break-all max-w-xs">
+                          <a 
+                            href={log.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline truncate block"
+                            title={log.url}
+                          >
+                            {log.url}
+                          </a>
                         </td>
                         <td className="study-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                           {(() => {
