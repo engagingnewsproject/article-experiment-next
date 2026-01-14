@@ -1,4 +1,4 @@
-// Updated question JS that SHOULD work:
+// Updated question JS that works for this study:
 Qualtrics.SurveyEngine.addOnload(function()
 {
 	/*Place your JavaScript here to run when the page loads*/
