@@ -5,6 +5,7 @@ import { createCookie, deleteCookie } from "./Comments";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import { useLogger } from '@/hooks/useLogger';
 import { type QualtricsData } from '@/hooks/useQualtrics';
+import { VoteButton } from './VoteButton';
 
 /**
  * Props for the CommentVoteSection component.
@@ -122,23 +123,25 @@ export const CommentVoteSection: React.FC<CommentVoteSectionProps> = ({
   return (
     <>
       {/* Upvote button */}
-      <button 
+      <VoteButton
         onClick={() => handleVote('upvotes')}
-        className={styles.voteButton}
         disabled={voted.upvotes}
-      >
-        {voted.upvotes ? <BiSolidLike /> : <BiLike />}
-        <span>{upvotes}</span>
-      </button>
+        isActive={voted.upvotes}
+        count={upvotes}
+        iconActive={BiSolidLike}
+        iconInactive={BiLike}
+        ariaLabel="Upvote this comment"
+      />
       {/* Downvote button */}
-      <button 
+      <VoteButton
         onClick={() => handleVote('downvotes')}
-        className={styles.voteButton}
         disabled={voted.downvotes}
-      >
-        {voted.downvotes ? <BiSolidDislike /> : <BiDislike />}
-        <span>{downvotes}</span>
-      </button>
+        isActive={voted.downvotes}
+        count={downvotes}
+        iconActive={BiSolidDislike}
+        iconInactive={BiDislike}
+        ariaLabel="Downvote this comment"
+      />
     </>
   );
 };
