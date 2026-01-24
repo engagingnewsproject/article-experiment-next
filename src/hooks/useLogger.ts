@@ -3,6 +3,32 @@ import { useCallback } from 'react';
 import type { QualtricsData } from './useQualtrics';
 import { useStudyId } from './useStudyId';
 
+/**
+ * Sends a postMessage to the parent window to notify about user interactions.
+ * This allows parent pages (like Qualtrics) to track clicks for external systems (like Prolific).
+ * 
+ * @param interactionType - The type of interaction (e.g., 'click', 'vote', 'comment', 'reply')
+ * @param details - Additional details about the interaction
+ */
+const notifyParentWindowOfInteraction = (
+  interactionType: string,
+  details?: string
+) => {
+  // Only send message if we're in an iframe
+  if (typeof window !== 'undefined' && window.parent !== window) {
+    window.parent.postMessage(
+      {
+        type: 'ARTICLE_INTERACTION',
+        interactionType: interactionType,
+        details: details,
+        timestamp: Date.now(),
+      },
+      '*' // In production, consider restricting to specific origins for security
+    );
+    console.log(`[Logger] Sent ${interactionType} interaction notification to parent window`);
+  }
+};
+
 export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: string) {
   const { studyId: urlStudyId } = useStudyId();
   // Use article's studyId if provided, otherwise fall back to URL studyId
@@ -60,6 +86,11 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
       identifier,
     });
     
+    // Notify parent window of vote interactions (upvote/downvote)
+    if (action === 'Upvote ' || action === 'Downvote ') {
+      notifyParentWindowOfInteraction('vote', `${action.trim()} - ${details}`);
+    }
+    
     await logEvent(logEntry);
   }, [qualtricsData, effectiveStudyId]);
 
@@ -70,6 +101,9 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
     userId: string,
     articleTitle?: string
   ) => {
+    // Notify parent window of click interaction
+    notifyParentWindowOfInteraction('click', `${label} - ${comment}`);
+    
     await log('Click', label, comment, identifier, userId, articleTitle);
   }, [log]);
 
@@ -107,6 +141,9 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
     articleTitle?: string,
     isReply?: boolean,
   ) => {
+    // Notify parent window of comment/reply interaction
+    notifyParentWindowOfInteraction(isReply ? 'reply' : 'comment', `${name}: ${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}`);
+    
     await log(isReply ? 'Reply' : 'Comment', pageTitle, `${name}: ${comment}`, identifier, userId, articleTitle);
   }, [log]);
 
