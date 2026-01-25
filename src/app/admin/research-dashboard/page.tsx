@@ -38,13 +38,15 @@
 import { StudyDropdown } from '@/components/admin/StudyDropdown';
 import { ResearchDashboardLogin } from '@/components/admin/ResearchDashboardLogin';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { FilterSection } from '@/components/admin/FilterSection';
+import { TextInput } from '@/components/admin/TextInput';
 import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 import { loadStudies, StudyDefinition, getStudyAliases, getStudyName, CODE_STUDIES } from '@/lib/studies';
 import DOMPurify from 'dompurify';
-import { collection, getDocs, orderBy, query, Timestamp, where } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { collection, getDocs, orderBy, query, Timestamp, where, limit } from 'firebase/firestore';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 interface LogEntry {
   parentId?: string;
@@ -169,18 +171,23 @@ export default function ResearchDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
-  const [selectedDateRange, setSelectedDateRange] = useState('all');
-  const [selectedAction, setSelectedAction] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState('7');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [selectedActions, setSelectedActions] = useState<string[]>([]);
   const [selectedArticle, setSelectedArticle] = useState('all');
   const [selectedStudy, setSelectedStudy] = useState<string>('all'); // Filter by study ID
-  const [viewMode, setViewMode] = useState<'overview' | 'logs' | 'articles' | 'comments'>('overview');
+  const [viewMode, setViewMode] = useState<'logs' | 'articles' | 'comments'>('logs');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Add a new state for date filter in comments
   const [selectedCommentDateRange, setSelectedCommentDateRange] = useState('all');
+  const [commentCustomStartDate, setCommentCustomStartDate] = useState<string>('');
+  const [commentCustomEndDate, setCommentCustomEndDate] = useState<string>('');
   
   // Add a new state for QT Response ID filter in comments
   const [commentQtResponseIdFilter, setCommentQtResponseIdFilter] = useState('');
+  const [showOnlyWithQtResponseIdComments, setShowOnlyWithQtResponseIdComments] = useState(false);
 
   // Add a new state for article title/id filter in comments
   const [articleTitleIdFilter, setArticleTitleIdFilter] = useState('');
@@ -188,6 +195,7 @@ export default function ResearchDashboard() {
   // Add a new state for QT Response ID filter in logs
   const [qtResponseIdFilter, setQtResponseIdFilter] = useState('');
   const [showOnlyWithQtResponseId, setShowOnlyWithQtResponseId] = useState(false);
+  const [showArticleFilter, setShowArticleFilter] = useState(false);
 
   // State for toggling default comments in comments tab
   const [showDefaultComments, setShowDefaultComments] = useState(true);
@@ -205,6 +213,9 @@ export default function ResearchDashboard() {
 
   // State for full width toggle
   const [isFullWidth, setIsFullWidth] = useState(false);
+
+  // State for mobile menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Subscribe to Firebase Auth state changes to get user email (auth is handled by layout)
@@ -231,6 +242,14 @@ export default function ResearchDashboard() {
 
     return () => unsubscribe();
   }, []);
+
+  // Initialize selectedActions with all available actions when stats are loaded
+  useEffect(() => {
+    if (stats?.actionsByType && selectedActions.length === 0) {
+      const allActions = Object.keys(stats.actionsByType);
+      setSelectedActions(allActions);
+    }
+  }, [stats?.actionsByType, selectedActions.length]);
 
   const loadStudiesData = async () => {
         try {
@@ -270,102 +289,55 @@ export default function ResearchDashboard() {
         return;
       }
       
-      const logsRef = collection(db, 'logs');
-      const logsQuery = query(logsRef, orderBy('timestamp', 'desc'));
-      let logsSnapshot;
-      try {
-        logsSnapshot = await getDocs(logsQuery);
-      } catch (error) {
-        console.error('[Research Dashboard] Error loading logs:', error);
-        throw new Error(`Failed to load logs: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      // Load logs and articles in parallel for better performance
+      const [logsSnapshot, articlesSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'logs'), orderBy('timestamp', 'desc'))).catch(error => {
+          console.error('[Research Dashboard] Error loading logs:', error);
+          throw new Error(`Failed to load logs: ${error instanceof Error ? error.message : String(error)}`);
+        }),
+        getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'))).catch(error => {
+          console.error('[Research Dashboard] Error loading articles:', error);
+          throw new Error(`Failed to load articles: ${error instanceof Error ? error.message : String(error)}`);
+        })
+      ]);
+
       const logsData = logsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as LogEntry[];
 
-      const articlesRef = collection(db, 'articles');
-      const articlesQuery = query(articlesRef, orderBy('createdAt', 'desc'));
-      let articlesSnapshot;
-      try {
-        articlesSnapshot = await getDocs(articlesQuery);
-      } catch (error) {
-        console.error('[Research Dashboard] Error loading articles:', error);
-        throw new Error(`Failed to load articles: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      // Process articles without loading comments initially (comments loaded on-demand)
+      const articlesData = articlesSnapshot.docs.map(doc => ({
+        ...(doc.data() as Article),
+        id: doc.id,
+        comments: [] // Comments loaded separately to avoid blocking
+      }));
 
-      async function fetchRepliesRecursively(articleId: string, parentPath: string[], parentId?: string, grandParentId?: string): Promise<LocalComment[]> {
-        const repliesRef = collection(db, ...((parentPath as unknown) as [string, ...string[]]));
-        const repliesSnapshot = await getDocs(repliesRef);
-        return Promise.all(repliesSnapshot.docs.map(async replyDoc => {
-          const replyData = replyDoc.data();
-          const reply: LocalComment = {
-            id: replyDoc.id,
-            content: replyData.content || '',
-            name: replyData.name || 'Anonymous',
-            createdAt: replyData.createdAt,
-            parentId: parentId,
-            upvotes: replyData.upvotes,
-            downvotes: replyData.downvotes,
-            identifier: articleId,
-            ...replyData
-          };
-          // Recursively fetch all nested replies
-          const subReplies = await fetchRepliesRecursively(
-            articleId,
-            [...parentPath, replyDoc.id, 'replies'],
-            replyDoc.id,
-            parentId
-          );
-          return { ...reply, replies: subReplies };
-        }));
-      }
-
-      const articlesData = await Promise.all(
-        articlesSnapshot.docs.map(async doc => {
-          const articleData = doc.data();
-          try {
-            const comments = await fetchRepliesRecursively(doc.id, ['articles', doc.id, 'comments']);
-            return {
-              ...(articleData as Article),
-              id: doc.id,
-              comments
-            };
-          } catch (error) {
-            // If comments fail to load for this article, continue with empty comments
-            console.warn(`[Research Dashboard] Failed to load comments for article ${doc.id}:`, error);
-            return {
-              ...(articleData as Article),
-              id: doc.id,
-              comments: []
-            };
-          }
-        })
-      );
-
-      // Load comments from each article's subcollection
-      const allUserComments: LocalComment[] = [];
-      for (const article of articlesData) {
+      // Load all user comments in parallel for all articles
+      const commentPromises = articlesData.map(async (article) => {
         try {
           const commentsRef = collection(db, 'articles', article.id, 'comments');
-          const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
-          const commentsSnapshot = await getDocs(commentsQuery);
-          const articleComments = commentsSnapshot.docs.map(doc => ({
+          const commentsSnapshot = await getDocs(query(commentsRef, orderBy('createdAt', 'desc')));
+          return commentsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-            identifier: article.id // Add the article ID for reference
+            identifier: article.id
           })) as LocalComment[];
-          allUserComments.push(...articleComments);
         } catch (error) {
-          // Individual article comment errors are non-fatal
           console.warn(`[Research Dashboard] Failed to load comments for article ${article.id}:`, error);
+          return [];
         }
-      }
+      });
 
+      const allUserCommentsArrays = await Promise.all(commentPromises);
+      const allUserComments = allUserCommentsArrays.flat();
+
+      // Update state with loaded data
       setLogs(logsData);
       setArticles(articlesData);
       setComments(allUserComments);
 
+      // Calculate stats efficiently
       const uniqueUsers = new Set(logsData.map(log => log.userId)).size;
       const actionsByType: Record<string, number> = {};
       logsData.forEach(log => {
@@ -374,19 +346,22 @@ export default function ResearchDashboard() {
 
       // Safely extract and convert timestamps to dates
       const validDates = extractValidDates(logsData);
-
-      const dateRange = {
-        earliest: validDates.length > 0 ? new Date(Math.min(...validDates.map(d => d.getTime()))).toISOString() : '',
-        latest: validDates.length > 0 ? new Date(Math.max(...validDates.map(d => d.getTime()))).toISOString() : ''
-      };
+      const dateRange = validDates.length > 0 ? {
+        earliest: new Date(Math.min(...validDates.map(d => d.getTime()))).toISOString(),
+        latest: new Date(Math.max(...validDates.map(d => d.getTime()))).toISOString()
+      } : { earliest: '', latest: '' };
 
       const articlesWithComments = articlesData.filter(article => 
         Array.isArray(article.default_comments) && article.default_comments.length > 0
       ).length;
 
-      const totalWordCount = articlesData.reduce((sum, article) => 
-        sum + (article.content ? article.content.split(/\s+/).length : 0), 0
-      );
+      // Calculate word count more efficiently
+      let totalWordCount = 0;
+      for (const article of articlesData) {
+        if (article.content) {
+          totalWordCount += article.content.split(/\s+/).length;
+        }
+      }
 
       const totalComments = articlesData.reduce((sum, article) => 
         sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
@@ -401,7 +376,7 @@ export default function ResearchDashboard() {
         dateRange,
         actionsByType,
         articlesWithComments,
-        averageWordCount: Math.round(totalWordCount / articlesData.length) || 0
+        averageWordCount: articlesData.length > 0 ? Math.round(totalWordCount / articlesData.length) : 0
       });
 
     } catch (error) {
@@ -507,8 +482,6 @@ export default function ResearchDashboard() {
         const studyId = row.studyId || '';
         return {
           qualtricsResponseId: row.qualtricsResponseId ?? userToQualtrics[row.userId] ?? '',
-          // keep id first
-          id: row.id ?? '',
           // user and action
           userId: row.userId ?? '',
           studyId: studyId,
@@ -523,13 +496,16 @@ export default function ResearchDashboard() {
           // normalized article id
           articleId: row.articleId ?? row.identifier ?? '',
           articleTitle: row.articleTitle ?? row.label ?? '',
+          // keep id last
+          id: row.id ?? '',
         };
       });
     };
 
-  const filteredLogs = logs.filter(log => {
-    if (selectedAction !== 'all' && log.action !== selectedAction) return false;
-    if (selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
+  // Memoize filtered logs to avoid recalculating on every render
+  const filteredLogs = useMemo(() => logs.filter(log => {
+    if (selectedActions.length > 0 && !selectedActions.includes(log.action)) return false;
+    if (showArticleFilter && selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
     // Filter by studyId if selected (when "All Studies" is selected, show all logs)
     if (selectedStudy !== 'all') {
       const logStudyId = (log as any).studyId;
@@ -538,10 +514,28 @@ export default function ResearchDashboard() {
     // When "All Studies" is selected, include logs even if they don't have a studyId
     if (selectedDateRange !== 'all') {
       const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
-      const now = new Date();
-      const daysAgo = parseInt(selectedDateRange);
-      const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-      if (logDate < cutoffDate) return false;
+      
+      // Handle custom date range
+      if (selectedDateRange === 'custom') {
+        if (customStartDate || customEndDate) {
+          const startDate = customStartDate ? new Date(customStartDate) : null;
+          const endDate = customEndDate ? new Date(customEndDate) : null;
+          
+          // Set end date to end of day if provided
+          if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+          }
+          
+          if (startDate && logDate < startDate) return false;
+          if (endDate && logDate > endDate) return false;
+        }
+      } else {
+        // Handle preset ranges (1, 7, 30, 90 days)
+        const now = new Date();
+        const daysAgo = parseInt(selectedDateRange);
+        const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+        if (logDate < cutoffDate) return false;
+      }
     }
     // Filter by checkbox: show only logs with QT Response ID
     if (showOnlyWithQtResponseId && !log.qualtricsResponseId) return false;
@@ -562,10 +556,75 @@ export default function ResearchDashboard() {
       );
     }
     return true;
-  });
+  }), [logs, selectedActions, selectedArticle, selectedStudy, selectedDateRange, customStartDate, customEndDate, showOnlyWithQtResponseId, qtResponseIdFilter, searchTerm, showArticleFilter]);
 
-  // Filter articles by studyId and other filters
-  const filteredArticles = articles.filter(article => {
+  /**
+   * Calculate action counts from filtered logs (excluding the action filter itself).
+   * This gives us the count of logs that match all other filters for each action type.
+   */
+  const filteredActionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    // Filter logs by all criteria except selectedActions
+    const logsFilteredByOtherCriteria = logs.filter(log => {
+      if (showArticleFilter && selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
+      // Filter by studyId if selected
+      if (selectedStudy !== 'all') {
+        const logStudyId = (log as any).studyId;
+        if (!matchesStudy(logStudyId, selectedStudy)) return false;
+      }
+      // Date range filtering
+      if (selectedDateRange !== 'all') {
+        const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+        
+        if (selectedDateRange === 'custom') {
+          if (customStartDate || customEndDate) {
+            const startDate = customStartDate ? new Date(customStartDate) : null;
+            const endDate = customEndDate ? new Date(customEndDate) : null;
+            
+            if (endDate) {
+              endDate.setHours(23, 59, 59, 999);
+            }
+            
+            if (startDate && logDate < startDate) return false;
+            if (endDate && logDate > endDate) return false;
+          }
+        } else {
+          const now = new Date();
+          const daysAgo = parseInt(selectedDateRange);
+          const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+          if (logDate < cutoffDate) return false;
+        }
+      }
+      // Filter by checkbox: show only logs with QT Response ID
+      if (showOnlyWithQtResponseId && !log.qualtricsResponseId) return false;
+      
+      if (qtResponseIdFilter) {
+        if (!log.qualtricsResponseId) return false;
+        if (!log.qualtricsResponseId.toLowerCase().includes(qtResponseIdFilter.toLowerCase())) return false;
+      }
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        if (!(
+          (log.label && log.label.toLowerCase().includes(searchLower)) ||
+          (typeof log.details === 'string' && log.details.toLowerCase().includes(searchLower)) ||
+          (log.url && log.url.toLowerCase().includes(searchLower)) ||
+          (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower))
+        )) return false;
+      }
+      return true;
+    });
+    
+    // Count actions in the filtered logs
+    logsFilteredByOtherCriteria.forEach(log => {
+      counts[log.action] = (counts[log.action] || 0) + 1;
+    });
+    
+    return counts;
+  }, [logs, selectedArticle, selectedStudy, selectedDateRange, customStartDate, customEndDate, showOnlyWithQtResponseId, qtResponseIdFilter, searchTerm, showArticleFilter]);
+
+  // Memoize filtered articles
+  const filteredArticles = useMemo(() => articles.filter(article => {
     // Filter by studyId if selected
     if (selectedStudy !== 'all') {
       const articleStudyId = (article as any).studyId;
@@ -592,7 +651,7 @@ export default function ResearchDashboard() {
       }
     }
     return true;
-  });
+  }), [articles, selectedStudy, viewMode, articleTitleIdFilter, searchTerm]);
 
   function flattenComments(comments: any[], article: any, parentId: string | null = null, grandParentId?: string) {
     const flat: any[] = [];
@@ -615,25 +674,58 @@ export default function ResearchDashboard() {
     return flat;
   }
 
-  // Filter articles by study first, then get comments from those articles
-  const articlesForComments = selectedStudy !== 'all' 
-    ? articles.filter(article => {
-        const articleStudyId = (article as any).studyId;
-        return matchesStudy(articleStudyId, selectedStudy);
-      })
-    : articles;
-
-  const allComments = articlesForComments.flatMap(article =>
-    flattenComments(
-      showDefaultComments && Array.isArray(article.default_comments) && article.default_comments.length > 0
-        ? article.default_comments
-        : (article.comments || []),
-      article
-    )
+  // Memoize articles for comments and all comments calculation
+  const articlesForComments = useMemo(() => 
+    selectedStudy !== 'all' 
+      ? articles.filter(article => {
+          const articleStudyId = (article as any).studyId;
+          return matchesStudy(articleStudyId, selectedStudy);
+        })
+      : articles,
+    [articles, selectedStudy]
   );
 
-  const filteredComments = allComments.filter(comment => {
-    if (selectedArticle !== 'all' && comment.articleId !== selectedArticle) return false;
+  const allComments = useMemo(() => {
+    // Always include user-submitted comments from the comments state (loaded from subcollections)
+    // Group comments by article ID
+    const commentsByArticle = comments.reduce((acc, comment) => {
+      const articleId = comment.identifier || (comment as any).articleId;
+      if (!acc[articleId]) {
+        acc[articleId] = [];
+      }
+      acc[articleId].push(comment);
+      return acc;
+    }, {} as Record<string, LocalComment[]>);
+
+    // Get user comments for all articles
+    const userComments = articlesForComments.flatMap(article => {
+      const articleComments = commentsByArticle[article.id] || [];
+      return flattenComments(articleComments, article);
+    });
+
+    if (showDefaultComments) {
+      // Show both default comments AND user-submitted comments
+      const defaultComments = articlesForComments.flatMap(article =>
+        flattenComments(
+          Array.isArray(article.default_comments) && article.default_comments.length > 0
+            ? article.default_comments
+            : [],
+          article
+        )
+      );
+      return [...defaultComments, ...userComments];
+    } else {
+      // Show only user-submitted comments
+      return userComments;
+    }
+  }, [articlesForComments, showDefaultComments, comments]);
+
+  // Memoize filtered comments
+  const filteredComments = useMemo(() => allComments.filter(comment => {
+    const commentArticleId = comment.articleId || (comment as any).identifier;
+    if (selectedArticle !== 'all' && commentArticleId !== selectedArticle) return false;
+    // Filter by checkbox: show only comments with QT Response ID
+    if (showOnlyWithQtResponseIdComments && !comment.qualtricsResponseId) return false;
     if (commentQtResponseIdFilter) {
       // If filtering by response ID, exclude comments without a response ID
       if (!comment.qualtricsResponseId) return false;
@@ -651,10 +743,28 @@ export default function ResearchDashboard() {
       } else {
         commentDate = new Date();
       }
-      const now = new Date();
-      const daysAgo = parseInt(selectedCommentDateRange);
-      const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-      if (commentDate < cutoffDate) return false;
+      
+      // Handle custom date range
+      if (selectedCommentDateRange === 'custom') {
+        if (commentCustomStartDate || commentCustomEndDate) {
+          const startDate = commentCustomStartDate ? new Date(commentCustomStartDate) : null;
+          const endDate = commentCustomEndDate ? new Date(commentCustomEndDate) : null;
+          
+          // Set end date to end of day if provided
+          if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+          }
+          
+          if (startDate && commentDate < startDate) return false;
+          if (endDate && commentDate > endDate) return false;
+        }
+      } else {
+        // Handle preset ranges (1, 7, 30, 90 days)
+        const now = new Date();
+        const daysAgo = parseInt(selectedCommentDateRange);
+        const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+        if (commentDate < cutoffDate) return false;
+      }
     }
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -665,10 +775,10 @@ export default function ResearchDashboard() {
       );
     }
     return true;
-  });
+  }), [allComments, selectedArticle, showOnlyWithQtResponseIdComments, commentQtResponseIdFilter, selectedCommentDateRange, commentCustomStartDate, commentCustomEndDate, searchTerm]);
 
-  // Sort filteredComments based on commentSort
-  const sortedFilteredComments = [...filteredComments].sort((a, b) => {
+  // Memoize sorted comments
+  const sortedFilteredComments = useMemo(() => [...filteredComments].sort((a, b) => {
     if (commentSort === 'date-desc') {
       // Newest first
       const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
@@ -689,9 +799,10 @@ export default function ResearchDashboard() {
       return (a.downvotes || 0) - (b.downvotes || 0);
     }
     return 0;
-  });
+  }), [filteredComments, commentSort]);
 
-  const normalizedFilteredArticles = filteredArticles.map(article => {
+  // Memoize normalized articles
+  const normalizedFilteredArticles = useMemo(() => filteredArticles.map(article => {
     const { content, createdAt, ...rest } = article;
     const { id, title, ...otherFields } = rest;
     return {
@@ -701,7 +812,7 @@ export default function ResearchDashboard() {
       comments: Array.isArray(article.comments) ? article.comments.length : 0,
       default_comments: Array.isArray(article.default_comments) ? article.default_comments.length : 0
     };
-  });
+  }), [filteredArticles]);
 
   const handleTabChange = (tabId: string) => {
     setViewMode(tabId as any);
@@ -753,250 +864,173 @@ export default function ResearchDashboard() {
         {/* Navigation Tabs */}
         <div className="mb-8 bg-white rounded-lg shadow">
           <div className="border-b border-gray-200">
-            <nav className="flex px-6 -mb-px space-x-8 items-center">
-              {[
-                { id: 'overview', label: 'Overview', count: null },
-                { id: 'logs', label: 'User Activity', count: filteredLogs.length },
-                { id: 'articles', label: 'Articles', count: filteredArticles.length },
-                { id: 'comments', label: 'Comments', count: filteredComments.length }
-              ].map((tab) => (
+            {/* Desktop Navigation */}
+            <div className="hidden md:block overflow-x-auto">
+              <nav className="flex px-6 -mb-px space-x-8 items-center min-w-max">
+                {[
+                  { id: 'logs', label: 'User Activity', count: filteredLogs.length },
+                  { id: 'articles', label: 'Articles', count: filteredArticles.length },
+                  { id: 'comments', label: 'Comments', count: filteredComments.length }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0 ${
+                      viewMode === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.count !== null && (
+                      <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <div className="ml-auto flex-shrink-0">
+                  <button
+                    onClick={() => setIsFullWidth(!isFullWidth)}
+                    className={`py-2 px-3 text-sm font-medium rounded-md whitespace-nowrap ${
+                      isFullWidth
+                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                    }`}
+                    title={isFullWidth ? 'Switch to constrained width' : 'Switch to full width'}
+                  >
+                    {isFullWidth ? '↔ Constrained' : '↔ Full Width'}
+                  </button>
+                </div>
+              </nav>
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="md:hidden relative">
+              <div className="flex items-center justify-between px-6 py-4">
+                {/* Active tab title */}
+                <span className="text-sm font-medium text-gray-900">
+                  {(() => {
+                    const tabs = [
+                      { id: 'logs', label: 'User Activity' },
+                      { id: 'articles', label: 'Articles' },
+                      { id: 'comments', label: 'Comments' }
+                    ];
+                    const activeTab = tabs.find(t => t.id === viewMode);
+                    return activeTab?.label || 'User Activity';
+                  })()}
+                </span>
+
+                {/* Hamburger button */}
                 <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    viewMode === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                  aria-expanded="false"
                 >
-                  {tab.label}
-                  {tab.count !== null && (
-                    <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
-                      {tab.count}
-                    </span>
+                  <span className="sr-only">Open menu</span>
+                  {!isMobileMenuOpen ? (
+                    <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  ) : (
+                    <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   )}
                 </button>
-              ))}
-              <div className="ml-auto">
-                <button
-                  onClick={() => setIsFullWidth(!isFullWidth)}
-                  className={`py-2 px-3 text-sm font-medium rounded-md ${
-                    isFullWidth
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                  }`}
-                  title={isFullWidth ? 'Switch to constrained width' : 'Switch to full width'}
-                >
-                  {isFullWidth ? '↔ Constrained' : '↔ Full Width'}
-                </button>
               </div>
-            </nav>
+
+              {/* Mobile dropdown menu */}
+              {isMobileMenuOpen && (
+                <div className="absolute right-0 top-full w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+                  {[
+                    { id: 'logs', label: 'User Activity', count: filteredLogs.length },
+                    { id: 'articles', label: 'Articles', count: filteredArticles.length },
+                    { id: 'comments', label: 'Comments', count: filteredComments.length }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        handleTabChange(tab.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors flex items-center justify-between ${
+                        viewMode === tab.id
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      {tab.count !== null && (
+                        <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  <div className="border-t border-gray-200 mt-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setIsFullWidth(!isFullWidth);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                        isFullWidth
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      {isFullWidth ? '↔ Constrained Width' : '↔ Full Width'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Content Based on View Mode */}
-        {viewMode === 'overview' && (
-          <>
-            {/* Study Filter */}
-            <div className="p-4 mb-6 bg-white rounded-lg shadow">
-              <StudyDropdown
-                value={selectedStudy}
-                onChange={setSelectedStudy}
-                studies={studies}
-                label="Filter by Study"
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md"
-              />
-              {selectedStudy !== 'all' && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Showing data for: <span className="font-semibold">
-                    {getStudyName(selectedStudy)}
-                  </span>
-                </p>
-              )}
-              {/* Error Display */}
-              {loadError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-                  <p><strong>Error loading data:</strong> {loadError}</p>
-                  <p className="mt-1 text-xs">Check browser console for details.</p>
-                </div>
-              )}
-              {/* Debug info */}
-              {/* <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
-                <p><strong>Debug:</strong> Total logs loaded: {logs.length} | Filtered: {filteredLogs.length}</p>
-                <p>Total articles loaded: {articles.length} | Filtered: {filteredArticles.length}</p>
-                <p>Total comments loaded: {comments.length} | All comments (with defaults): {allComments.length}</p>
-                <p>Selected study filter: {selectedStudy}</p>
-                <p>Firebase Project: {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'unknown'}</p>
-              </div> */}
-            </div>
-
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
-              <div className="p-6 bg-white rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">Total User Actions</h3>
-                <p className="text-3xl font-bold text-gray-900">{filteredLogs.length.toLocaleString()}</p>
-                <p className="mt-1 text-sm text-gray-600">
-                  {new Set(filteredLogs.map(log => log.userId)).size} unique users
-                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                </p>
-              </div>
-              <div className="p-6 bg-white rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">Articles</h3>
-                <p className="text-3xl font-bold text-gray-900">{filteredArticles.length}</p>
-                <p className="mt-1 text-sm text-gray-600">
-                  Avg {filteredArticles.length > 0 ? Math.round(filteredArticles.reduce((sum, a) => sum + (a.content ? a.content.split(/\s+/).length : 0), 0) / filteredArticles.length) : 0} words
-                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                </p>
-              </div>
-              <div className="p-6 bg-white rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">Comments</h3>
-                <p className="text-3xl font-bold text-gray-900">
-                  {/* Default comments from filtered articles + user comments (already filtered by study) */}
-                  {filteredArticles.reduce((sum, article) => 
-                    sum + (Array.isArray(article.default_comments) ? article.default_comments.length : 0), 0
-                  ) + allComments.length}
-                </p>
-                <p className="mt-1 text-sm text-gray-600">
-                  {filteredArticles.filter(article => 
-                    Array.isArray(article.default_comments) && article.default_comments.length > 0
-                  ).length} articles have comments
-                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                </p>
-              </div>
-              <div className="p-6 bg-white rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">Date Range</h3>
-                <p className="text-lg font-semibold text-gray-900">
-                  {(() => {
-                    const validDates = extractValidDates(filteredLogs);
-                    if (validDates.length === 0) return 'N/A';
-                    const earliest = new Date(Math.min(...validDates.map(d => d.getTime())));
-                    return earliest.toLocaleDateString();
-                  })()}
-                </p>
-                <p className="mt-1 text-sm text-gray-600">
-                  to {(() => {
-                    const validDates = extractValidDates(filteredLogs);
-                    if (validDates.length === 0) return 'N/A';
-                    const latest = new Date(Math.max(...validDates.map(d => d.getTime())));
-                    return latest.toLocaleDateString();
-                  })()}
-                  {selectedStudy !== 'all' && <span className="text-gray-500"> (filtered)</span>}
-                </p>
-              </div>
-            </div>
-
-            {/* Export Section */}
-            <div className="flex flex-col p-6 bg-white rounded-lg shadow">
-              <h2 className="mb-4 text-xl font-semibold text-center">Export Data</h2>
-              <div className="flex justify-center space-x-4">
-                <button
-                  onClick={() => exportToCSV(
-                    prepareLogExportRows(filteredLogs),
-                    `user_activity_${selectedStudy !== 'all' ? selectedStudy + '_' : ''}${new Date().toISOString().split('T')[0]}.csv`
-                  )}
-                  className="px-4 py-2 mt-4 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  Export User Activity (CSV)
-                </button>
-                <button
-                  onClick={() => exportToCSV(
-                    filteredArticles.map(a => ({ ...a, studyId: (a as any).studyId || 'N/A' })),
-                    `articles_${selectedStudy !== 'all' ? selectedStudy + '_' : ''}${new Date().toISOString().split('T')[0]}.csv`
-                  )}
-                  className="px-4 py-2 mt-4 text-white bg-green-600 rounded-md hover:bg-green-700"
-                >
-                  Export Articles (CSV)
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
         {viewMode === 'logs' && (
           <>
             {/* Search and Filters */}
-            <div className="search-and-filters-section p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-                <StudyDropdown
-                  value={selectedStudy}
-                  onChange={setSelectedStudy}
-                  studies={studies}
-                />
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">QT Response ID</label>
-                  <input
-                    type="text"
-                    value={qtResponseIdFilter}
-                    onChange={e => setQtResponseIdFilter(e.target.value)}
-                    placeholder="Filter by response ID..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                  <label className="flex items-center mt-2">
-                    <input
-                      type="checkbox"
-                      checked={showOnlyWithQtResponseId}
-                      onChange={e => setShowOnlyWithQtResponseId(e.target.checked)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-gray-700">Only show rows with QT Response ID</span>
-                  </label>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Date Range</label>
-                  <select 
-                    value={selectedDateRange} 
-                    onChange={(e) => setSelectedDateRange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="1">Last 24 hours</option>
-                    <option value="7">Last 7 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="90">Last 90 days</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Action Type</label>
-                  <select 
-                    value={selectedAction} 
-                    onChange={(e) => setSelectedAction(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Actions</option>
-                    {stats?.actionsByType && Object.keys(stats.actionsByType).map(action => (
-                      <option key={action} value={action}>{action}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Article</label>
-                  <select
-                    value={selectedArticle}
-                    onChange={e => setSelectedArticle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Articles</option>
-                    {filteredArticles.map(article => (
-                      <option key={article.id} value={article.id}>{article.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={() => {
-                      setSelectedDateRange('all');
-                      setSelectedAction('all');
-                      setSelectedArticle('all');
-                      setQtResponseIdFilter('');
-                      setShowOnlyWithQtResponseId(false);
-                    }}
-                    className="w-full px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
+            <FilterSection
+              studies={studies}
+              selectedStudy={selectedStudy}
+              onStudyChange={setSelectedStudy}
+              dateRange={selectedDateRange}
+              onDateRangeChange={setSelectedDateRange}
+              customStartDate={customStartDate}
+              customEndDate={customEndDate}
+              onCustomStartDateChange={setCustomStartDate}
+              onCustomEndDateChange={setCustomEndDate}
+              qtResponseId={qtResponseIdFilter}
+              onQtResponseIdChange={setQtResponseIdFilter}
+              showOnlyWithQtResponseId={showOnlyWithQtResponseId}
+              onShowOnlyWithQtResponseIdChange={setShowOnlyWithQtResponseId}
+              selectedArticle={selectedArticle}
+              onArticleChange={setSelectedArticle}
+              articleOptions={filteredArticles.map(article => ({
+                value: article.id,
+                label: article.title
+              }))}
+              showArticleFilter={showArticleFilter}
+              onShowArticleFilterChange={setShowArticleFilter}
+              selectedActions={selectedActions}
+              onSelectedActionsChange={setSelectedActions}
+              availableActions={stats?.actionsByType}
+              actionCounts={filteredActionCounts}
+              onClearFilters={() => {
+                setSelectedDateRange('7');
+                setCustomStartDate('');
+                setCustomEndDate('');
+                setSelectedActions([]);
+                setSelectedArticle('all');
+                setQtResponseIdFilter('');
+                setShowOnlyWithQtResponseId(false);
+                setShowArticleFilter(false);
+              }}
+              className="search-and-filters-section"
+            />
             <div className="bg-white rounded-lg shadow">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
@@ -1004,10 +1038,26 @@ export default function ResearchDashboard() {
                   <p className="text-gray-600">Showing {filteredLogs.length} of {logs.length} entries</p>
                 </div>
                 <button
-                  onClick={() => exportToCSV(
-                    prepareLogExportRows(filteredLogs),
-                    `filtered_logs_${new Date().toISOString().split('T')[0]}.csv`
-                  )}
+                  onClick={() => {
+                    // Calculate date range from filtered logs
+                    const validDates = extractValidDates(filteredLogs);
+                    let dateRangeStr = '';
+                    if (validDates.length > 0) {
+                      const earliest = new Date(Math.min(...validDates.map(d => d.getTime())));
+                      const latest = new Date(Math.max(...validDates.map(d => d.getTime())));
+                      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+                      dateRangeStr = `${formatDate(earliest)}-to-${formatDate(latest)}`;
+                    } else {
+                      // Fallback to current date if no valid dates
+                      dateRangeStr = new Date().toISOString().split('T')[0];
+                    }
+                    
+                    const studyPrefix = selectedStudy !== 'all' ? `${selectedStudy}-` : '';
+                    exportToCSV(
+                      prepareLogExportRows(filteredLogs),
+                      `${studyPrefix}filtered_logs_${dateRangeStr}.csv`
+                    );
+                  }}
                   className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   Export Filtered Data
@@ -1101,30 +1151,23 @@ export default function ResearchDashboard() {
         {viewMode === 'articles' && (
           <>
             <div className="article-filters-section p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="flex flex-col justify-center max-w-3xl gap-4 mx-auto md:flex-row md:items-end">
-                <div className="flex-1 min-w-[180px]">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Study</label>
-                  <select
-                    value={selectedStudy}
-                    onChange={e => setSelectedStudy(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Studies</option>
-                    {studies.map(study => (
-                      <option key={study.id} value={study.id}>
-                        {study.name} ({study.id.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="mb-4">
+                <StudyDropdown
+                  value={selectedStudy}
+                  onChange={setSelectedStudy}
+                  studies={studies}
+                  label="Filter by Study"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div className="flex flex-col justify-center gap-4 md:flex-row md:items-end">
                 <div className="flex-1 min-w-[220px]">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Filter by Title or Article ID</label>
-                  <input
-                    type="text"
+                  <TextInput
+                    id="article-title-id-filter"
                     value={articleTitleIdFilter}
-                    onChange={e => setArticleTitleIdFilter(e.target.value)}
-                    placeholder="Type to filter articles..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    onChange={setArticleTitleIdFilter}
+                    placeholder="Filter by Title or Article ID"
+                    label="Filter by Title or Article ID"
                   />
                 </div>
                 <button
@@ -1141,7 +1184,19 @@ export default function ResearchDashboard() {
                   <h2 className="text-xl font-semibold">Articles</h2>
                   <p className="text-gray-600">Showing {normalizedFilteredArticles.length} of {articles.length} articles</p>
                 </div>
-                {/* Export filtered articles button removed per request */}
+                <button
+                  onClick={() => {
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    const studyPrefix = selectedStudy !== 'all' ? `${selectedStudy}-` : '';
+                    exportToCSV(
+                      filteredArticles.map(a => ({ ...a, studyId: (a as any).studyId || 'N/A' })),
+                      `${studyPrefix}articles_${dateStr}.csv`
+                    );
+                  }}
+                  className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
+                >
+                  Export Articles
+                </button>
               </div>
               <div className="p-6 space-y-6">
                 {normalizedFilteredArticles.map((article, idx) => {
@@ -1184,95 +1239,54 @@ export default function ResearchDashboard() {
         {viewMode === 'comments' && (
           <>
             {/* Search and Filters for Comments */}
-            <div className="comments-filters-section p-6 mb-8 bg-white rounded-lg shadow">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-                <StudyDropdown
-                  value={selectedStudy}
-                  onChange={setSelectedStudy}
-                  studies={studies}
-                />
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Search</label>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search comments..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">QT Response ID</label>
-                  <input
-                    type="text"
-                    value={commentQtResponseIdFilter}
-                    onChange={e => setCommentQtResponseIdFilter(e.target.value)}
-                    placeholder="Filter by response ID..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Article</label>
-                  <select
-                    value={selectedArticle}
-                    onChange={(e) => setSelectedArticle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Articles</option>
-                    {filteredArticles.map(article => (
-                      <option key={article.id} value={article.id}>{article.title}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Date Range</label>
-                  <select
-                    value={selectedCommentDateRange}
-                    onChange={(e) => setSelectedCommentDateRange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="1">Last 24 hours</option>
-                    <option value="7">Last 7 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="90">Last 90 days</option>
-                  </select>
-                </div>
-                <div className="flex items-end space-x-2">
-                  <button
-                    onClick={() => {
-                      setSelectedStudy('all');
-                      setSelectedArticle('all');
-                      setCommentQtResponseIdFilter('');
-                      setSelectedCommentDateRange('all');
-                      setSearchTerm('');
-                      setArticleTitleIdFilter('');
-                    }}
-                    className="w-full px-4 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-              {/* Sorting Row */}
-              <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-5">
-                <div className="md:col-span-2">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Sort By</label>
-                  <select
-                    value={commentSort}
-                    onChange={e => setCommentSort(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="date-desc">Date Created (Newest First)</option>
-                    <option value="date-asc">Date Created (Oldest First)</option>
-                    <option value="upvotes-desc">Upvotes (Most First)</option>
-                    <option value="upvotes-asc">Upvotes (Least First)</option>
-                    <option value="downvotes-desc">Downvotes (Most First)</option>
-                    <option value="downvotes-asc">Downvotes (Least First)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            <FilterSection
+              studies={studies}
+              selectedStudy={selectedStudy}
+              onStudyChange={setSelectedStudy}
+              dateRange={selectedCommentDateRange}
+              onDateRangeChange={setSelectedCommentDateRange}
+              customStartDate={commentCustomStartDate}
+              customEndDate={commentCustomEndDate}
+              onCustomStartDateChange={setCommentCustomStartDate}
+              onCustomEndDateChange={setCommentCustomEndDate}
+              qtResponseId={commentQtResponseIdFilter}
+              onQtResponseIdChange={setCommentQtResponseIdFilter}
+              showOnlyWithQtResponseId={showOnlyWithQtResponseIdComments}
+              onShowOnlyWithQtResponseIdChange={setShowOnlyWithQtResponseIdComments}
+              selectedArticle={selectedArticle}
+              onArticleChange={setSelectedArticle}
+              articleOptions={filteredArticles.map(article => ({
+                value: article.id,
+                label: article.title
+              }))}
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+              searchPlaceholder="Search comments..."
+              sortValue={commentSort}
+              onSortChange={setCommentSort}
+              sortOptions={[
+                { value: 'date-desc', label: 'Sort By: Date Created (Newest First)' },
+                { value: 'date-asc', label: 'Sort By: Date Created (Oldest First)' },
+                { value: 'upvotes-desc', label: 'Sort By: Upvotes (Most First)' },
+                { value: 'upvotes-asc', label: 'Sort By: Upvotes (Least First)' },
+                { value: 'downvotes-desc', label: 'Sort By: Downvotes (Most First)' },
+                { value: 'downvotes-asc', label: 'Sort By: Downvotes (Least First)' }
+              ]}
+              showDefaultComments={showDefaultComments}
+              onShowDefaultCommentsChange={setShowDefaultComments}
+              onClearFilters={() => {
+                setSelectedStudy('all');
+                setSelectedArticle('all');
+                setCommentQtResponseIdFilter('');
+                setShowOnlyWithQtResponseIdComments(false);
+                setSelectedCommentDateRange('all');
+                setCommentCustomStartDate('');
+                setCommentCustomEndDate('');
+                setSearchTerm('');
+                setArticleTitleIdFilter('');
+              }}
+              className="comments-filters-section"
+            />
             <div className="bg-white rounded-lg shadow">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div>
@@ -1283,13 +1297,6 @@ export default function ResearchDashboard() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDefaultComments((v) => !v)}
-                    className={`px-4 py-2 text-white rounded-md ${!showDefaultComments ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 hover:bg-gray-500'}`}
-                  >
-                    {showDefaultComments ? 'Hide Default Comments' : 'Show Default Comments'}
-                  </button>
                   <button
                     onClick={() => exportToCSV(filteredComments, `filtered_comments_${new Date().toISOString().split('T')[0]}.csv`)}
                     className="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700"
