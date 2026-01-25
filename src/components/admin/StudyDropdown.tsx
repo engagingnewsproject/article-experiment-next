@@ -40,13 +40,14 @@ export function StudyDropdown({
 }: StudyDropdownProps) {
   return (
     <div>
-      <label className="block mb-2 text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor="study-select" className="sr-only">{label}</label>
       <select
+        id="study-select"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={className}
       >
-        {showAllOption && <option value="all">All Studies</option>}
+        {showAllOption && <option value="all">Study</option>}
         {studies.map(study => (
           <option key={study.id} value={study.id}>
             {study.name} ({study.id.toUpperCase()})

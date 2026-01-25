@@ -20,10 +20,10 @@
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { getSessionFromStorage } from '@/lib/auth';
-import { getArticle, getArticleBySlug, getArticles, getComments, type Article, type Comment } from '@/lib/firestore';
+import { getArticleBySlug, type Article, type Comment } from '@/lib/firestore';
 import { Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ArticleClient from './ArticleClient';
 import { useStudyId } from '@/hooks/useStudyId';
@@ -71,6 +71,43 @@ function convertToPlainObject(data: any): any {
 }
 
 /**
+ * Extracts Comment[] from article default_comments (avoids redundant Firestore read).
+ * Mirrors getComments shape so ArticleClient receives the same structure.
+ */
+function commentsFromDefaultComments(raw: unknown): Comment[] {
+  const comments: Comment[] = [];
+  if (!raw) return comments;
+  if (Array.isArray(raw)) {
+    raw.forEach((comment: any, index: number) => {
+      comments.push({
+        id: comment.id || `default_${index}`,
+        content: comment.content || '',
+        name: comment.name || 'Anonymous',
+        datePosted: comment.datePosted || 'Recently',
+        createdAt: comment.createdAt,
+        upvotes: comment.upvotes || 0,
+        downvotes: comment.downvotes || 0,
+        replies: comment.replies || [],
+      } as Comment);
+    });
+  } else if (typeof raw === 'object') {
+    Object.entries(raw).forEach(([key, comment]: [string, any]) => {
+      comments.push({
+        id: comment?.id || key,
+        content: comment?.content || '',
+        name: comment?.name || 'Anonymous',
+        datePosted: comment?.datePosted || 'Recently',
+        createdAt: comment?.createdAt,
+        upvotes: comment?.upvotes || 0,
+        downvotes: comment?.downvotes || 0,
+        replies: comment?.replies || [],
+      } as Comment);
+    });
+  }
+  return comments;
+}
+
+/**
  * Main article page component that manages article data and rendering.
  * 
  * @returns {JSX.Element} The rendered article page with content and controls
@@ -82,6 +119,8 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [studyDefaults, setStudyDefaults] = useState<ArticleConfig | null>(null);
+  const [loadTimeMs, setLoadTimeMs] = useState<number | undefined>(undefined);
+  const loadStartRef = useRef<number | null>(null);
   const searchParams = useSearchParams();
   const studyParam = searchParams?.get('study');
   // Only use studyId if explicitly provided in URL, otherwise treat as "no filter" (undefined)
@@ -94,57 +133,67 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
   const studyId = studyParam ? studyParam : undefined;
 
   useEffect(() => {
+    let aborted = false;
+
     const fetchData = async () => {
       if (!params.slug) {
-        setLoading(false);
+        if (!aborted) setLoading(false);
         return;
       }
 
       setLoading(true);
       setError(null);
+      setLoadTimeMs(undefined);
+      loadStartRef.current = performance.now();
 
       try {
-        // Try fetching with the studyId from URL first (even if invalid)
         let articleData = await getArticleBySlug(params.slug, studyId);
 
-        // If not found and studyId was provided, try without studyId filter as fallback
-        // This handles cases where article exists but studyId validation failed
         if (!articleData && studyId) {
           console.warn(`Article not found with studyId="${studyId}", trying without study filter...`);
           articleData = await getArticleBySlug(params.slug, undefined);
         }
 
+        if (aborted) return;
+
         if (articleData) {
-          // Expose article ID to parent window for Qualtrics
           if (typeof window !== 'undefined') {
             (window as any).articleId = articleData.id;
           }
-          setArticle(convertToPlainObject(articleData));
-          const commentsData = await getComments(articleData.id || '');
-          // Convert comments, handling nested replies recursively
-          const convertComment = (comment: any): any => {
-            const converted = convertToPlainObject(comment);
+          const plain = convertToPlainObject(articleData);
+          setArticle(plain);
+          const rawComments = (articleData as any).default_comments;
+          const baseComments = commentsFromDefaultComments(rawComments);
+          const convertComment = (c: any): any => {
+            const converted = convertToPlainObject(c);
             if (converted.replies && Array.isArray(converted.replies)) {
               converted.replies = converted.replies.map(convertComment);
             }
             return converted;
           };
-          const convertedComments = commentsData?.map(convertComment) || [];
-          setComments(convertedComments);
+          setComments(baseComments.map(convertComment));
         } else {
           setError(`Article not found with slug "${params.slug}"${studyId ? ` and study "${studyId}"` : ''}.`);
           console.warn(`Article not found: slug="${params.slug}", studyId="${studyId || 'none'}"`);
         }
       } catch (err) {
+        if (aborted) return;
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(`Error loading article: ${errorMessage}`);
         console.error('Error fetching article:', err);
       } finally {
-        setLoading(false);
+        if (!aborted) {
+          setLoading(false);
+          if (loadStartRef.current != null) {
+            setLoadTimeMs(Math.round(performance.now() - loadStartRef.current));
+            loadStartRef.current = null;
+          }
+        }
       }
     };
 
     fetchData();
+    return () => { aborted = true; };
   }, [params.slug, studyId]);
 
   useEffect(() => {
@@ -186,7 +235,7 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
   if (error || !article) {
     return (
       <div className="max-w-4xl p-4 mx-auto">
-        <Header />
+        <Header loadTimeMs={loadTimeMs} />
         <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
           <h1 className="text-xl font-semibold text-red-800 mb-2">Article Not Found</h1>
           <p className="text-red-700">{error || 'The article you are looking for could not be found.'}</p>
@@ -212,7 +261,7 @@ function ArticlePageContent({ params }: { params: { slug: string } }) {
     <div className="max-w-4xl p-4 mx-auto" data-article-id={article?.id}>
       { article && 
         <>
-          <Header siteName={siteName} />
+          <Header siteName={siteName} loadTimeMs={loadTimeMs} />
           <Suspense fallback={<div className="p-4">Loading article content...</div>}>
             <ArticleClient 
               article={article}

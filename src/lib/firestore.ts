@@ -10,7 +10,7 @@
  * @module firestore
  */
 
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, limit, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEFAULT_STUDY_ID } from './studies';
 
@@ -254,8 +254,8 @@ export async function getArticleBySlug(slug: string, studyId?: string): Promise<
   const articlesRef = collection(db, 'articles');
   
   if (!studyId) {
-    // No study filter - just get by slug
-    const q = query(articlesRef, where('slug', '==', slug));
+    // No study filter - just get by slug (limit 1 to avoid extra reads)
+    const q = query(articlesRef, where('slug', '==', slug), limit(1));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
