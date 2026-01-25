@@ -46,6 +46,7 @@ export function AdminNav() {
   const [userEmail, setUserEmail] = useState('');
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [isArticlesDropdownOpen, setIsArticlesDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -139,94 +140,128 @@ export function AdminNav() {
     { href: '/admin/research-dashboard', label: 'Data Dashboard' },
   ];
 
+  /**
+   * Navigation links component that can be reused in desktop and mobile views.
+   */
+  const NavigationLinks = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Home */}
+      <Link
+        href="/admin"
+        onClick={() => isMobile && setIsMobileMenuOpen(false)}
+        className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          isActive('/admin')
+            ? 'bg-blue-100 text-blue-700'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        }`}
+      >
+        Home
+      </Link>
+      
+      {/* Articles Dropdown */}
+      <div 
+        ref={dropdownRef}
+        className="relative"
+        onMouseEnter={() => !isMobile && setIsArticlesDropdownOpen(true)}
+        onMouseLeave={() => !isMobile && setIsArticlesDropdownOpen(false)}
+      >
+        <button
+          onClick={() => setIsArticlesDropdownOpen(!isArticlesDropdownOpen)}
+          className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-between ${
+            isArticlesActive()
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          Articles
+          <svg 
+            className={`ml-1 w-4 h-4 transition-transform ${isArticlesDropdownOpen ? 'rotate-180' : ''}`}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        {/* Dropdown Menu - use pt-2 + top-full (no mt) so padding acts as hover bridge; no gap to close menu */}
+        {isArticlesDropdownOpen && (
+          <div className={`${isMobile ? 'relative mt-1' : 'absolute left-0 top-full pt-2 pb-1'} w-full ${isMobile ? '' : 'min-w-64 max-w-sm'} bg-white rounded-md shadow-lg border border-gray-200 z-50 overflow-visible ${isMobile ? 'py-1' : ''}`}>
+            {studies.length === 0 ? (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                Loading studies...
+              </div>
+            ) : (
+              studies.map((study) => {
+                const borderColor = getStudyBorderColor(study.id, studies);
+                return (
+                  <Link
+                    key={study.id}
+                    href={`/admin/articles?study=${study.id}`}
+                    onClick={() => {
+                      setIsArticlesDropdownOpen(false);
+                      if (isMobile) setIsMobileMenuOpen(false);
+                    }}
+                    className={`block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors border-l-4 whitespace-normal break-words ${borderColor}`}
+                  >
+                    {study.name}
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Remaining nav links */}
+      {navLinks.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          onClick={() => isMobile && setIsMobileMenuOpen(false)}
+          className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            isActive(link.href)
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          {link.label}
+        </Link>
+      ))}
+    </>
+  );
+
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Left side - Navigation Links */}
-          <div className="flex items-center space-x-1">
-            {/* Home - 1st */}
-            <Link
-              href="/admin"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive('/admin')
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
+          {/* Left side - Navigation Links (Desktop) */}
+          <div className="hidden md:flex items-center space-x-1">
+            <NavigationLinks />
+          </div>
+
+          {/* Mobile hamburger button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded="false"
             >
-              Home
-            </Link>
-            
-            {/* Articles Dropdown - 2nd */}
-            <div 
-              ref={dropdownRef}
-              className="relative"
-              onMouseEnter={() => setIsArticlesDropdownOpen(true)}
-              onMouseLeave={() => setIsArticlesDropdownOpen(false)}
-            >
-              <button
-                onClick={() => setIsArticlesDropdownOpen(!isArticlesDropdownOpen)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
-                  isArticlesActive()
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                Articles
-                <svg 
-                  className={`ml-1 w-4 h-4 transition-transform ${isArticlesDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <span className="sr-only">Open main menu</span>
+              {!isMobileMenuOpen ? (
+                <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-              </button>
-              
-              {/* Dropdown Menu */}
-              {isArticlesDropdownOpen && (
-                <div className="absolute left-0 mt-1 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-                  {studies.length === 0 ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">
-                      Loading studies...
-                    </div>
-                  ) : (
-                    studies.map((study) => {
-                      const borderColor = getStudyBorderColor(study.id, studies);
-                      return (
-                        <Link
-                          key={study.id}
-                          href={`/admin/articles?study=${study.id}`}
-                          onClick={() => setIsArticlesDropdownOpen(false)}
-                          className={`block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors border-l-4 ${borderColor}`}
-                        >
-                          {study.name}
-                        </Link>
-                      );
-                    })
-                  )}
-                </div>
+              ) : (
+                <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               )}
-            </div>
-            
-            {/* Remaining nav links */}
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            </button>
           </div>
 
           {/* Right side - User info and actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* User email */}
             {userEmail && (
               <span className="text-sm text-gray-600 hidden sm:inline-block">
@@ -239,20 +274,38 @@ export function AdminNav() {
               href={getFirebaseConsoleUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 text-sm text-orange-600 border border-orange-300 rounded-md hover:text-orange-800 hover:bg-orange-50 transition-colors"
+              className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-orange-600 border border-orange-300 rounded-md hover:text-orange-800 hover:bg-orange-50 transition-colors"
             >
-              Firebase Console
+              <span className="hidden sm:inline">Firebase Console</span>
+              <span className="sm:hidden">Firebase</span>
             </a>
             
             {/* Logout button */}
             <button
               onClick={handleLogout}
-              className="px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50 transition-colors"
+              className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 border border-gray-300 rounded-md hover:text-gray-800 hover:bg-gray-50 transition-colors"
             >
-              Sign Out
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
             </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <NavigationLinks isMobile={true} />
+              
+              {/* Mobile user email */}
+              {userEmail && (
+                <div className="px-3 py-2 text-sm text-gray-600 border-t border-gray-200 mt-2 pt-2">
+                  {userEmail}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

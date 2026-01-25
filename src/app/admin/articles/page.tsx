@@ -149,7 +149,7 @@ function ArticlesContent() {
               <li key={article.id} className="border-b pb-4">
                 <div className="space-y-3">
                   {/* Article Header Row */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-baseline justify-between">
                     <div>
                       <Link
                         href={`/articles/${article.slug}?study=${studyId}`}

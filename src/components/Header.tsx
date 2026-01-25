@@ -4,6 +4,7 @@
  * This component:
  * - Shows the site title (The Gazette Star)
  * - Provides a development-only home link
+ * - Optionally shows page load time for authenticated admin users
  * - Uses CSS modules for consistent styling
  * - Maintains accessibility with proper ARIA roles
  * 
@@ -18,54 +19,66 @@ import { User } from "firebase/auth";
 import styles from "./Header.module.css";
 
 /**
+ * Formats load time in ms as human-readable string (e.g. "1.2s" or "450ms").
+ */
+function formatLoadTime(ms: number): string {
+	if (ms < 1000) return `${Math.round(ms)}ms`;
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/**
  * Header component that renders the application's header section.
  * 
  * This component:
  * - Displays the site title prominently
  * - Includes a development-only home link
+ * - Shows load-time timer for admins when loadTimeMs is provided
  * - Uses CSS modules for styling
  * - Maintains accessibility standards
- * - Adapts to different environments (development/production)
  * 
  * @param {Object} props - Component props
  * @param {string} [props.siteName] - The site name to display (from project config)
+ * @param {number} [props.loadTimeMs] - Page load duration in ms; when set, shown to authenticated users
  * @returns {JSX.Element} The rendered header section
  */
 interface HeaderProps {
 	siteName?: string;
+	/** Page load duration in ms; shown next to Home link for authenticated admin users */
+	loadTimeMs?: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ siteName = 'The Gazette Star' }) => {
+export const Header: React.FC<HeaderProps> = ({ siteName = 'The Gazette Star', loadTimeMs }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	
 	// Subscribe to Firebase Auth state changes to detect authentication
-	// This ensures the Home link appears even after page refresh when Firebase Auth initializes
 	useEffect(() => {
-		// Check initial auth state
 		const user = getCurrentUser();
 		setIsAuthenticated(user !== null);
-		
-		// Subscribe to auth state changes
 		const unsubscribe = onAuthChange((user: User | null) => {
 			setIsAuthenticated(user !== null);
 		});
-		
 		return () => unsubscribe();
 	}, []);
+	
+	const showLoadTime = isAuthenticated && loadTimeMs != null && loadTimeMs >= 0;
 	
 	return (
 		<header className={`container container--wide ${styles.header}`} role='banner'>
 			<div className={styles.siteTitle}>
 				{siteName}
 				{isAuthenticated && (
-					<span>
+					<span className={styles.adminMeta}>
 						<a href='/admin' className={styles.homeLink}>
 							Home
 						</a>
+						{showLoadTime && (
+							<span className={styles.loadTime} title="Time to load article and comments">
+								{formatLoadTime(loadTimeMs)}
+							</span>
+						)}
 					</span>
 				)}
 			</div>
-			{/* would like to add a link to the base url here that is only visible on local development */}
 		</header>
 	)
 }
