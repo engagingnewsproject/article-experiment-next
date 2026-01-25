@@ -189,20 +189,53 @@ export function ArticleContent({
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [article.title, article.id, userId]);
 
-  // Handle link clicks within article content
-  const handleArticleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Handle clicks within article content (links, images, etc.)
+  const handleArticleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    if (target.tagName === 'A') {
-      const linkText = target.textContent || '';
-      const url = target.getAttribute('href') || '';
-      logClick(
-        `Article Link: ${linkText}`,
-        url,
-        article.id,
-        userId,
-        article.title
-      );
+    
+    // Handle link clicks
+    if (target.tagName === 'A' || target.closest('a')) {
+      const linkElement = target.tagName === 'A' ? target : target.closest('a');
+      if (linkElement) {
+        const linkText = linkElement.textContent || '';
+        const url = linkElement.getAttribute('href') || '';
+        logClick(
+          `Article Link: ${linkText}`,
+          url,
+          article.id,
+          userId,
+          article.title
+        );
+      }
+      return;
     }
+    // Handle image clicks
+    else if (target.tagName === 'IMG' || target.closest('img')) {
+      const imgElement = target.tagName === 'IMG' ? target : target.closest('img');
+      if (imgElement) {
+        const imgSrc = imgElement.getAttribute('src') || '';
+        const imgAlt = imgElement.getAttribute('alt') || 'Image';
+        const caption = imgElement.closest('figure')?.querySelector('figcaption')?.textContent || '';
+        logClick(
+          `Article Image: ${imgAlt}`,
+          `Image source: ${imgSrc}${caption ? ` | Caption: ${caption}` : ''}`,
+          article.id,
+          userId,
+          article.title
+        );
+      }
+    }
+  };
+
+  // Handle title clicks
+  const handleTitleClick = () => {
+    logClick(
+      'Article Title',
+      `Clicked on article title: ${article.title}`,
+      article.id,
+      userId,
+      article.title
+    );
   };
 
   // Helper to convert [img src="..." caption="..."] to <figure><img ... /><figcaption style="...">...</figcaption></figure>
@@ -221,7 +254,7 @@ export function ArticleContent({
   return (
     <main id="content" className="container" role="main" data-article-id={article.id}>
       <article className={styles.article}>
-        <ArticleHeader article={article} />
+        <ArticleHeader article={article} onTitleClick={handleTitleClick} />
 
         {shouldShowAuthorBio && (
           <AuthorBio
@@ -241,7 +274,7 @@ export function ArticleContent({
         
         <div 
             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedContent) }}
-            onClick={handleArticleLinkClick}
+            onClick={handleArticleContentClick}
           />
 
         {shouldShowExplainBox && (

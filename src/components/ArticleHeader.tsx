@@ -21,9 +21,11 @@ import styles from './ArticleHeader.module.css';
  * 
  * @interface ArticleHeaderProps
  * @property {Article} article - The article data containing title and author information
+ * @property {Function} [onTitleClick] - Optional callback function when title is clicked
  */
 interface ArticleHeaderProps {
   article: Article;
+  onTitleClick?: () => void;
 }
 
 /**
@@ -34,11 +36,12 @@ interface ArticleHeaderProps {
  * - Shows author information including name and publication
  * - Uses CSS modules for styling
  * - Falls back to 'Staff Reports' if author name is not available
+ * - Tracks title clicks when onTitleClick callback is provided
  * 
  * @param {ArticleHeaderProps} props - Component props
  * @returns {JSX.Element} The rendered article header
  */
-export function ArticleHeader({ article }: ArticleHeaderProps) {
+export function ArticleHeader({ article, onTitleClick }: ArticleHeaderProps) {
 const [isAuthenticated, setIsAuthenticated] = useState(false);
 
 useEffect(() => {
@@ -60,7 +63,13 @@ useEffect(() => {
   return (
     <header className={styles.header}>
       <div className="flex items-center justify-center gap-4">
-        <h2 className={styles.title}>{article.title}</h2>
+        <h2 
+          className={styles.title}
+          onClick={onTitleClick}
+          style={onTitleClick ? { cursor: 'pointer' } : undefined}
+        >
+          {article.title}
+        </h2>
       </div>
       {pubdate && <p className={styles.author__job}>Posted {formatPubdate(pubdate)}</p>}
       {authorName && <p className={styles.author__job}>By {authorName}</p>}

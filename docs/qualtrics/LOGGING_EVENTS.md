@@ -63,10 +63,66 @@ Every log entry in Firestore includes these fields:
 
 ---
 
-### 3. Article Link Click
+### 3. Article Title Click
 **Action:** `"Click"`  
 **Status:** ✅ **Active**  
-**Location:** `src/components/ArticleContent.tsx` (lines 182-195)
+**Location:** `src/components/ArticleHeader.tsx` and `ArticleContent.tsx`
+
+**When it logs:**
+- When a user clicks on the article title
+
+**Data captured:**
+- `action`: `"Click"`
+- `label`: `"Article Title"`
+- `details`: `"Clicked on article title: {articleTitle}"`
+- `identifier`: Article ID
+- `articleTitle`: Article title
+
+**Example:**
+```javascript
+{
+  action: "Click",
+  label: "Article Title",
+  details: "Clicked on article title: Main Article Title",
+  identifier: "article-123",
+  articleTitle: "Main Article Title"
+}
+```
+
+---
+
+### 4. Article Image Click
+**Action:** `"Click"`  
+**Status:** ✅ **Active**  
+**Location:** `src/components/ArticleContent.tsx` (lines 192-221)
+
+**When it logs:**
+- When a user clicks on any image within the article content
+
+**Data captured:**
+- `action`: `"Click"`
+- `label`: `"Article Image: {imageAltText}"` (the alt text of the image)
+- `details`: `"Image source: {imageUrl} | Caption: {caption}"` (if caption exists)
+- `identifier`: Article ID
+- `articleTitle`: Article title
+
+**Example:**
+```javascript
+{
+  action: "Click",
+  label: "Article Image: Photo of event",
+  details: "Image source: https://example.com/image.jpg | Caption: Event participants",
+  identifier: "article-123",
+  articleTitle: "Main Article Title"
+}
+```
+
+---
+
+### 5. Article Link Click
+**Action:** `"Click"`  
+**Status:** ✅ **Active**  
+**Location:** `src/components/ArticleContent.tsx`
 
 **When it logs:**
 - When a user clicks any link (`<a>` tag) within the article content
@@ -91,7 +147,7 @@ Every log entry in Firestore includes these fields:
 
 ---
 
-### 4. Comment Submission
+### 6. Comment Submission
 **Action:** `"Comment"`  
 **Status:** ✅ **Active**  
 **Location:** `src/components/ArticleContent.tsx` (lines 296-304)
@@ -119,7 +175,7 @@ Every log entry in Firestore includes these fields:
 
 ---
 
-### 5. Reply Submission
+### 7. Reply Submission
 **Action:** `"Reply"`  
 **Status:** ✅ **Active**  
 **Location:** `src/components/CommentList.tsx` (lines 124-131)
@@ -235,12 +291,15 @@ Every log entry in Firestore includes these fields:
 
 Currently, the following events are **actively being logged**:
 
-1. ✅ **Article Link Clicks** - When users click links in article content
-2. ✅ **Comment Submissions** - When users submit new comments
-3. ✅ **Reply Submissions** - When users reply to comments
-4. ✅ **Comment Upvotes** - When users upvote comments/replies
-5. ✅ **Comment Downvotes** - When users downvote comments/replies
-6. ✅ **Reveal Comments** - When users expand to see more comments
+1. ✅ **Article Title Clicks** - When users click on the article title
+2. ✅ **Article Image Clicks** - When users click on images in article content
+3. ✅ **Article Link Clicks** - When users click links in article content
+4. ✅ **Like/Share Button Clicks** - When users click Like or Share buttons
+5. ✅ **Comment Submissions** - When users submit new comments
+6. ✅ **Reply Submissions** - When users reply to comments
+7. ✅ **Comment Upvotes** - When users upvote comments/replies
+8. ✅ **Comment Downvotes** - When users downvote comments/replies
+9. ✅ **Reveal Comments** - When users expand to see more comments
 
 The following events are **currently disabled** (commented out):
 
