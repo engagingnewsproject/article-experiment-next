@@ -48,3 +48,7 @@ LOCAL/console/*
 # Production Firestore data exports (contains sensitive production data)
 firestore-data/
 article-experiment-next.code-workspace
+# Qualtrics exports, dashboard exports, merged data, and any CSV output under LOCAL
+LOCAL/**/*.csv
+# CSV data in public (user-generated or export data; do not commit)
+public/*.csv
