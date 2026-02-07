@@ -154,40 +154,48 @@ export function ArticleContent({
   const lastLoggedArticleId = useRef<string | null>(null);
 
   // Log page view when component mounts (only once per article)
-  // useEffect(() => {
-  //   // Only log once per article to prevent duplicates (e.g., when Qualtrics data arrives)
-  //   // If article changes, we want to log again
-  //   if (lastLoggedArticleId.current === article.id) return;
+  useEffect(() => {
+    // Only log once per article to prevent duplicates (e.g., when Qualtrics data arrives)
+    // If article changes, we want to log again
+    if (lastLoggedArticleId.current === article.id) return;
     
-  //   timeWhenPageOpened.current = Date.now();
-  //   lastLoggedArticleId.current = article.id;
+    timeWhenPageOpened.current = Date.now();
+    lastLoggedArticleId.current = article.id;
     
-  //   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-  //     const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
-  //     logPageViewTime(
-  //       article.title,
-  //       article.id,
-  //       totalTimeSpentOnPage,
-  //       userId,
-  //       article.title
-  //     );
-  //     e.preventDefault();
-  //   };
-  //   window.addEventListener("beforeunload", handleBeforeUnload);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
+      logPageViewTime(
+        article.title,
+        article.id,
+        totalTimeSpentOnPage,
+        userId,
+        article.title
+      );
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
-  //   logPageView(
-  //     article.title,
-  //     article.id,
-  //     userId,
-  //     article.title
-  //   );
+    logPageView(
+      article.title,
+      article.id,
+      userId,
+      article.title
+    );
 
-  //   return () => {
-  //     window.removeEventListener("beforeunload", handleBeforeUnload);
-  //   };
-  //   // Only depend on article and userId, not on the logger callbacks (they change when Qualtrics data arrives)
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [article.title, article.id, userId]);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      console.log('beforeunload');
+      logPageViewTime(
+        article.title,
+        article.id,
+        Date.now() - timeWhenPageOpened.current,
+        userId,
+        article.title
+      );
+    };
+    // Only depend on article and userId, not on the logger callbacks (they change when Qualtrics data arrives)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article.title, article.id, userId]);
 
   // Handle clicks within article content (links, images, etc.)
   const handleArticleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
