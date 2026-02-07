@@ -47,7 +47,7 @@ firebase-debug.log
 pglite-debug.log
 LOCAL/console/*
 # Production Firestore data exports (contains sensitive production data)
-firestore-data/
+firestore-data/*
 article-experiment-next.code-workspace
 # Qualtrics exports, dashboard exports, merged data, and any CSV output under LOCAL
 LOCAL/**/*.csv

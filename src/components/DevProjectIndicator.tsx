@@ -10,7 +10,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import styles from './DevProjectIndicator.module.css';
 
 /**
@@ -25,32 +24,16 @@ function isDevelopment(): boolean {
 }
 
 /**
- * Checks if the current path should show the indicator.
+ * Checks if the indicator should be shown.
  * 
- * Only shows on:
- * - Development (localhost)
- * - Admin pages (if somehow on live site)
+ * Only shows when running locally (localhost / 127.0.0.1).
+ * Never shows on deployed live sites (article-experiment-next-dev, article-experiment-next).
  * 
- * Never shows on:
- * - Article pages (/articles/*)
- * - Public pages on live sites
- * 
- * @param {string} pathname - Current pathname
- * @param {boolean} isDev - Whether in development mode
+ * @param {boolean} isLocal - Whether running on localhost
  * @returns {boolean} True if indicator should be shown
  */
-function shouldShow(pathname: string, isDev: boolean): boolean {
-  // Always show in development
-  if (isDev) return true;
-  
-  // On live sites, only show on admin pages
-  // Never show on article pages
-  if (pathname.startsWith('/articles/')) {
-    return false;
-  }
-  
-  // Only show on admin pages for live sites
-  return pathname.startsWith('/admin');
+function shouldShow(isLocal: boolean): boolean {
+  return isLocal;
 }
 
 /**
@@ -94,16 +77,13 @@ function getProjectColorClass(projectId: string | undefined): string {
 }
 
 export function DevProjectIndicator() {
-  const pathname = usePathname();
-  const [isDev, setIsDev] = useState(false);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [isEmulator, setIsEmulator] = useState(false);
   const [shouldDisplay, setShouldDisplay] = useState(false);
 
   useEffect(() => {
-    const dev = isDevelopment();
-    setIsDev(dev);
-    
+    const local = isDevelopment();
+
     // Get project ID from environment variable
     const envProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     setProjectId(envProjectId);
@@ -111,10 +91,10 @@ export function DevProjectIndicator() {
     // Check if using emulator (NEXT_PUBLIC_USE_LIVE_FIRESTORE not set or false)
     const useLiveFirestore = process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE === 'true';
     setIsEmulator(!useLiveFirestore);
-    
-    // Determine if we should show the indicator
-    setShouldDisplay(shouldShow(pathname, dev));
-  }, [pathname]);
+
+    // Only show when running locally (never on deployed live sites)
+    setShouldDisplay(shouldShow(local));
+  }, []);
 
   // Don't render if we shouldn't display
   if (!shouldDisplay) {
