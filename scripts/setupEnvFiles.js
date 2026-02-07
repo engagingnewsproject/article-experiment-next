@@ -56,6 +56,5 @@ console.log('⚠️  IMPORTANT: Please verify .env.dev has the correct Firebase 
 console.log('   for the dev project. Some values (API keys, etc.) may need manual updates.');
 console.log('');
 console.log('Next steps:');
-console.log('  1. Review .env.dev and update any dev-specific values');
-console.log('  2. Use npm run env:dev to switch to dev project');
-console.log('  3. Use npm run env:prod to switch to production project');
+console.log('  1. Review .env.dev and .env.prod with the correct Firebase config for each project');
+console.log('  2. Use npm run dev (loads .env.dev) or npm run dev:prod (loads .env.prod)');

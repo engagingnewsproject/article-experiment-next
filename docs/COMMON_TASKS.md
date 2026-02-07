@@ -159,16 +159,17 @@ firebase use prod
 npm run export-production-data
 ```
 
-### Switching Firebase Projects
+### Using Dev vs Production Firebase
 
 ```bash
-# Switch to dev
-firebase use dev
-npm run env:dev
+# Live dev project (article-experiment-next-dev)
+npm run dev
 
-# Switch to production
-firebase use prod
-npm run env:prod
+# Live production project (article-experiment-next)
+npm run dev:prod
+
+# Local emulator only (all data/auth local; project: article-experiment-next-dev)
+npm run dev:emulator
 ```
 
 ## Troubleshooting Common Issues

@@ -88,7 +88,7 @@ Share the `.firebaserc` file contents (already in repo, but verify):
   - Share via secure method (password manager, encrypted file share, etc.)
 
 **For Production (if needed):**
-- `serviceAccountKey.json` - Service account key for production Firebase project
+- `keys/serviceAccountKey.json` - Service account key for production Firebase project
   - Same process as above, but for production project
   - **Even more sensitive** - only share if developer needs production data access
 

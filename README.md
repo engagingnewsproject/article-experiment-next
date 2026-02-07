@@ -98,7 +98,7 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 NEXT_PUBLIC_GA_MEASUREMENT_ID=your_ga_id
 ```
 
-### Firebase Project Switching
+### Firebase Project Configuration
 
 The project supports two Firebase projects:
 - **Development**: `article-experiment-next-dev`
@@ -112,22 +112,15 @@ The project supports two Firebase projects:
    ```
    This creates `.env.dev` and `.env.prod` from your current `.env.local`.
 
-2. Review and update `.env.dev` with the correct Firebase config values for the dev project.
+2. Review and update `.env.dev` and `.env.prod` with the correct Firebase config values for each project.
 
-#### Switching Between Projects
+#### Development Commands (no switching needed)
 
-- **Switch to dev project**: `npm run env:dev`
-- **Switch to production project**: `npm run env:prod`
+- **`npm run dev`** — Next.js server connected to **live** `article-experiment-next-dev` (loads `.env.dev`)
+- **`npm run dev:prod`** — Next.js server connected to **live** `article-experiment-next` (loads `.env.prod`)
+- **`npm run dev:emulator`** — Firebase emulator + Next.js server; all data and auth use the **local emulator** only (loads `.env.dev` for project config, project: `article-experiment-next-dev`)
 
-**Note:** After switching, restart your dev server for changes to take effect.
-
-#### Which Firebase Project Does `npm run dev` Use?
-
-By default, `npm run dev` connects to the **live dev Firebase project** (`article-experiment-next-dev`) as specified in your `.env.local` file. The Firebase emulator is available via `npm run dev:emulator` if needed.
-
-To verify which project you're connected to, check the browser console when running the dev server. You'll see either:
-- `✅ Using LIVE Firestore` with the project ID (live Firebase)
-- `✅ Connected to Firestore emulator` (local emulator)
+To verify which project you're connected to, check the browser console when running the dev server.
 
 ## Quick Start
 
@@ -174,12 +167,11 @@ npm run dev:emulator  # or npm run dev
 ```bash
 npm run dev
 ```
-This will start the development server at `http://localhost:3000` and connect to the live dev Firebase project (as configured in `.env.local`).
+This will start the development server at `http://localhost:3000` and connect to the live dev Firebase project (`article-experiment-next-dev`).
 
 **Other development commands:**
-- `npm run dev:emulator` - Start dev server with Firebase emulator (local, no live data)
-- `npm run env:dev` - Switch to dev Firebase project configuration
-- `npm run env:prod` - Switch to production Firebase project configuration
+- `npm run dev:prod` — Connect to live production project (`article-experiment-next`)
+- `npm run dev:emulator` — Run Firebase emulator + Next.js; all data/auth use local emulator only
 
 #### Production Build
 ```bash

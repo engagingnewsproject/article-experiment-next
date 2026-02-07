@@ -29,6 +29,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+ui-debug.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -46,9 +47,10 @@ firebase-debug.log
 pglite-debug.log
 LOCAL/console/*
 # Production Firestore data exports (contains sensitive production data)
-firestore-data/
+firestore-data/*
 article-experiment-next.code-workspace
 # Qualtrics exports, dashboard exports, merged data, and any CSV output under LOCAL
 LOCAL/**/*.csv
 # CSV data in public (user-generated or export data; do not commit)
 public/*.csv
+

@@ -35,9 +35,13 @@ npm run import-data || {
     echo "  To export production data, run: npm run export-production-data"
 }
 
-echo "Starting Next.js dev server..."
-# Set Firestore emulator host for Next.js to use
+echo "Starting Next.js dev server (emulator only — no live Firestore)..."
+# Force emulator-only. Setting NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST makes the app use the emulator
+# regardless of .env.local (no need to set NEXT_PUBLIC_USE_LIVE_FIRESTORE=false there). See src/lib/firebase.ts.
 export FIRESTORE_EMULATOR_HOST=localhost:8080
 export NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST=localhost:8080
 export NEXT_PUBLIC_USE_LIVE_FIRESTORE=false
-npx next dev
+# Use same project as emulator (--project article-experiment-next-dev) so Emulator UI shows app data
+export NEXT_PUBLIC_FIREBASE_PROJECT_ID=article-experiment-next-dev
+# Load .env.dev for Firebase config; emulator host vars override for emulator-only mode
+npx dotenv-cli -e .env.dev -- npx next dev

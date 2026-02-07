@@ -77,13 +77,17 @@ export const auth = getAuth(app);
 
 // Connect to emulator in development
 // CRITICAL: This must happen BEFORE any Firestore operations
-// In Next.js, check both NODE_ENV and hostname to detect development
+// When NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST is set (e.g. by npm run dev:emulator), we ONLY use the emulator.
 const isDevelopmentEnv = process.env.NODE_ENV === 'development';
-const isLocalhost = typeof window !== 'undefined' && 
+const isLocalhost = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const isDevelopment = isDevelopmentEnv || isLocalhost;
+const emulatorHost = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST ?? '';
+const emulatorExplicitlySet = /^localhost(:\d+)?$|^127\.0\.0\.1(:\d+)?$/.test(emulatorHost.trim());
 const useLiveFirestore = process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE === 'true';
-const shouldUseEmulator = isDevelopment && !useLiveFirestore;
+// When dev:emulator sets NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST, we use the emulator regardless of
+// .env.local (no need to set NEXT_PUBLIC_USE_LIVE_FIRESTORE=false in .env.local).
+const shouldUseEmulator = emulatorExplicitlySet || (isDevelopment && !useLiveFirestore);
 
 // Debug logging in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -92,6 +96,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     isDevelopmentEnv,
     isLocalhost,
     isDevelopment,
+    NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST: process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST ?? '(not set)',
+    emulatorExplicitlySet,
     NEXT_PUBLIC_USE_LIVE_FIRESTORE: process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE,
     useLiveFirestore,
     shouldUseEmulator,
@@ -133,7 +139,7 @@ if (shouldUseEmulator && !isAlreadyConnected) {
     
     // Log connection status (only in browser to avoid duplicate logs)
     if (typeof window !== 'undefined') {
-      console.log('✅ Connected to Firestore emulator at localhost:8080');
+      console.log('✅ Connected to Firestore emulator at localhost:8080 (emulator only — no live data)');
     }
   } catch (error) {
     // Ignore if already connected (can happen with Next.js SSR/hot reload)

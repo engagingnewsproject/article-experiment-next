@@ -22,12 +22,12 @@ process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
-const serviceAccount = require('../serviceAccountKey.json');
+// Use dev credentials and project ID to match emulator (--project article-experiment-next-dev)
+const serviceAccount = require('../serviceAccountKey-dev.json');
 
-// This must match your emulator project ID!
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  projectId: 'article-experiment-next',
+  projectId: 'article-experiment-next-dev',
 });
 
 const db = admin.firestore();
