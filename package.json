@@ -18,6 +18,7 @@
     "import-data": "node scripts/importFirestoreData.js",
     "import-data:dev": "node scripts/importFirestoreDataToDev.js",
     "fix-timestamps:dev": "node scripts/fixArticleTimestamps.js",
+    "fix-log-timestamps:dev": "node scripts/fixLogTimestamps.js",
     "delete-logs-by-ip": "node scripts/deleteLogsByIP.js",
     "import-data:wait": "wait-on http://localhost:8080 && sleep 2 && npm run import-data",
     "prod": "next build && next start",
