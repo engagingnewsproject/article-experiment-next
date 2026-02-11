@@ -111,6 +111,10 @@ interface DashboardStats {
   averageWordCount: number;
 }
 
+/** Log action strings for like/share so the action filter always shows these options. */
+const LOG_ACTION_LIKE = 'Like Article';
+const LOG_ACTION_SHARE = 'Share Article';
+
 /**
  * Helper function to check if a studyId matches the selected study (including aliases).
  * For code-defined studies like 'eonc', also includes items without a studyId (legacy items).
@@ -245,10 +249,10 @@ export default function ResearchDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Initialize selectedActions with all available actions when stats are loaded
+  // Initialize selectedActions with all available actions when stats are loaded (include Like/Share so they are checked on load)
   useEffect(() => {
     if (stats?.actionsByType && selectedActions.length === 0) {
-      const allActions = Object.keys(stats.actionsByType);
+      const allActions = [...new Set([LOG_ACTION_LIKE, LOG_ACTION_SHARE, ...Object.keys(stats.actionsByType)])];
       setSelectedActions(allActions);
     }
   }, [stats?.actionsByType, selectedActions.length]);
@@ -538,6 +542,9 @@ export default function ResearchDashboard() {
           studyName: studyId ? getStudyName(studyId) : '',
           ipAddress: row.ipAddress ?? '',
           action: row.action ?? '',
+          like: row.label === 'Like Article' ? 1 : 0,
+          share: row.label === 'Share Article' ? 1 : 0,
+          comment: row.action === 'Comment' || row.action === 'Reply' ? 1 : 0,
           // move details immediately after action
           details: row.details ?? '',
           // timestamp next
@@ -552,9 +559,23 @@ export default function ResearchDashboard() {
       });
     };
 
+  /**
+   * Returns true if this log should be counted/shown as the given action type.
+   * Like/Share are stored as action='Click' with label='Like Article' or 'Share Article'.
+   */
+  const logMatchesAction = useCallback((log: LogEntry, action: string): boolean => {
+    if (action === LOG_ACTION_LIKE) {
+      return log.action === LOG_ACTION_LIKE || (log.action === 'Click' && log.label === LOG_ACTION_LIKE);
+    }
+    if (action === LOG_ACTION_SHARE) {
+      return log.action === LOG_ACTION_SHARE || (log.action === 'Click' && log.label === LOG_ACTION_SHARE);
+    }
+    return log.action === action;
+  }, []);
+
   // Memoize filtered logs to avoid recalculating on every render
   const filteredLogs = useMemo(() => logs.filter(log => {
-    if (selectedActions.length > 0 && !selectedActions.includes(log.action)) return false;
+    if (selectedActions.length > 0 && !selectedActions.some(action => logMatchesAction(log, action))) return false;
     if (showArticleFilter && selectedArticle !== 'all' && log.identifier !== selectedArticle) return false;
     // Filter by studyId if selected (when "All Studies" is selected, show all logs)
     if (selectedStudy !== 'all') {
@@ -606,7 +627,7 @@ export default function ResearchDashboard() {
       );
     }
     return true;
-  }), [logs, selectedActions, selectedArticle, selectedStudy, selectedDateRange, customStartDate, customEndDate, showOnlyWithQtResponseId, qtResponseIdFilter, searchTerm, showArticleFilter]);
+  }), [logs, selectedActions, selectedArticle, selectedStudy, selectedDateRange, customStartDate, customEndDate, showOnlyWithQtResponseId, qtResponseIdFilter, searchTerm, showArticleFilter, logMatchesAction]);
 
   /**
    * Calculate action counts from filtered logs (excluding the action filter itself).
@@ -665,11 +686,18 @@ export default function ResearchDashboard() {
       return true;
     });
     
-    // Count actions in the filtered logs
+    // Count actions in the filtered logs (by log.action)
     logsFilteredByOtherCriteria.forEach(log => {
       counts[log.action] = (counts[log.action] || 0) + 1;
+      // Like/Share are stored as action='Click' with label='Like Article' or 'Share Article'
+      if (log.action === 'Click' && log.label === LOG_ACTION_LIKE) {
+        counts[LOG_ACTION_LIKE] = (counts[LOG_ACTION_LIKE] || 0) + 1;
+      }
+      if (log.action === 'Click' && log.label === LOG_ACTION_SHARE) {
+        counts[LOG_ACTION_SHARE] = (counts[LOG_ACTION_SHARE] || 0) + 1;
+      }
     });
-    
+
     return counts;
   }, [logs, selectedArticle, selectedStudy, selectedDateRange, customStartDate, customEndDate, showOnlyWithQtResponseId, qtResponseIdFilter, searchTerm, showArticleFilter]);
 
@@ -1067,7 +1095,11 @@ export default function ResearchDashboard() {
               onShowArticleFilterChange={setShowArticleFilter}
               selectedActions={selectedActions}
               onSelectedActionsChange={setSelectedActions}
-              availableActions={stats?.actionsByType}
+              availableActions={{
+                [LOG_ACTION_LIKE]: 0,
+                [LOG_ACTION_SHARE]: 0,
+                ...(stats?.actionsByType ?? {}),
+              }}
               actionCounts={filteredActionCounts}
               onClearFilters={() => {
                 setSelectedDateRange('7');
@@ -1131,6 +1163,9 @@ export default function ResearchDashboard() {
                       {/* <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">User</th> */}
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">QT Response ID</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Like</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Share</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Comment</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Details</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Article</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">URL</th>
@@ -1156,6 +1191,15 @@ export default function ResearchDashboard() {
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {log.action}
                           </span>
+                        </td>
+                        <td className="like-column px-6 py-4 text-sm text-center text-gray-700 tabular-nums">
+                          {(log as { label?: string }).label === 'Like Article' ? 1 : 0}
+                        </td>
+                        <td className="share-column px-6 py-4 text-sm text-center text-gray-700 tabular-nums">
+                          {(log as { label?: string }).label === 'Share Article' ? 1 : 0}
+                        </td>
+                        <td className="comment-column px-6 py-4 text-sm text-center text-gray-700 tabular-nums">
+                          {(log.action === 'Comment' || log.action === 'Reply') ? 1 : 0}
                         </td>
                         <td className="details-column max-w-xs px-6 py-4 text-sm text-gray-900 truncate">
                           {log.details && (
