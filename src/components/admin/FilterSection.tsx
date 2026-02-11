@@ -312,7 +312,7 @@ export function FilterSection({
               <label className="sr-only">Action Type</label>
               <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white max-h-56 overflow-y-auto">
                 {Object.keys(availableActions).length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-0">
                     {Object.keys(availableActions).map(action => (
                       <div key={action} className="hover:bg-gray-50 p-1 rounded">
                         <Checkbox

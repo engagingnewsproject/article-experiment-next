@@ -53,7 +53,7 @@ export function Checkbox({
         onChange={(e) => onChange(e.target.checked)}
         className={combinedInputClasses}
       />
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-xs text-gray-700">{label}</span>
     </label>
   );
 }
