@@ -239,9 +239,9 @@ The project uses two main branches:
    - Production branch: `prod`
    - Deploy previews: Enabled for pull requests
 5. Deploy:
-   - Make sure you are in the `main` branch and status is clear
-   - Checkout `prod` branch
-   - Merge `main` into `prod`. Deployment to Netlify will run.
+   - **From your editor/terminal (recommended):** Run `npm run deploy`. This triggers the "Merge Main to Prod (Advanced)" GitHub Action via [GitHub CLI](https://cli.github.com/) (merge main → prod, then Netlify deploys). Requires `gh` installed and logged in to github.com.
+   - **Manually:** In GitHub → Actions → "Merge Main to Prod (Advanced)" → Run workflow, type YES to confirm.
+   - **Via git:** Checkout `prod`, merge `main` into `prod`, push. Netlify deploys on push to `prod`.
 
 ### Build Process
 
@@ -292,6 +292,7 @@ Comprehensive documentation is available in the `/docs` directory:
 | `npm run dev` | Start dev server (live Firebase) |
 | `npm run dev:emulator` | Start dev server with emulator |
 | `npm run build` | Build for production |
+| `npm run deploy` | Deploy to Netlify (triggers Merge Main to Prod workflow via GitHub CLI) |
 | `npm run export-research` | Export all data for research |
 | `npm run import-data:dev` | Import data to dev Firebase |
 | `firebase use dev` | Switch to dev Firebase project |
