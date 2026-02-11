@@ -153,18 +153,25 @@ export function ArticleContent({
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null);
 
-  // Log page view when component mounts (only once per article).
+  // Log page view once per article per session (survives remounts via sessionStorage).
   // When embedded in Qualtrics, wait for qualtricsData.responseId so the page view is tied to the survey response.
+  // Time spent is logged only on real page unload (beforeunload), not on effect cleanup, to avoid 0m 0s from dep changes.
   useEffect(() => {
     if (lastLoggedArticleId.current === article.id) return;
 
     const inIframe = typeof window !== 'undefined' && window.parent !== window;
     if (inIframe && !qualtricsData?.responseId) return; // wait for Qualtrics so dashboard can filter by QT Response ID
 
+    const sessionKey = `pageViewLogged_${article.id}_${qualtricsData?.responseId ?? 'standalone'}`;
+    // In dev, Strict Mode double-mounts and the first mount's async log can be dropped; skip sessionStorage so the second mount logs.
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!isDev && typeof window !== 'undefined' && sessionStorage.getItem(sessionKey)) return; // already logged this article+response this tab
+    
     timeWhenPageOpened.current = Date.now();
     lastLoggedArticleId.current = article.id;
+    if (!isDev && typeof window !== 'undefined') sessionStorage.setItem(sessionKey, '1');
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handleBeforeUnload = () => {
       const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
       logPageViewTime(
         article.title,
@@ -173,7 +180,6 @@ export function ArticleContent({
         userId,
         article.title
       );
-      e.preventDefault();
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -186,15 +192,8 @@ export function ArticleContent({
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      console.log('beforeunload');
-      logPageViewTime(
-        article.title,
-        article.id,
-        Date.now() - timeWhenPageOpened.current,
-        userId,
-        article.title
-      );
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.title, article.id, userId, qualtricsData?.responseId]);
 
   // Handle clicks within article content (links, images, etc.)
