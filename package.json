@@ -22,7 +22,8 @@
     "import-data:wait": "wait-on http://localhost:8080 && sleep 2 && npm run import-data",
     "prod": "next build && next start",
     "import-and-dev": "wait-on http://localhost:8080 && npm run import-data && next dev",
-    "env:setup": "node scripts/setupEnvFiles.js"
+    "env:setup": "node scripts/setupEnvFiles.js",
+    "deploy": "gh workflow run \"Merge Main to Prod (Advanced)\" --ref main -f confirm_merge=YES"
   },
   "dependencies": {
     "@analytics/google-analytics": "^1.1.0",
