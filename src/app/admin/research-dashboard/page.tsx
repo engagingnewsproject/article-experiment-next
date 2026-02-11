@@ -47,6 +47,7 @@ import { loadStudies, StudyDefinition, getStudyAliases, getStudyName, CODE_STUDI
 import DOMPurify from 'dompurify';
 import { collection, getDocs, orderBy, query, Timestamp, where, limit } from 'firebase/firestore';
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { BiRefresh } from 'react-icons/bi';
 
 interface LogEntry {
   parentId?: string;
@@ -169,6 +170,7 @@ export default function ResearchDashboard() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [comments, setComments] = useState<LocalComment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingLogs, setRefreshingLogs] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [studies, setStudies] = useState<StudyDefinition[]>([]);
   const [selectedDateRange, setSelectedDateRange] = useState('7');
@@ -397,7 +399,55 @@ export default function ResearchDashboard() {
       setLoading(false);
     }
   };
+  
+  /**
+   * Re-fetches only logs from Firestore and updates table + log-derived stats.
+   * Does not touch articles, comments, or other dashboard data.
+   */
+  const refreshLogsOnly = async () => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    try {
+      setRefreshingLogs(true);
+      const logsSnapshot = await getDocs(
+        query(collection(db, 'logs'), orderBy('timestamp', 'desc'))
+      );
+      const logsData = logsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as LogEntry[];
+      setLogs(logsData);
 
+      // Update only the stats that depend on logs
+      const uniqueUsers = new Set(logsData.map(log => log.userId)).size;
+      const actionsByType: Record<string, number> = {};
+      logsData.forEach(log => {
+        actionsByType[log.action] = (actionsByType[log.action] || 0) + 1;
+      });
+      const validDates = extractValidDates(logsData);
+      const dateRange = validDates.length > 0
+        ? {
+            earliest: new Date(Math.min(...validDates.map(d => d.getTime()))).toISOString(),
+            latest: new Date(Math.max(...validDates.map(d => d.getTime()))).toISOString()
+          }
+        : { earliest: '', latest: '' };
+
+      setStats(prev => prev ? {
+        ...prev,
+        totalLogs: logsData.length,
+        totalActions: logsData.length,
+        uniqueUsers,
+        dateRange,
+        actionsByType
+      } : null);
+    } catch (error) {
+      console.error('[Research Dashboard] Error refreshing logs:', error);
+      setLoadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRefreshingLogs(false);
+    }
+  };
+  
   const exportToCSV = (data: any[], filename: string) => {
     if (!data.length) return;
     const headers = Object.keys(data[0] || {});
@@ -1032,11 +1082,21 @@ export default function ResearchDashboard() {
               className="search-and-filters-section"
             />
             <div className="bg-white rounded-lg shadow">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <div>
+              <div className="flex flex-wrap md:flex-nowrap items-center justify-between p-6 border-b border-gray-200">
+                <div className='grow-0 md:grow'>
                   <h2 className="text-xl font-semibold">User Activity Logs</h2>
                   <p className="text-gray-600">Showing {filteredLogs.length} of {logs.length} entries</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => refreshLogsOnly()}
+                  disabled={loading || refreshingLogs}
+                  title="Refresh data from Firestore"
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Refresh data from Firestore"
+                >
+                  <BiRefresh className={`w-5 h-5 ${refreshingLogs ? 'animate-spin' : ''}`} />
+                </button>
                 <button
                   onClick={() => {
                     // Calculate date range from filtered logs
@@ -1058,7 +1118,7 @@ export default function ResearchDashboard() {
                       `${studyPrefix}filtered_logs_${dateRangeStr}.csv`
                     );
                   }}
-                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 md:ml-2"
                 >
                   Export Filtered Data
                 </button>
