@@ -153,15 +153,17 @@ export function ArticleContent({
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null);
 
-  // Log page view when component mounts (only once per article)
+  // Log page view when component mounts (only once per article).
+  // When embedded in Qualtrics, wait for qualtricsData.responseId so the page view is tied to the survey response.
   useEffect(() => {
-    // Only log once per article to prevent duplicates (e.g., when Qualtrics data arrives)
-    // If article changes, we want to log again
     if (lastLoggedArticleId.current === article.id) return;
-    
+
+    const inIframe = typeof window !== 'undefined' && window.parent !== window;
+    if (inIframe && !qualtricsData?.responseId) return; // wait for Qualtrics so dashboard can filter by QT Response ID
+
     timeWhenPageOpened.current = Date.now();
     lastLoggedArticleId.current = article.id;
-    
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
       logPageViewTime(
@@ -193,9 +195,7 @@ export function ArticleContent({
         article.title
       );
     };
-    // Only depend on article and userId, not on the logger callbacks (they change when Qualtrics data arrives)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [article.title, article.id, userId]);
+  }, [article.title, article.id, userId, qualtricsData?.responseId]);
 
   // Handle clicks within article content (links, images, etc.)
   const handleArticleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
