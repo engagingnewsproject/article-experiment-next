@@ -64,10 +64,16 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
     );
   }
 
-  let articleData = await getArticleBySlug(slug, studyId);
-  if (!articleData && studyId) {
-    articleData = await getArticleBySlug(slug, undefined);
-  }
+  // Fetch article and study defaults in parallel when possible (studyId from URL or default)
+  const studyIdForFetch = studyId ?? DEFAULT_STUDY_ID;
+  const [articleData, studyDefaultsFromParallel] = await Promise.all([
+    (async () => {
+      let data = await getArticleBySlug(slug, studyId);
+      if (!data && studyId) data = await getArticleBySlug(slug, undefined);
+      return data;
+    })(),
+    getStudyDefaults(studyIdForFetch),
+  ]);
 
   if (!articleData) {
     return <ArticleNotFound slug={slug} studyId={studyId} />;
@@ -80,9 +86,13 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
 
   const effectiveStudyId =
     studyId ?? (article as Article & { studyId?: string }).studyId ?? DEFAULT_STUDY_ID;
-  const studyDefaults: ArticleConfig = await getStudyDefaults(
-    typeof effectiveStudyId === 'string' ? effectiveStudyId : DEFAULT_STUDY_ID
-  );
+  // Use parallel-fetched defaults if they match; otherwise fetch for article’s study
+  const studyDefaults: ArticleConfig =
+    effectiveStudyId === studyIdForFetch
+      ? studyDefaultsFromParallel
+      : await getStudyDefaults(
+          typeof effectiveStudyId === 'string' ? effectiveStudyId : DEFAULT_STUDY_ID
+        );
 
   return (
     <Suspense fallback={<div className="p-4">Loading...</div>}>

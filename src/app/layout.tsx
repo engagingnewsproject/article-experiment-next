@@ -17,9 +17,9 @@
 import '@/styles/globals.css';
 import '@/styles/variables.css';
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { AdminClassManager } from './AdminClassManager';
 import { DevProjectIndicator } from '@/components/DevProjectIndicator';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 /**
  * Metadata configuration for the application.
@@ -54,26 +54,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Google Analytics Global Site Tag */}
-        <Script
-          strategy="afterInteractive"
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}`}
-        />
-        {/* Google Analytics Configuration */}
-        <Script
-          id="google-analytics"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}', {
-                page_path: window.location.pathname,
-              });
-            `,
-          }}
-        />
+        <GoogleAnalytics />
       </head>
       <body>
         <AdminClassManager />

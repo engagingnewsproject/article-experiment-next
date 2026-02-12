@@ -7,6 +7,7 @@
  * @module studies
  */
 
+import { cache } from 'react';
 import { getStudies as getFirestoreStudies, getStudy, type Study } from './firestore';
 import { defaultConfig, type ArticleConfig } from './config';
 
@@ -218,24 +219,14 @@ export function getStudyName(studyId: string): string {
 
 
 /**
- * Gets article defaults for a study.
- * 
- * Priority:
- * 1. Study document defaults (if stored in Firestore)
- * 2. Code-defined defaults for 'eonc' study
- * 3. General code-defined defaults
- * 
- * @param studyId - The study ID (canonical or alias)
- * @returns ArticleConfig with defaults for the study
+ * Gets article defaults for a study (uncached). Use getStudyDefaults for request-scoped caching.
  */
-export async function getStudyDefaults(studyId: string): Promise<ArticleConfig> {
+async function getStudyDefaultsUncached(studyId: string): Promise<ArticleConfig> {
   const normalizedId = normalizeStudyId(studyId);
-  
-  // Try to get study from Firestore
+
   try {
     const study = await getStudy(normalizedId);
-    
-    // If study has defaults stored, use those
+
     if (study && (study.author || study.pubdate || study.siteName)) {
       return {
         author: study.author || defaultConfig.author,
@@ -246,8 +237,20 @@ export async function getStudyDefaults(studyId: string): Promise<ArticleConfig> 
   } catch (error) {
     console.warn(`Failed to load study defaults for "${normalizedId}":`, error);
   }
-  
-  // Fall back to code-defined defaults (same for all studies, including eonc)
+
   return defaultConfig;
 }
+
+/**
+ * Gets article defaults for a study. Cached per request (React cache) to avoid duplicate Firestore reads.
+ *
+ * Priority:
+ * 1. Study document defaults (if stored in Firestore)
+ * 2. Code-defined defaults for 'eonc' study
+ * 3. General code-defined defaults
+ *
+ * @param studyId - The study ID (canonical or alias)
+ * @returns ArticleConfig with defaults for the study
+ */
+export const getStudyDefaults = cache(getStudyDefaultsUncached);
 
