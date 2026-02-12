@@ -1162,6 +1162,7 @@ export default function ResearchDashboard() {
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Time</th>
                       {/* <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">User</th> */}
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">QT Response ID</th>
+                      <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">IP Address</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Like</th>
                       <th className="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Share</th>
@@ -1181,11 +1182,11 @@ export default function ResearchDashboard() {
                             new Date(log.timestamp).toLocaleString()
                           }
                         </td>
-                        {/* <td className="user-column px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                          {log.userId}
-                        </td> */}
                         <td className="qt-response-id-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                           {log.qualtricsResponseId || '-'}
+                        </td>
+                        <td className="ip-address-column px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                          {log.ipAddress || '-'}
                         </td>
                         <td className="action-column px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
