@@ -45,7 +45,7 @@ export default function ArticlePageClient({
     'The Gazette Star';
 
   return (
-    <div className="max-w-4xl p-4 mx-auto" data-article-id={article?.id}>
+    <div className="max-w-5xl p-4 mx-auto" data-article-id={article?.id}>
       <Header siteName={siteName} />
       <Suspense fallback={<div className="p-4">Loading article content...</div>}>
         <ArticleClient
