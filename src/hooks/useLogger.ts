@@ -38,15 +38,15 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
   if (typeof window !== 'undefined') {
     const logKey = 'logger_init';
     if (!(window as any)[logKey]) {
-      console.log('[Logger] Initialized with:', {
-        articleStudyId,
-        urlStudyId,
-        effectiveStudyId,
-        qualtricsResponseId: qualtricsData?.responseId,
-        qualtricsSurveyId: qualtricsData?.surveyId,
-        qualtricsData: qualtricsData,
-        isEmbedded: window.parent !== window,
-      });
+      // console.log('[Logger] Initialized with:', {
+      //   articleStudyId,
+      //   urlStudyId,
+      //   effectiveStudyId,
+      //   qualtricsResponseId: qualtricsData?.responseId,
+      //   qualtricsSurveyId: qualtricsData?.surveyId,
+      //   qualtricsData: qualtricsData,
+      //   isEmbedded: window.parent !== window,
+      // });
       (window as any)[logKey] = true;
     }
   }
@@ -77,14 +77,14 @@ export function useLogger(qualtricsData: QualtricsData = {}, articleStudyId?: st
     };
     
     // Production-safe logging for debugging
-    console.log('[Logger] Logging event:', {
-      action,
-      label,
-      studyId: effectiveStudyId,
-      qualtricsResponseId: qualtricsData.responseId,
-      qualtricsData: qualtricsData,
-      identifier,
-    });
+    // console.log('[Logger] Logging event:', {
+    //   action,
+    //   label,
+    //   studyId: effectiveStudyId,
+    //   qualtricsResponseId: qualtricsData.responseId,
+    //   qualtricsData: qualtricsData,
+    //   identifier,
+    // });
     
     // Notify parent window of vote interactions (upvote/downvote)
     if (action === 'Upvote ' || action === 'Downvote ') {

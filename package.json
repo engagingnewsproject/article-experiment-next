@@ -33,6 +33,7 @@
     "dompurify": "^3.3.1",
     "firebase": "^10.8.0",
     "google-spreadsheet": "^4.1.4",
+    "isomorphic-dompurify": "^3.0.0-rc.2",
     "js-cookie": "^3.0.5",
     "next": "^14.2.35",
     "papaparse": "^5.5.3",

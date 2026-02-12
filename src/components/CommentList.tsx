@@ -20,7 +20,7 @@ import { CommentVoteSection } from "@/components/CommentVoteSection";
 import { useLogger } from '@/hooks/useLogger';
 import { type QualtricsData } from '@/hooks/useQualtrics';
 import { deleteComment, saveComment, type Comment } from "@/lib/firestore";
-import DOMPurify from "dompurify";
+import DOMPurify from 'isomorphic-dompurify';
 import React, { useState } from "react";
 import styles from "./Comments.module.css";
 

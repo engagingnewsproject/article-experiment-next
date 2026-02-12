@@ -44,7 +44,7 @@ import { signOut, getCurrentUser, onAuthChange } from '@/lib/auth';
 import { User } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 import { loadStudies, StudyDefinition, getStudyAliases, getStudyName, CODE_STUDIES } from '@/lib/studies';
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 import { collection, getDocs, orderBy, query, Timestamp, where, limit } from 'firebase/firestore';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { BiRefresh } from 'react-icons/bi';

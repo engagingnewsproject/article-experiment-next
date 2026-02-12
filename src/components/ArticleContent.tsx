@@ -25,7 +25,7 @@ import { useLogger } from '@/hooks/useLogger';
 import { type QualtricsData } from '@/hooks/useQualtrics';
 import { type ArticleTheme } from "@/lib/firestore";
 import { Article } from "@/types/article";
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from 'react';
 import styles from "./ArticleContent.module.css";
@@ -143,11 +143,11 @@ export function ArticleContent({
   const articleStudyId = article.studyId;
   
   // Debug: Log when Qualtrics data changes
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[ArticleContent] Qualtrics data updated:', qualtricsData);
-    }
-  }, [qualtricsData]);
+  // useEffect(() => {
+  //   if (process.env.NODE_ENV === 'development') {
+  //     console.log('[ArticleContent] Qualtrics data updated:', qualtricsData);
+  //   }
+  // }, [qualtricsData]);
   
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId);
   const timeWhenPageOpened = useRef<number>(Date.now());

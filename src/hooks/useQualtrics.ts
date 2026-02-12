@@ -32,11 +32,11 @@ export function useQualtrics() {
     // Function to process Qualtrics data
     const processQualtricsData = (data: any) => {
       // Production-safe logging for debugging
-      console.log('[useQualtrics] Received data:', data);
+      // console.log('[useQualtrics] Received data:', data);
       
       // Handle the new structured format
       if (data && data.type === 'QUALTRICS_DATA') {
-        console.log('[useQualtrics] Processing structured format:', data.payload);
+        // console.log('[useQualtrics] Processing structured format:', data.payload);
         setQualtricsData(data.payload);
       }
       // Handle the legacy format
@@ -46,21 +46,22 @@ export function useQualtrics() {
           surveyId: data.qualtricsSurveyId,
           embeddedData: data
         };
-        console.log('[useQualtrics] Processing legacy format, setting responseId:', processedData.responseId);
+        // console.log('[useQualtrics] Processing legacy format, setting responseId:', processedData.responseId);
         setQualtricsData(processedData);
-      } else if (data) {
-        console.log('[useQualtrics] Received data but no recognized format:', data);
-      }
+      } 
+      // else if (data) {
+      //   console.log('[useQualtrics] Received data but no recognized format:', data);
+      // }
     };
 
     // Listen for postMessage from Qualtrics
     const handleMessage = (event: MessageEvent) => {
       // Production-safe logging: Log all postMessage events to help diagnose
-      console.log('[useQualtrics] Received postMessage event:', {
-        origin: event.origin,
-        data: event.data,
-        source: event.source === window.parent ? 'parent' : 'other'
-      });
+      // console.log('[useQualtrics] Received postMessage event:', {
+      //   origin: event.origin,
+      //   data: event.data,
+      //   source: event.source === window.parent ? 'parent' : 'other'
+      // });
       
       // Optional: Add origin validation for security
       // if (event.origin !== 'https://your-qualtrics-domain.com') return;
@@ -79,15 +80,16 @@ export function useQualtrics() {
     
     // Request Qualtrics data from parent window if in iframe
     if (window.parent !== window) {
-      console.log('[useQualtrics] In iframe, requesting Qualtrics data from parent');
+      // console.log('[useQualtrics] In iframe, requesting Qualtrics data from parent');
       // Send a request to parent to resend the data (handles timing issues)
       setTimeout(() => {
         window.parent.postMessage({ type: 'REQUEST_QUALTRICS_DATA' }, '*');
-        console.log('[useQualtrics] Sent REQUEST_QUALTRICS_DATA to parent');
+        // console.log('[useQualtrics] Sent REQUEST_QUALTRICS_DATA to parent');
       }, 100);
-    } else {
-      console.log('[useQualtrics] Not in iframe (window.parent === window)');
-    }
+    } 
+    // else {
+    //   console.log('[useQualtrics] Not in iframe (window.parent === window)');
+    // }
 
     return () => {
       window.removeEventListener('message', handleMessage);
@@ -98,9 +100,9 @@ export function useQualtrics() {
   }, []);
 
   // Log when qualtricsData changes
-  useEffect(() => {
-    console.log('[useQualtrics] qualtricsData updated:', qualtricsData);
-  }, [qualtricsData]);
+  // useEffect(() => {
+  //   console.log('[useQualtrics] qualtricsData updated:', qualtricsData);
+  // }, [qualtricsData]);
 
   return { qualtricsData };
 }

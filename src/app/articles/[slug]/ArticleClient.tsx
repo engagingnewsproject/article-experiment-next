@@ -13,26 +13,31 @@ interface ArticleClientProps {
   article: Article;
   comments: Comment[];
   isAuthenticated?: boolean;
+  /** When provided (e.g. from server pre-fetch), skips client-side getStudyDefaults fetch */
+  studyDefaults?: ArticleConfig | null;
 }
 
-function ArticleContentWithParams({ article, comments, isAuthenticated }: ArticleClientProps) {
+function ArticleContentWithParams({ article, comments, isAuthenticated, studyDefaults: studyDefaultsProp }: ArticleClientProps) {
   const [userId, setUserId] = useState('anonymous')
-  const [studyDefaults, setStudyDefaults] = useState<ArticleConfig | null>(null);
+  const [studyDefaultsFetched, setStudyDefaultsFetched] = useState<ArticleConfig | null>(null);
   const searchParams = useSearchParams();
   let version = searchParams?.get('version') || '3';
   const explain_box = searchParams?.get('explain_box') || '';
   const author_bio = searchParams?.get('author_bio') || 'basic';
   const { qualtricsData } = useQualtrics();
   const { studyId } = useStudyId();
-  
-  // Load study defaults asynchronously
+  // Use server-provided studyDefaults when available; otherwise use client-fetched
+  const studyDefaults = studyDefaultsProp ?? studyDefaultsFetched;
+
+  // Load study defaults only when not provided by server (e.g. direct navigation to article)
   useEffect(() => {
+    if (studyDefaultsProp != null) return;
     async function loadDefaults() {
       const defaults = await getStudyDefaults(studyId);
-      setStudyDefaults(defaults);
+      setStudyDefaultsFetched(defaults);
     }
     loadDefaults();
-  }, [studyId]);
+  }, [studyId, studyDefaultsProp]);
   
   // Priority logic for authorName:
   // 1. If article.author?.name is undefined (field was deleted), don't show it (return empty string)
