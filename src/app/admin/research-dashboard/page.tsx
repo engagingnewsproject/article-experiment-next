@@ -623,7 +623,9 @@ export default function ResearchDashboard() {
         (log.label && log.label.toLowerCase().includes(searchLower)) ||
         (typeof log.details === 'string' && log.details.toLowerCase().includes(searchLower)) ||
         (log.url && log.url.toLowerCase().includes(searchLower)) ||
-        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower))
+        (log.qualtricsResponseId && log.qualtricsResponseId.toLowerCase().includes(searchLower)) ||
+        (log.ipAddress && log.ipAddress.toLowerCase().includes(searchLower)) ||
+        (log.timestamp && log.timestamp.toDate().toLocaleString().toLowerCase().includes(searchLower))
       );
     }
     return true;
@@ -1101,6 +1103,9 @@ export default function ResearchDashboard() {
                 ...(stats?.actionsByType ?? {}),
               }}
               actionCounts={filteredActionCounts}
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+              searchPlaceholder="Search logs"
               onClearFilters={() => {
                 setSelectedDateRange('7');
                 setCustomStartDate('');
@@ -1110,6 +1115,7 @@ export default function ResearchDashboard() {
                 setQtResponseIdFilter('');
                 setShowOnlyWithQtResponseId(false);
                 setShowArticleFilter(false);
+                setSearchTerm('');
               }}
               className="search-and-filters-section"
             />

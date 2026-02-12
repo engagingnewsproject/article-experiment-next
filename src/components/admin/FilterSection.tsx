@@ -108,7 +108,7 @@ export function FilterSection({
   className = '',
 }: FilterSectionProps) {
   const isLogsView = !!availableActions;
-  const isCommentsView = searchTerm !== undefined;
+  const isCommentsView = !!sortOptions;
 
   // Render different layouts for logs vs comments
   if (isCommentsView) {
@@ -299,6 +299,19 @@ export function FilterSection({
                     />
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {onSearchTermChange && (
+            <div>
+              <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white">
+                <TextInput 
+                  id="logs-search-input"
+                  value={searchTerm || ''}
+                  onChange={onSearchTermChange}
+                  placeholder={searchPlaceholder}
+                  label="Search"
+                />
               </div>
             </div>
           )}
