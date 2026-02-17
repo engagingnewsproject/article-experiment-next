@@ -156,9 +156,9 @@ export function ArticleContent({
 
   // Log page view once per article per session (survives remounts via sessionStorage).
   // When embedded in Qualtrics, wait for qualtricsData.responseId so the page view is tied to the survey response.
-  // Time spent: we log when the page becomes hidden (visibilitychange) so the async Firestore write can complete;
-  // beforeunload is a fallback when the tab is closed without ever going hidden.
-  // sessionStorage guard prevents duplicate logs when the component remounts (e.g. Qualtrics iframe) between the two events.
+  // Time spent: we log when (1) page becomes hidden, (2) tab closes (beforeunload), or (3) component unmounts (in-app nav).
+  // sessionStorage guard prevents duplicate logs when the component remounts (e.g. Qualtrics iframe) between events.
+  const MIN_TIME_SPENT_MS = 2000; // Only log if at least 2s on page (avoids noise from effect re-runs / quick dep changes).
   useEffect(() => {
     if (!article.id) return;
 
@@ -167,9 +167,10 @@ export function ArticleContent({
     const logTimeSpentOnce = (openedAt: number) => {
       if (timeSpentLogged.current) return;
       if (typeof window !== 'undefined' && sessionStorage.getItem(timeSpentStorageKey)) return;
+      const totalTimeSpentOnPage = Date.now() - openedAt;
+      if (totalTimeSpentOnPage < MIN_TIME_SPENT_MS) return;
       timeSpentLogged.current = true;
       if (typeof window !== 'undefined') sessionStorage.setItem(timeSpentStorageKey, '1');
-      const totalTimeSpentOnPage = Date.now() - openedAt;
       const seconds = Math.floor(totalTimeSpentOnPage / 1000);
       const minutes = Math.floor(seconds / 60);
       const remainingSec = seconds % 60;
@@ -190,6 +191,7 @@ export function ArticleContent({
       return () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('beforeunload', handleBeforeUnload);
+        logTimeSpentOnce(timeWhenPageOpened.current); // In-app nav: component unmounts without hidden/beforeunload
       };
     }
 
@@ -215,6 +217,7 @@ export function ArticleContent({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      logTimeSpentOnce(timeWhenPageOpened.current); // In-app nav: component unmounts without hidden/beforeunload
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.title, article.id, userId, qualtricsData?.responseId]);
