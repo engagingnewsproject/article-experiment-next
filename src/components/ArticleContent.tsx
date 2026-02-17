@@ -152,46 +152,73 @@ export function ArticleContent({
   const { logPageView, logPageViewTime, logClick, logComment } = useLogger(qualtricsData || {}, articleStudyId);
   const timeWhenPageOpened = useRef<number>(Date.now());
   const lastLoggedArticleId = useRef<string | null>(null);
+  const timeSpentLogged = useRef(false);
 
   // Log page view once per article per session (survives remounts via sessionStorage).
   // When embedded in Qualtrics, wait for qualtricsData.responseId so the page view is tied to the survey response.
-  // Time spent is logged only on real page unload (beforeunload), not on effect cleanup, to avoid 0m 0s from dep changes.
+  // Time spent: we log when the page becomes hidden (visibilitychange) so the async Firestore write can complete;
+  // beforeunload is a fallback when the tab is closed without ever going hidden.
   useEffect(() => {
-    if (lastLoggedArticleId.current === article.id) return;
+    if (!article.id) return;
 
     const inIframe = typeof window !== 'undefined' && window.parent !== window;
-    if (inIframe && !qualtricsData?.responseId) return; // wait for Qualtrics so dashboard can filter by QT Response ID
+    if (inIframe && !qualtricsData?.responseId) {
+      timeWhenPageOpened.current = Date.now();
+      timeSpentLogged.current = false;
+      const logTimeSpentOnce = () => {
+        if (timeSpentLogged.current) return;
+        timeSpentLogged.current = true;
+        const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
+        const seconds = Math.floor(totalTimeSpentOnPage / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSec = seconds % 60;
+        console.log('Time spent on page:', `${minutes}m ${remainingSec}s`, `(${totalTimeSpentOnPage}ms)`);
+        logPageViewTime(article.title, article.id, totalTimeSpentOnPage, userId, article.title);
+      };
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') logTimeSpentOnce();
+      };
+      const handleBeforeUnload = () => logTimeSpentOnce();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
 
     const sessionKey = `pageViewLogged_${article.id}_${qualtricsData?.responseId ?? 'standalone'}`;
-    // In dev, Strict Mode double-mounts and the first mount's async log can be dropped; skip sessionStorage so the second mount logs.
     const isDev = process.env.NODE_ENV === 'development';
-    if (!isDev && typeof window !== 'undefined' && sessionStorage.getItem(sessionKey)) return; // already logged this article+response this tab
-    
+    const alreadyLoggedPageView = !isDev && typeof window !== 'undefined' && sessionStorage.getItem(sessionKey);
+
+    if (!alreadyLoggedPageView) {
+      lastLoggedArticleId.current = article.id;
+      if (!isDev && typeof window !== 'undefined') sessionStorage.setItem(sessionKey, '1');
+      logPageView(article.title, article.id, userId, article.title);
+    }
+
     timeWhenPageOpened.current = Date.now();
-    lastLoggedArticleId.current = article.id;
-    if (!isDev && typeof window !== 'undefined') sessionStorage.setItem(sessionKey, '1');
-
-    const handleBeforeUnload = () => {
+    timeSpentLogged.current = false;
+    const logTimeSpentOnce = () => {
+      if (timeSpentLogged.current) return;
+      timeSpentLogged.current = true;
       const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
-      logPageViewTime(
-        article.title,
-        article.id,
-        totalTimeSpentOnPage,
-        userId,
-        article.title
-      );
+      const seconds = Math.floor(totalTimeSpentOnPage / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainingSec = seconds % 60;
+      console.log('Time spent on page:', `${minutes}m ${remainingSec}s`, `(${totalTimeSpentOnPage}ms)`);
+      logPageViewTime(article.title, article.id, totalTimeSpentOnPage, userId, article.title);
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    logPageView(
-      article.title,
-      article.id,
-      userId,
-      article.title
-    );
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') logTimeSpentOnce();
+    };
+    const handleBeforeUnload = () => logTimeSpentOnce();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.title, article.id, userId, qualtricsData?.responseId]);

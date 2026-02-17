@@ -11,7 +11,7 @@
  * @param {Article} props.article - The article data containing title and author information
  * @returns {JSX.Element} The article header layout
  */
-import { getSessionFromStorage } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 import { Article } from '@/types/article';
 import { useEffect, useState } from 'react';
 import styles from './ArticleHeader.module.css';
@@ -45,7 +45,7 @@ export function ArticleHeader({ article, onTitleClick }: ArticleHeaderProps) {
 const [isAuthenticated, setIsAuthenticated] = useState(false);
 
 useEffect(() => {
-  const session = getSessionFromStorage();
+  const session = getCurrentSession();
   setIsAuthenticated(!!(session && session.isAuthenticated));
 }, []);
   // Get author name and site name from article data

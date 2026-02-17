@@ -94,7 +94,7 @@ function AddArticleFormContent() {
     if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_USE_LIVE_FIRESTORE) {
       const dbSettings = (db as any)._delegate?._settings;
       const host = dbSettings?.host || 'unknown';
-      const isEmulator = host.includes('localhost') || host.includes('127.0.0.1') || host.includes(':8080');
+      const isEmulator = host.includes('localhost') || host.includes('article-experiment-next.localhost') || host.includes('127.0.0.1') || host.includes(':8080');
       
       if (!isEmulator) {
         console.error('❌ BLOCKED: Attempted to write to PRODUCTION Firestore in development!');

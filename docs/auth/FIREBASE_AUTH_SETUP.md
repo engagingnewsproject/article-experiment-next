@@ -93,8 +93,8 @@ Users can sign out by clicking the "Sign Out" button in the admin dashboard.
 
 2. **`src/lib/auth.ts`**
    - Completely rewritten to use Firebase Authentication
-   - Old functions maintained for backward compatibility
-   - New functions: `signIn()`, `signOut()`, `getCurrentUser()`, `onAuthChange()`
+   - Legacy wrapper `clearSession()` remains but is deprecated; use the Firebase Auth APIs below.
+   - Current API: `signIn()`, `signOut()`, `getCurrentUser()`, `getCurrentSession()`, `createSessionFromUser()`, `onAuthChange()`
 
 3. **`src/components/admin/ResearchDashboardLogin.tsx`**
    - Updated to use Firebase Auth `signIn()` function
@@ -109,13 +109,8 @@ Users can sign out by clicking the "Sign Out" button in the admin dashboard.
 
 ### Backward Compatibility
 
-The old auth functions are still available but deprecated:
-- `getSessionFromStorage()` - Now uses Firebase Auth state
-- `clearSession()` - Now calls Firebase `signOut()`
-- `createSession()` - Throws error (should use Firebase Auth)
-- `validateCredentials()` - Always returns false (should use Firebase Auth)
-
-Other files using these functions will continue to work, but should be updated to use the new Firebase Auth functions when possible.
+- `clearSession()` — still available but deprecated; use `signOut()` instead.
+- `getSessionFromStorage()` and `createSession()` have been removed; use `getCurrentSession()` and Firebase Auth `signIn()` respectively.
 
 ## Troubleshooting
 
