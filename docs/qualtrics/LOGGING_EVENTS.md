@@ -291,20 +291,17 @@ Every log entry in Firestore includes these fields:
 
 Currently, the following events are **actively being logged**:
 
-1. ✅ **Article Title Clicks** - When users click on the article title
-2. ✅ **Article Image Clicks** - When users click on images in article content
-3. ✅ **Article Link Clicks** - When users click links in article content
-4. ✅ **Like/Share Button Clicks** - When users click Like or Share buttons
-5. ✅ **Comment Submissions** - When users submit new comments
-6. ✅ **Reply Submissions** - When users reply to comments
-7. ✅ **Comment Upvotes** - When users upvote comments/replies
-8. ✅ **Comment Downvotes** - When users downvote comments/replies
-9. ✅ **Reveal Comments** - When users expand to see more comments
-
-The following events are **currently disabled** (commented out):
-
-1. ❌ **Page Views** - Article page loads
-2. ❌ **Time Spent** - Time spent on article page
+1. ✅ **Page Views** - Article page loads
+2. ✅ **Time Spent** - Time spent on article page (logged on page unload via `beforeunload`)
+3. ✅ **Article Title Clicks** - When users click on the article title
+4. ✅ **Article Image Clicks** - When users click on images in article content
+5. ✅ **Article Link Clicks** - When users click links in article content
+6. ✅ **Like/Share Button Clicks** - When users click Like or Share buttons
+7. ✅ **Comment Submissions** - When users submit new comments
+8. ✅ **Reply Submissions** - When users reply to comments
+9. ✅ **Comment Upvotes** - When users upvote comments/replies
+10. ✅ **Comment Downvotes** - When users downvote comments/replies
+11. ✅ **Reveal Comments** - When users expand to see more comments
 
 ## Qualtrics Integration
 
