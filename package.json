@@ -4,8 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "NEXT_PUBLIC_USE_LIVE_FIRESTORE=true NODE_ENV=development dotenv -e .env.dev -- next dev",
-    "dev:prod": "NEXT_PUBLIC_USE_LIVE_FIRESTORE=true NODE_ENV=development dotenv -e .env.prod -- next dev",
+    "dev": "NEXT_PUBLIC_USE_LIVE_FIRESTORE=true NODE_ENV=development dotenv -e .env.dev -- next dev -H article-experiment-next.localhost",
+    "dev:prod": "NEXT_PUBLIC_USE_LIVE_FIRESTORE=true NODE_ENV=development dotenv -e .env.prod -- next dev -H article-experiment-next.localhost",
     "dev:emulator": "sh scripts/dev.sh",
     "build": "next build",
     "start": "next start",
