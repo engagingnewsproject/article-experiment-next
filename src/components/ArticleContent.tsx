@@ -158,27 +158,33 @@ export function ArticleContent({
   // When embedded in Qualtrics, wait for qualtricsData.responseId so the page view is tied to the survey response.
   // Time spent: we log when the page becomes hidden (visibilitychange) so the async Firestore write can complete;
   // beforeunload is a fallback when the tab is closed without ever going hidden.
+  // sessionStorage guard prevents duplicate logs when the component remounts (e.g. Qualtrics iframe) between the two events.
   useEffect(() => {
     if (!article.id) return;
+
+    const timeSpentStorageKey = `timeSpentLogged_${article.id}_${qualtricsData?.responseId ?? 'standalone'}`;
+
+    const logTimeSpentOnce = (openedAt: number) => {
+      if (timeSpentLogged.current) return;
+      if (typeof window !== 'undefined' && sessionStorage.getItem(timeSpentStorageKey)) return;
+      timeSpentLogged.current = true;
+      if (typeof window !== 'undefined') sessionStorage.setItem(timeSpentStorageKey, '1');
+      const totalTimeSpentOnPage = Date.now() - openedAt;
+      const seconds = Math.floor(totalTimeSpentOnPage / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainingSec = seconds % 60;
+      console.log('Time spent on page:', `${minutes}m ${remainingSec}s`, `(${totalTimeSpentOnPage}ms)`);
+      logPageViewTime(article.title, article.id, totalTimeSpentOnPage, userId, article.title);
+    };
 
     const inIframe = typeof window !== 'undefined' && window.parent !== window;
     if (inIframe && !qualtricsData?.responseId) {
       timeWhenPageOpened.current = Date.now();
       timeSpentLogged.current = false;
-      const logTimeSpentOnce = () => {
-        if (timeSpentLogged.current) return;
-        timeSpentLogged.current = true;
-        const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
-        const seconds = Math.floor(totalTimeSpentOnPage / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const remainingSec = seconds % 60;
-        console.log('Time spent on page:', `${minutes}m ${remainingSec}s`, `(${totalTimeSpentOnPage}ms)`);
-        logPageViewTime(article.title, article.id, totalTimeSpentOnPage, userId, article.title);
-      };
       const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') logTimeSpentOnce();
+        if (document.visibilityState === 'hidden') logTimeSpentOnce(timeWhenPageOpened.current);
       };
-      const handleBeforeUnload = () => logTimeSpentOnce();
+      const handleBeforeUnload = () => logTimeSpentOnce(timeWhenPageOpened.current);
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('beforeunload', handleBeforeUnload);
       return () => {
@@ -199,20 +205,10 @@ export function ArticleContent({
 
     timeWhenPageOpened.current = Date.now();
     timeSpentLogged.current = false;
-    const logTimeSpentOnce = () => {
-      if (timeSpentLogged.current) return;
-      timeSpentLogged.current = true;
-      const totalTimeSpentOnPage = Date.now() - timeWhenPageOpened.current;
-      const seconds = Math.floor(totalTimeSpentOnPage / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const remainingSec = seconds % 60;
-      console.log('Time spent on page:', `${minutes}m ${remainingSec}s`, `(${totalTimeSpentOnPage}ms)`);
-      logPageViewTime(article.title, article.id, totalTimeSpentOnPage, userId, article.title);
-    };
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') logTimeSpentOnce();
+      if (document.visibilityState === 'hidden') logTimeSpentOnce(timeWhenPageOpened.current);
     };
-    const handleBeforeUnload = () => logTimeSpentOnce();
+    const handleBeforeUnload = () => logTimeSpentOnce(timeWhenPageOpened.current);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 

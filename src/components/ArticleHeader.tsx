@@ -66,7 +66,6 @@ useEffect(() => {
         <h2 
           className={styles.title}
           onClick={onTitleClick}
-          style={onTitleClick ? { cursor: 'pointer' } : undefined}
         >
           {article.title}
         </h2>
