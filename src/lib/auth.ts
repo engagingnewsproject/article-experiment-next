@@ -127,40 +127,6 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
 // These maintain the same interface as the old password-based auth
 
 /**
- * @deprecated Use signIn() instead. This is kept for backward compatibility.
- */
-export function validateCredentials(password: string, email: string): boolean {
-  // This function is no longer used with Firebase Auth
-  // Always return false to force use of Firebase Auth flow
-  return false;
-}
-
-/**
- * @deprecated Use createSessionFromUser() instead. This is kept for backward compatibility.
- */
-export function createSession(email: string): AuthSession {
-  // This should not be called directly anymore
-  // Firebase Auth handles session creation
-  throw new Error('createSession() is deprecated. Use Firebase Auth signIn() instead.');
-}
-
-/**
- * @deprecated Use getCurrentSession() instead. This is kept for backward compatibility.
- */
-export function getSessionFromStorage(): AuthSession | null {
-  // Check Firebase Auth state instead of localStorage
-  return getCurrentSession();
-}
-
-/**
- * @deprecated No longer needed with Firebase Auth. This is kept for backward compatibility.
- */
-export function saveSessionToStorage(session: AuthSession): void {
-  // Firebase Auth handles session persistence automatically
-  // This is a no-op for backward compatibility
-}
-
-/**
  * Clears the current authentication session by signing out.
  * 
  * @deprecated Use signOut() instead. This is kept for backward compatibility.

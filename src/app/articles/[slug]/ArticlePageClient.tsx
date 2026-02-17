@@ -7,7 +7,7 @@
  */
 
 import { Header } from '@/components/Header';
-import { getSessionFromStorage } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 import type { Article, Comment } from '@/lib/firestore';
 import type { ArticleConfig } from '@/lib/config';
 import { Suspense, useEffect, useState } from 'react';
@@ -29,7 +29,7 @@ export default function ArticlePageClient({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const session = getSessionFromStorage();
+    const session = getCurrentSession();
     setIsAuthenticated(!!(session && session.isAuthenticated));
   }, []);
 
