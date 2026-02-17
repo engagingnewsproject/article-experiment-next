@@ -137,6 +137,8 @@ npm run dev:emulator  # or npm run dev
 
 ## Installation and Running
 
+`npm run dev`
+
 ### Prerequisites
 
 - Node.js (v18 or higher)
@@ -218,6 +220,8 @@ npm test
 - Use CSS variables for theming
 
 ## Deployment
+
+`npm run deploy`
 
 ### Branch Management
 
