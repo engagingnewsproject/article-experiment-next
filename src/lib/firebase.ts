@@ -80,7 +80,7 @@ export const auth = getAuth(app);
 // When NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST is set (e.g. by npm run dev:emulator), we ONLY use the emulator.
 const isDevelopmentEnv = process.env.NODE_ENV === 'development';
 const isLocalhost = typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  (window.location.hostname === 'localhost' || window.location.hostname === 'article-experiment-next.localhost' || window.location.hostname === '127.0.0.1');
 const isDevelopment = isDevelopmentEnv || isLocalhost;
 const emulatorHost = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST ?? '';
 const emulatorExplicitlySet = /^localhost(:\d+)?$|^127\.0\.0\.1(:\d+)?$/.test(emulatorHost.trim());

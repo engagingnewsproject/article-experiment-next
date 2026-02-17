@@ -21,7 +21,7 @@ export default function AdminPage() {
     }
     
     const hostname = window.location.hostname;
-    const isDev = hostname.includes('dev--') || hostname === 'localhost' || hostname === '127.0.0.1';
+    const isDev = hostname.includes('dev--') || hostname === 'localhost' || hostname === 'article-experiment-next.localhost' || hostname === '127.0.0.1';
     
     if (isDev) {
       return 'https://console.firebase.google.com/u/0/project/article-experiment-next-dev/firestore/databases/-default-/data/~2Farticles';
